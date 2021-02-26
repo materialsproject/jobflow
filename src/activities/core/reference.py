@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Any
+from typing import Any, Optional, Tuple
 from uuid import UUID
 
 from monty.json import MSONable
@@ -13,7 +13,7 @@ class Reference(MSONable):
     attributes: Optional[Tuple[Any]] = tuple()
 
     def __getitem__(self, item) -> "Reference":
-        return Reference(self.uuid, self.name, self.attributes + (item, ))
+        return Reference(self.uuid, self.name, self.attributes + (item,))
 
     def __str__(self):
         if len(self.attributes) > 0:
@@ -28,7 +28,7 @@ class Reference(MSONable):
 
     def __eq__(self, other: "Reference") -> bool:
         return (
-            self.uuid == other.uuid and
-            self.name == other.name and
-            self.attributes == other.attributes
+            self.uuid == other.uuid
+            and self.name == other.name
+            and self.attributes == other.attributes
         )

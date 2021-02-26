@@ -1,13 +1,15 @@
 """Define base Activity object."""
 
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Union, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Union
 from uuid import UUID, uuid4
 
-from activities.core import HasInputOutput
-from activities.outputs import Outputs
-from activities.reference import Reference
-from activities.task import Task
+from networkx import DiGraph
+
+from activities.core.base import HasInputOutput
+from activities.core.outputs import Outputs
+from activities.core.reference import Reference
+from activities.core.task import Task
 
 
 @dataclass
@@ -42,7 +44,7 @@ class Activity(HasInputOutput):
 
     @property
     def task_type(self) -> str:
-        return "activity" if isinstance(self, Activity) else "task"
+        return "activity" if isinstance(self.tasks[0], Activity) else "task"
 
     @property
     def contains_activities(self) -> bool:
@@ -65,28 +67,37 @@ class Activity(HasInputOutput):
         return self.output_sources.references
 
     @property
-    def activity_graph(self):
-        from activities.graph import activity_output_graph, activity_input_graph
+    def activity_graph(self) -> DiGraph:
         import networkx as nx
+
+        from activities.core.graph import activity_input_graph, activity_output_graph
 
         if self.contains_activities:
             graph = activity_output_graph(self)
             activity_graphs = [task.activity_graph for task in self.tasks]
             return nx.compose_all(activity_graphs + [graph])
-
         else:
             return activity_input_graph(self)
 
     @property
-    def task_graph(self):
-        from activities.graph import activity_output_graph, task_graph
+    def task_graph(self) -> DiGraph:
         import networkx as nx
+
+        from activities.core.graph import activity_output_graph, task_graph
 
         if self.contains_activities:
             graph = activity_output_graph(self)
             activity_graphs = [activity.task_graph for activity in self.tasks]
             return nx.compose_all(activity_graphs + [graph])
-
         else:
             return task_graph(self)
 
+    def iteractivity(self):
+        from activities.core.graph import itergraph
+
+        graph = self.activity_graph
+        for node in itergraph(graph):
+            parents = [u for u, v in graph.in_edges(node)]
+            activity = graph.nodes[node]["object"]
+
+            yield activity, parents

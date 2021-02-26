@@ -1,4 +1,4 @@
-from typing import Hashable, Dict, Any, Tuple, List, Union, Iterable
+from typing import Any, Dict, Hashable, List, Tuple, Union
 
 
 def find_key_value(
@@ -51,4 +51,3 @@ def find_key_value(
 
     _lookup(d)
     return tuple(found_items)
-

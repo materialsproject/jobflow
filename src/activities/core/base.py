@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, Dict
+from typing import Dict, Tuple
 from uuid import UUID
 
-from activities.reference import Reference
+from activities.core.reference import Reference
 
 
 class HasInputOutput(ABC):
-
     @property
     @abstractmethod
     def input_references(self) -> Tuple[Reference, ...]:

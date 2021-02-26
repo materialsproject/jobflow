@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
-from typing import Optional, Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 from uuid import UUID, uuid4
 
-from monty.json import MSONable, MontyEncoder
+from monty.json import MontyEncoder, MSONable
 
-from activities.core import HasInputOutput
-from activities.outputs import Outputs
-from activities.reference import Reference
+from activities.core.base import HasInputOutput
+from activities.core.outputs import Outputs
+from activities.core.reference import Reference
 
 
 def task(method=None, outputs=None):
@@ -19,8 +19,9 @@ def task(method=None, outputs=None):
         def get_task(*args, **kwargs) -> Task:
             module = func.__module__
             name = func.__name__
-            return Task(function=(module, name), outputs=outputs, args=args,
-                        kwargs=kwargs)
+            return Task(
+                function=(module, name), outputs=outputs, args=args, kwargs=kwargs
+            )
 
         return get_task
 
@@ -50,7 +51,7 @@ class Task(HasInputOutput, MSONable):
             function=self.function,
             args=args,
             kwargs=kwargs,
-            outputs=self.outputs.reference(self.uuid)
+            outputs=self.outputs.reference(self.uuid),
         )
 
     @property
@@ -72,9 +73,11 @@ class Task(HasInputOutput, MSONable):
 
 
 def find_references(arg: Any) -> Tuple[Reference, ...]:
-    from activities.util import find_key_value
-    from pydash import get
     import json
+
+    from pydash import get
+
+    from activities.core.util import find_key_value
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
@@ -92,9 +95,3 @@ def find_references(arg: Any) -> Tuple[Reference, ...]:
 
     # deserialize references and return
     return tuple([Reference.from_dict(get(arg, loc)) for loc in locations])
-
-
-
-
-
-

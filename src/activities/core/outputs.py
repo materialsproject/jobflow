@@ -4,14 +4,14 @@ from uuid import UUID, uuid4
 
 from monty.json import MSONable
 
-from activities.reference import Reference
+from activities.core.reference import Reference
 
 
 class Outputs(ABC, MSONable):
-
     @property
     def references(self) -> Tuple[Reference, ...]:
         from inspect import signature
+
         sig = signature(self.__class__)
 
         references = []
@@ -27,6 +27,7 @@ class Outputs(ABC, MSONable):
     @classmethod
     def reference(cls, uuid: Optional[UUID] = None) -> "Outputs":
         from inspect import signature
+
         sig = signature(cls)
 
         if uuid is None:
@@ -37,5 +38,3 @@ class Outputs(ABC, MSONable):
             references[name] = Reference(uuid, name)
 
         return cls(**references)
-
-
