@@ -10,3 +10,19 @@ def test_database():
 def output_store(test_database):
     from maggma.stores import MongoStore
     return MongoStore(test_database, "activity_outputs")
+
+
+@pytest.fixture
+def clean_dir():
+    import os
+    import tempfile
+    import shutil
+
+    old_cwd = os.getcwd()
+    newpath = tempfile.mkdtemp()
+    os.chdir(newpath)
+
+    yield
+
+    os.chdir(old_cwd)
+    shutil.rmtree(newpath)

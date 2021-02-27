@@ -95,7 +95,7 @@ class Task(HasInputOutput, MSONable):
         if function is None:
             raise ValueError(f"Could not import {function} from {module}")
 
-        # strop the wrapper so we can call the actual function
+        # strip the wrapper so we can call the actual function
         function = function.__wrapped__
 
         args, kwargs = resolve_args(
