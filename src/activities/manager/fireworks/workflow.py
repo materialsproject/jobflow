@@ -15,7 +15,7 @@ def activity_to_workflow(activity: Activity) -> Workflow:
             and activity.outputs is None
         ):
             # activity is a container only so we don't need to do anything
-            pass
+            continue
 
         # todo handle activities with no parents and no outputs but containing tasks
 
