@@ -101,7 +101,7 @@ def resolve_references(
     return resolved_references
 
 
-def find_reference_locations(arg: Union[Sequence, Dict]) -> Tuple[List[Any, ...], ...]:
+def find_reference_locations(arg: Union[Sequence, Dict]) -> Tuple[List[Any], ...]:
     import json
 
     from activities.core.util import find_key_value
@@ -157,7 +157,9 @@ def find_and_resolve_references(
 
     # resolve the references
     references = [Reference.from_dict(get(arg, loc)) for loc in locations]
-    resolved_references = resolve_references(references)
+    resolved_references = resolve_references(
+        references, output_store=output_store, output_cache=output_cache
+    )
 
     # replace the references in the arg dict
     for location, reference in zip(locations, references):

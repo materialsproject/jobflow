@@ -1,7 +1,7 @@
 """Define base Activity object."""
-
+import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union, Generator
 from uuid import UUID, uuid4
 
 from maggma.core import Store
@@ -12,6 +12,8 @@ from activities.core.base import HasInputOutput
 from activities.core.outputs import Outputs
 from activities.core.reference import Reference
 from activities.core.task import Task
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -94,7 +96,7 @@ class Activity(HasInputOutput, MSONable):
         else:
             return task_graph(self)
 
-    def iteractivity(self):
+    def iteractivity(self) -> Generator[Tuple["Activity", Sequence[UUID]], None, None]:
         from activities.core.graph import itergraph
 
         graph = self.activity_graph
@@ -109,14 +111,17 @@ class Activity(HasInputOutput, MSONable):
         output_store: Optional[Store] = None,
         output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
     ) -> "ActivityResponse":
+        logger.info(f"Starting activity - {self.name} ({self.uuid})")
+
         # note this only executes the tasks associated with this activity and doesn't
         # run subactivities. If want to excute the full activity tree you should
         # call the run methods of the activities returned by activity.iteractivity()
         if self.contains_activities and self.outputs is None:
+            logger.info(f"Activity has no outputs and no tasks, skipping...")
             # nothing to do here
             return ActivityResponse()
 
-        output_cache = output_cache or {}
+        output_cache = output_cache if output_cache is not None else {}
         if self.contains_activities:
             # output sources are from other activities; these should be stored in the
             # output store. Resolve them and store the activity outputs in the DB.
@@ -156,13 +161,16 @@ class Activity(HasInputOutput, MSONable):
                 # what should we do if response.detour is not None also?
                 pass
 
-        outputs = self.output_sources.resolve(
-            output_store=output_store, output_cache=output_cache
-        )
+        if self.output_sources:
+            outputs = self.output_sources.resolve(
+                output_store=output_store, output_cache=output_cache
+            )
+            cache_outputs(self.uuid, outputs, output_cache)
 
-        if output_store:
-            outputs.to_db(output_store, self.uuid)
+            if output_store:
+                outputs.to_db(output_store, self.uuid)
 
+        logger.info(f"Finished activity - {self.name} ({self.uuid})")
         return ActivityResponse()
 
 

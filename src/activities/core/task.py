@@ -1,3 +1,4 @@
+import logging
 import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, Hashable, Optional, Sequence, Tuple
@@ -13,6 +14,8 @@ from activities.core.reference import (
     find_and_resolve_references,
     find_references,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def task(method=None, outputs=None):
@@ -84,6 +87,7 @@ class Task(HasInputOutput, MSONable):
         output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
     ) -> "TaskResponse":
         from importlib import import_module
+        logger.info(f"Starting task - {self.function[1]} ({self.uuid})")
 
         module = import_module(self.function[0])
         function = getattr(module, self.function[1], None)
@@ -91,11 +95,17 @@ class Task(HasInputOutput, MSONable):
         if function is None:
             raise ValueError(f"Could not import {function} from {module}")
 
+        # strop the wrapper so we can call the actual function
+        function = function.__wrapped__
+
         args, kwargs = resolve_args(
             self.args, self.kwargs, output_store=output_store, output_cache=output_cache
         )
         all_returned_data = function(*args, **kwargs)
-        return TaskResponse.from_task_returns(all_returned_data, type(self.outputs))
+        response = TaskResponse.from_task_returns(all_returned_data, type(self.outputs))
+
+        logger.info(f"Finished task - {self.function[1]} ({self.uuid})")
+        return response
 
 
 def resolve_args(
@@ -103,7 +113,7 @@ def resolve_args(
     kwargs: Dict[str, Any],
     output_store: Optional[MaggmaStore] = None,
     output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
-) -> Tuple[Sequence[Any, ...], Dict[str, Any]]:
+) -> Tuple[Sequence[Any], Dict[str, Any]]:
     resolved_args = []
     for arg in args:
         resolved_arg = find_and_resolve_references(
@@ -125,16 +135,14 @@ class Store:
 
 @dataclass
 class Detour:
-    from activities.core.activity import Activity
 
-    activity: Activity
+    activity: "Activity"
 
 
 @dataclass
 class Restart:
-    from activities.core.activity import Activity
 
-    activity: Activity
+    activity: "Activity"
 
 
 @dataclass
@@ -144,12 +152,11 @@ class Exit:
 
 @dataclass
 class TaskResponse:
-    # TODO: Consider merging this with TaskResponse
-    from activities.core.activity import Activity
+    # TODO: Consider merging this with ActivityResponse
 
     outputs: Optional[Outputs] = None
-    detour: Optional[Activity] = None
-    restart: Optional[Activity] = None
+    detour: Optional["Activity"] = None
+    restart: Optional["Activity"] = None
     store: Optional[Dict[str, Any]] = None
     exit: bool = False
 
@@ -180,13 +187,12 @@ class TaskResponse:
 
         task_response_data = {}
         for return_type, data in to_parse.items():
-            data = data[0]
-
             if len(data) > 1:
                 raise ValueError(
                     f"Only one {return_type} object can be returned per task."
                 )
 
+            data = data[0]
             if return_type == Outputs and task_output_class is None:
                 warnings.warn(
                     "Task returned outputs but none were expected. "
@@ -198,7 +204,7 @@ class TaskResponse:
                         f"Output class returned by task {type(data)} does "
                         f"not match expected output class {task_output_class}."
                     )
-                task_response_data["output"] = data
+                task_response_data["outputs"] = data
 
             elif return_type == Store:
                 task_response_data["store"] = data.data
