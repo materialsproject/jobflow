@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Hashable, List, Tuple, Union
 
 
@@ -51,3 +52,24 @@ def find_key_value(
 
     _lookup(d)
     return tuple(found_items)
+
+
+def initialize_logger(level: int = logging.INFO) -> logging.Logger:
+    """Initialize the default logger.
+
+    Args:
+        level: The log level.
+
+    Returns:
+        A logging instance with customized formatter and handlers.
+    """
+    import sys
+    log = logging.getLogger("activities")
+    log.setLevel(level)
+    log.handlers = []  # reset logging handlers if they already exist
+
+    fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    screen_handler = logging.StreamHandler(stream=sys.stdout)
+    screen_handler.setFormatter(fmt)
+    log.addHandler(screen_handler)
+    return log
