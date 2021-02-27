@@ -1,9 +1,14 @@
 from fireworks.core.firework import Firework, Workflow
+from maggma.core import Store
 
 from activities.core.activity import Activity
+from activities.managers.fireworks.firetask import ActivityFiretask
 
 
-def activity_to_workflow(activity: Activity) -> Workflow:
+def activity_to_workflow(
+    activity: Activity,
+    output_store: Store
+) -> Workflow:
     # TODO: handle activity config and metadata
 
     parent_map = {}
@@ -15,11 +20,14 @@ def activity_to_workflow(activity: Activity) -> Workflow:
             and activity.outputs is None
         ):
             # activity is a container only so we don't need to do anything
+            # as the activity has no outputs this implies that it will have no children
             continue
 
         # todo handle activities with no parents and no outputs but containing tasks
 
-        activity_firetask = get_activity_firetask(activity)
+        activity_firetask = ActivityFiretask(
+            activity=activity, output_store=output_store
+        )
         parents = [parent_map[parent] for parent in parents]
         fw = Firework(tasks=[activity_firetask], parents=parents, name=activity.name)
 
