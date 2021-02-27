@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 
-from activities import Activity
-from activities import Outputs
-from activities import task
-from activities.core.util import initialize_logger
+from activities import Activity, Outputs, task, initialize_logger
 from activities.managers.local import run_activity_locally
 
 
