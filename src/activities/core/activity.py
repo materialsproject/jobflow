@@ -1,9 +1,11 @@
 """Define base Activity object."""
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from uuid import UUID, uuid4
 
+from maggma.core import Store
+from monty.json import MSONable
 from networkx import DiGraph
 
 from activities.core.base import HasInputOutput
@@ -13,7 +15,7 @@ from activities.core.task import Task
 
 
 @dataclass
-class Activity(HasInputOutput):
+class Activity(HasInputOutput, MSONable):
 
     name: str
     tasks: Union[Sequence["Activity"], Sequence[Task]]
@@ -40,7 +42,7 @@ class Activity(HasInputOutput):
 
         if self.outputs is not None:
             self.output_sources = self.outputs
-            self.outputs = self.outputs.reference(self.uuid)
+            self.outputs = self.outputs.to_reference(self.uuid)
 
     @property
     def task_type(self) -> str:
@@ -101,3 +103,82 @@ class Activity(HasInputOutput):
             activity = graph.nodes[node]["object"]
 
             yield activity, parents
+
+    def run(
+        self,
+        output_store: Optional[Store] = None,
+        output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+    ) -> "ActivityResponse":
+        # note this only executes the tasks associated with this activity and doesn't
+        # run subactivities. If want to excute the full activity tree you should
+        # call the run methods of the activities returned by activity.iteractivity()
+        if self.contains_activities and self.outputs is None:
+            # nothing to do here
+            return ActivityResponse()
+
+        output_cache = output_cache or {}
+        if self.contains_activities:
+            # output sources are from other activities; these should be stored in the
+            # output store. Resolve them and store the activity outputs in the DB.
+            outputs = self.output_sources.resolve(
+                output_store=output_store, output_cache=output_cache
+            )
+            cache_outputs(self.uuid, outputs, output_cache)
+
+            if output_store:
+                outputs.to_db(output_store, self.uuid)
+
+            return ActivityResponse()
+
+        # we have an activity of tasks, run tasks in sequential order
+        for i, task in enumerate(self.tasks):  # type: Task
+            response = task.run(output_store, output_cache)
+
+            if response.outputs is not None:
+                cache_outputs(task.uuid, response.outputs, output_cache)
+
+            if response.store is not None:
+                # add the stored data to the activity response
+                pass
+
+            if response.exit is not None:
+                # need controls for cancelling current activity or full workflow
+                pass
+
+            if response.detour is not None:
+                # put remaining tasks into new activity; resolve all outputs
+                # so far calculated, and add the new activity at the end of the detour
+                pass
+
+            if response.restart is not None:
+                # cancel remaining tasks, resubmit restart using the same activity
+                # id but increment the run index
+                # what should we do if response.detour is not None also?
+                pass
+
+        outputs = self.output_sources.resolve(
+            output_store=output_store, output_cache=output_cache
+        )
+
+        if output_store:
+            outputs.to_db(output_store, self.uuid)
+
+        return ActivityResponse()
+
+
+def cache_outputs(uuid: UUID, outputs: Outputs, cache: Dict[UUID, Dict[str, Any]]):
+    for name, output in outputs.items():
+        if uuid not in cache:
+            cache[uuid] = {}
+
+        cache[uuid][name] = output
+
+
+@dataclass
+class ActivityResponse:
+    # TODO: Consider merging this with TaskResponse
+
+    detour: Optional[Activity] = None
+    restart: Optional[Activity] = None
+    store: Optional[Dict[str, Any]] = None
+    exit: bool = False
