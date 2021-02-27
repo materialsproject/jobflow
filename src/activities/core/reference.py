@@ -82,6 +82,7 @@ def resolve_references(
 
     resolved_references = {}
     for uuid, references in groupby(references, key=lambda x: x.uuid):
+        references = list(references)
         if output_store:
             if uuid in output_cache:
                 missing_properties = [
@@ -93,7 +94,8 @@ def resolve_references(
             activity_outputs = output_store.query_one(
                 {"uuid": str(uuid)}, properties=missing_properties
             )
-            output_cache[uuid] = activity_outputs
+            if activity_outputs is not None:
+                output_cache[uuid].update(activity_outputs)
 
         for ref in references:
             resolved_references[ref] = ref.resolve(output_cache=output_cache)

@@ -25,7 +25,7 @@ class Activity(HasInputOutput, MSONable):
     host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
     config: Dict = field(default_factory=dict)
-    output_sources: Optional[Outputs] = field(default=None, init=False)
+    output_sources: Optional[Outputs] = field(default=None)
 
     def __post_init__(self):
         task_types = set(map(type, self.tasks))
@@ -42,7 +42,7 @@ class Activity(HasInputOutput, MSONable):
                     )
                 task.host = self.uuid
 
-        if self.outputs is not None:
+        if self.outputs is not None and self.output_sources is None:
             self.output_sources = self.outputs
             self.outputs = self.outputs.to_reference(self.uuid)
 
@@ -103,7 +103,6 @@ class Activity(HasInputOutput, MSONable):
         for node in itergraph(graph):
             parents = [u for u, v in graph.in_edges(node)]
             activity = graph.nodes[node]["object"]
-
             yield activity, parents
 
     def run(

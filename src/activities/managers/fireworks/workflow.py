@@ -13,7 +13,7 @@ def activity_to_workflow(
 
     parent_map = {}
     fireworks = []
-    for i, (activity, parents) in activity.iteractivity():
+    for activity, parents in activity.iteractivity():
         if (
             activity.contains_activities
             and len(parents) == 0
@@ -28,7 +28,8 @@ def activity_to_workflow(
         activity_firetask = ActivityFiretask(
             activity=activity, output_store=output_store
         )
-        parents = [parent_map[parent] for parent in parents]
+
+        parents = [parent_map[parent] for parent in parents] if parents else None
         fw = Firework(tasks=[activity_firetask], parents=parents, name=activity.name)
 
         fireworks.append(fw)
