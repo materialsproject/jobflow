@@ -1,7 +1,8 @@
 """Define base Activity object."""
 import logging
+import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Sequence, Tuple, Union, Generator
+from typing import Any, Dict, Optional, Sequence, Tuple, Union, Generator, List
 from uuid import UUID, uuid4
 
 from maggma.core import Store
@@ -29,14 +30,14 @@ class Activity(HasInputOutput, MSONable):
 
     def __post_init__(self):
         task_types = set(map(type, self.tasks))
-        if len(task_types) != 1:
+        if len(task_types) > 1:
             raise ValueError(
                 "Activity tasks must either be all Task objects or all Activity objects"
             )
 
         if self.contains_activities:
             for task in self.tasks:
-                if task.host is not None:
+                if task.host is not None and task.host != self.uuid:
                     raise ValueError(
                         f"Subactivity {task} already belongs to another activity"
                     )
@@ -48,7 +49,11 @@ class Activity(HasInputOutput, MSONable):
 
     @property
     def task_type(self) -> str:
-        return "activity" if isinstance(self.tasks[0], Activity) else "task"
+        if len(self.tasks) < 1:
+            # this is just a ToOutputs container task, probably from a detour.
+            return "task"
+        else:
+            return "activity" if isinstance(self.tasks[0], Activity) else "task"
 
     @property
     def contains_activities(self) -> bool:
@@ -134,25 +139,31 @@ class Activity(HasInputOutput, MSONable):
 
             return ActivityResponse()
 
-        # we have an activity of tasks, run tasks in sequential order
-        for i, task in enumerate(self.tasks):  # type: Task
-            response = task.run(output_store, output_cache)
+        activity_response = ActivityResponse()
 
-            if response.outputs is not None:
-                cache_outputs(task.uuid, response.outputs, output_cache)
+        # we have an activity of tasks, run tasks in sequential order
+        for i, task in enumerate(self.tasks):  # type: int, Task
+            response = task.run(output_store, output_cache)
 
             if response.store is not None:
                 # add the stored data to the activity response
-                pass
-
-            if response.exit is not None:
-                # need controls for cancelling current activity or full workflow
-                pass
+                activity_response.store.update(response.store)
 
             if response.detour is not None:
                 # put remaining tasks into new activity; resolve all outputs
                 # so far calculated, and add the new activity at the end of the detour
-                pass
+                activity_response.detour = create_detour_activities(
+                    task.uuid,
+                    i,
+                    response.detour,
+                    self,
+                    output_store=output_store,
+                    output_cache=output_cache,
+                )
+                break
+
+            if response.outputs is not None:
+                cache_outputs(task.uuid, response.outputs, output_cache)
 
             if response.restart is not None:
                 # cancel remaining tasks, resubmit restart using the same activity
@@ -160,7 +171,19 @@ class Activity(HasInputOutput, MSONable):
                 # what should we do if response.detour is not None also?
                 pass
 
-        if self.output_sources:
+            if response.stop_children:
+                activity_response.stop_children = True
+
+            if response.stop_activities:
+                activity_response.stop_activities = True
+
+            if response.stop_tasks:
+                logging.warning(
+                    "Stopping subsequent tasks. This may break output references."
+                )
+                break
+
+        if self.output_sources and not activity_response.detour:
             outputs = self.output_sources.resolve(
                 output_store=output_store, output_cache=output_cache
             )
@@ -170,7 +193,45 @@ class Activity(HasInputOutput, MSONable):
                 outputs.to_db(output_store, self.uuid)
 
         logger.info(f"Finished activity - {self.name} ({self.uuid})")
-        return ActivityResponse()
+        return activity_response
+
+
+def create_detour_activities(
+    task_uuid: UUID,
+    task_index: int,
+    detour_activity: Activity,
+    original_activity: Activity,
+    output_store: Optional[Store] = None,
+    output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+):
+    # put remaining tasks into new activity; resolve all outputs
+    # so far calculated, and add the new activity at the end of the detour
+    # when detouring we have to make 2 new activities:
+    # 1. The actual detoured activity as returned by the Task but with the
+    #    UUID set to the UUID of the task that generated it (so that its references)
+    #    can be resolved.
+    # 2. An activity with the same UUID as the generating Activity, with any remaining
+    #    tasks, and the same outputs. For this activity, some of the outputs may already
+    #    have been calculated, se we should resolve them now, as it won't be possible
+    #    to resolve them at a later stage as they are task outputs not activity outputs
+    #    (and therefore won't have been added to the activity_outputs collection).
+    detour_activity.uuid = task_uuid
+    detour_activity.host = original_activity.uuid
+    original_activity.output_sources.resolve(
+        output_store=output_store,
+        output_cache=output_cache,
+        error_on_missing=False
+    )
+    remaining_tasks = Activity(
+        name=original_activity.name,
+        tasks=original_activity.tasks[task_index + 1:],
+        outputs=original_activity.outputs,
+        output_sources=original_activity.output_sources,
+        config=original_activity.config,
+        host=original_activity.host,
+        uuid=original_activity.uuid,
+    )
+    return detour_activity, remaining_tasks
 
 
 def cache_outputs(uuid: UUID, outputs: Outputs, cache: Dict[UUID, Dict[str, Any]]):
@@ -185,7 +246,8 @@ def cache_outputs(uuid: UUID, outputs: Outputs, cache: Dict[UUID, Dict[str, Any]
 class ActivityResponse:
     # TODO: Consider merging this with TaskResponse
 
-    detour: Optional[Activity] = None
+    detour: Optional[Tuple[Activity, Activity]] = None
     restart: Optional[Activity] = None
-    store: Optional[Dict[str, Any]] = None
-    exit: bool = False
+    store: Dict[str, Any] = field(default_factory=dict)
+    stop_children: bool = False
+    stop_activities: bool = False

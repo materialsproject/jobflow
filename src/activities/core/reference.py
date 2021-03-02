@@ -17,10 +17,11 @@ class Reference(MSONable):
         self,
         output_store: Optional[Store] = None,
         output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+        error_on_missing: bool = True,
     ):
         # when resolving multiple references simultaneously it is more efficient
         # to use resolve_references as it will minimize the number of database requests
-        if output_store is None and output_cache is None:
+        if output_store is None and output_cache is None and error_on_missing:
             raise ValueError(
                 "At least one of output_store and output_cache must be set."
             )
@@ -33,15 +34,20 @@ class Reference(MSONable):
             )
             output_cache[self.uuid] = activity_outputs
 
-        if self.uuid not in output_cache:
+        if error_on_missing and self.uuid not in output_cache:
             raise ValueError("Could not resolve reference - uuid not in output_cache")
 
-        if self.name not in output_cache[self.uuid]:
+        if error_on_missing and self.name not in output_cache[self.uuid]:
             raise ValueError(
                 "Could not resolve reference - field name not in output_cache"
             )
 
-        data = output_cache[self.uuid][self.name]
+        try:
+            data = output_cache[self.uuid][self.name]
+        except KeyError:
+            # if we get to here, that means the reference cannot be resolved but
+            # error_on_missing is False
+            return self
 
         for attribute in self.attributes:
             data = getattr(data, attribute)
@@ -74,6 +80,7 @@ def resolve_references(
     references: Sequence[Reference],
     output_store: Optional[Store] = None,
     output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+    error_on_missing: bool = True,
 ) -> Dict[Reference, Any]:
     from itertools import groupby
 
@@ -98,7 +105,9 @@ def resolve_references(
                 output_cache[uuid].update(activity_outputs)
 
         for ref in references:
-            resolved_references[ref] = ref.resolve(output_cache=output_cache)
+            resolved_references[ref] = ref.resolve(
+                output_cache=output_cache, error_on_missing=error_on_missing
+            )
 
     return resolved_references
 
@@ -136,6 +145,7 @@ def find_and_resolve_references(
     arg: Any,
     output_store: Optional[Store] = None,
     output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+    error_on_missing: bool = True,
 ) -> Any:
     import json
 
@@ -145,7 +155,11 @@ def find_and_resolve_references(
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
-        return arg.resolve(output_store=output_store, output_cache=output_cache)
+        return arg.resolve(
+            output_store=output_store,
+            output_cache=output_cache,
+            error_on_missing=error_on_missing
+        )
 
     elif isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
@@ -158,15 +172,16 @@ def find_and_resolve_references(
     locations = find_key_value(arg, "@class", "Reference")
 
     # resolve the references
-    references = [Reference.from_dict(get(arg, loc)) for loc in locations]
+    references = [Reference.from_dict(get(arg, list(loc))) for loc in locations]
     resolved_references = resolve_references(
-        references, output_store=output_store, output_cache=output_cache
+        references, output_store=output_store, output_cache=output_cache,
+        error_on_missing=error_on_missing
     )
 
     # replace the references in the arg dict
     for location, reference in zip(locations, references):
         resolved_reference = resolved_references[reference]
-        set_(arg, location, resolved_reference)
+        set_(arg, list(location), resolved_reference)
 
     # deserialize dict array
-    return MontyDecoder().decode(json.dumps(arg))
+    return MontyDecoder().process_decoded(arg)

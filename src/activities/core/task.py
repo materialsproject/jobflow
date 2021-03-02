@@ -53,7 +53,10 @@ class Task(HasInputOutput, MSONable):
     uuid: UUID = field(default_factory=uuid4)
 
     def __post_init__(self):
-        if self.outputs:
+        import inspect
+
+        # if outputs exists and hasn't already been initialized
+        if self.outputs and inspect.isclass(self.outputs):
             self.outputs = self.outputs.to_reference(self.uuid)
 
     def __call__(self, *args, **kwargs):
@@ -98,34 +101,44 @@ class Task(HasInputOutput, MSONable):
         # strip the wrapper so we can call the actual function
         function = function.__wrapped__
 
-        args, kwargs = resolve_args(
-            self.args, self.kwargs, output_store=output_store, output_cache=output_cache
-        )
-        all_returned_data = function(*args, **kwargs)
+        print(self)
+        self.resolve_args(output_store=output_store, output_cache=output_cache)
+        print(self)
+        all_returned_data = function(*self.args, **self.kwargs)
         response = TaskResponse.from_task_returns(all_returned_data, type(self.outputs))
 
         logger.info(f"Finished task - {self.function[1]} ({self.uuid})")
         return response
 
+    def resolve_args(
+        self,
+        output_store: Optional[MaggmaStore] = None,
+        output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+        error_on_missing: bool = True,
+        inplace: bool = True,
+    ) -> "Task":
+        from copy import deepcopy
 
-def resolve_args(
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
-    output_store: Optional[MaggmaStore] = None,
-    output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
-) -> Tuple[Sequence[Any], Dict[str, Any]]:
-    resolved_args = []
-    for arg in args:
-        resolved_arg = find_and_resolve_references(
-            arg, output_store=output_store, output_cache=output_cache
+        resolved_args = []
+        for arg in self.args:
+            resolved_arg = find_and_resolve_references(
+                arg, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
+            )
+            resolved_args.append(resolved_arg)
+
+        resolved_kwargs = find_and_resolve_references(
+            self.kwargs, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
         )
-        resolved_args.append(resolved_arg)
 
-    resolved_kwargs = find_and_resolve_references(
-        kwargs, output_store=output_store, output_cache=output_cache
-    )
+        if inplace:
+            self.args = tuple(resolved_args)
+            self.kwargs = resolved_kwargs
+            return self
 
-    return resolved_args, resolved_kwargs
+        new_task = deepcopy(self)
+        new_task.args = resolved_args
+        new_task.kwargs = resolved_kwargs
+        return new_task
 
 
 @dataclass
@@ -146,8 +159,10 @@ class Restart:
 
 
 @dataclass
-class Exit:
-    exit_type: bool
+class Stop:
+    stop_tasks: bool = False
+    stop_children: bool = False
+    stop_activities: bool = False
 
 
 @dataclass
@@ -158,7 +173,9 @@ class TaskResponse:
     detour: Optional["Activity"] = None
     restart: Optional["Activity"] = None
     store: Optional[Dict[str, Any]] = None
-    exit: bool = False
+    stop_tasks: bool = False
+    stop_children: bool = False
+    stop_activities: bool = False
 
     @classmethod
     def from_task_returns(
@@ -177,13 +194,20 @@ class TaskResponse:
         for returned_data in task_returns:
             if isinstance(returned_data, Outputs):
                 to_parse[Outputs].append(returned_data)
-            elif isinstance(returned_data, (Detour, Restart, Store, Exit)):
+            elif isinstance(returned_data, (Detour, Restart, Store, Stop)):
                 to_parse[type(returned_data)].append(returned_data)
             else:
                 raise ValueError(
                     f"Unrecognised return type: {type(returned_data)}. Must be one of: "
-                    "Output, Detour, Restart, Store, Exit}"
+                    "Output, Detour, Restart, Store, Stop}"
                 )
+
+        if Outputs in to_parse and Detour in to_parse:
+            warnings.warn(
+                "Outputs cannot not be specified at the same time as Detour. The "
+                "outputs of the Detour activity will be used instead."
+            )
+            to_parse.pop(Outputs)
 
         task_response_data = {}
         for return_type, data in to_parse.items():
@@ -212,7 +236,9 @@ class TaskResponse:
                 task_response_data["detour"] = data.activity
             elif return_type == Restart:
                 task_response_data["detour"] = data.activity
-            elif return_type == Exit:
-                task_response_data["exit"] = data.exit_type
+            elif return_type == Stop:
+                task_response_data["stop_tasks"] = data.stop_tasks
+                task_response_data["stop_children"] = data.stop_children
+                task_response_data["stop_activities"] = data.stop_activities
 
         return cls(**task_response_data)

@@ -8,19 +8,19 @@ from monty.json import MSONable
 
 from activities.core.reference import Reference, resolve_references
 
-
 class Outputs(ABC, MSONable):
     def resolve(
         self,
         output_store: Optional[Store] = None,
         output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+        error_on_missing: bool = True,
     ) -> "Outputs":
         # note this function can add activity outputs to the output_cache
         from copy import deepcopy
 
         output_cache = output_cache or {}
         resolved_references = resolve_references(
-            self.references, output_store=output_store, output_cache=output_cache
+            self.references, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing,
         )
 
         resolved_outputs = deepcopy(self)
@@ -101,3 +101,10 @@ class Outputs(ABC, MSONable):
             references[name] = Reference(uuid, name)
 
         return cls(**references)
+
+#
+# class OutputSet(Outputs):
+#
+#     def __init__(self, ):
+#
+#
