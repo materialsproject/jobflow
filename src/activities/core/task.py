@@ -101,9 +101,7 @@ class Task(HasInputOutput, MSONable):
         # strip the wrapper so we can call the actual function
         function = function.__wrapped__
 
-        print(self)
         self.resolve_args(output_store=output_store, output_cache=output_cache)
-        print(self)
         all_returned_data = function(*self.args, **self.kwargs)
         response = TaskResponse.from_task_returns(all_returned_data, type(self.outputs))
 
