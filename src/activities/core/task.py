@@ -1,7 +1,8 @@
+"""This module defines functions and classes for representing Task objects."""
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, Hashable, Optional, Sequence, Tuple
+from typing import Any, Dict, Hashable, Optional, Tuple
 from uuid import UUID, uuid4
 
 from maggma.core import Store as MaggmaStore
@@ -12,14 +13,88 @@ from activities.core.outputs import Outputs
 from activities.core.reference import (
     Reference,
     find_and_resolve_references,
-    find_references,
+    find_and_get_references,
 )
 
 logger = logging.getLogger(__name__)
 
 
 def task(method=None, outputs=None):
-    """Wraps a function to produce a ``Task``."""
+    """
+    Wraps a function to produce a ``Task``.
+
+    Tasks are delayed function calls that can be used in an ``Activity``. A task is a
+    composed of the function name, the arguments for the function, and the outputs
+    of the function. This decorator makes it simple to create ``Task`` objects directly
+    from a function definition. See the examples for more details.
+
+    Parameters
+    ----------
+    method
+        A function to wrap. This should not be specified directly and is implied
+        by the decorator.
+    outputs
+        If the function returns an ``Outputs`` object, the ``outputs`` option should be
+        specified to enable static parameter checking. If the function returns a
+        ``Detour`` object, the then `outputs`` should be set ot the class of the
+        detour activity outputs.
+
+    Returns
+    -------
+    A ``Task`` object containing the function.
+
+    Examples
+    --------
+    >>> @task
+    >>> def print_message():
+    >>>     print("I am a Task")
+    >>>
+    >>> print_task = print_message()
+    >>> type(print_task)
+    <class 'activities.core.task.Task'>
+    >>> print_task.function
+    ('__main__', 'print_message')
+
+    Tasks can have required and optional parameters.
+    >>> @task
+    >>> def print_sum(a, b=0):
+    >>>     return print(a + b)
+    >>>
+    >>> print_sum_task = print_sum(1, 2)
+    >>> print_sum_task.args
+    (1, )
+    >>> print_sum_task.kwargs
+    {"b": 2}
+
+    If the function returns an ``Outputs`` object, the outputs class should be specified
+    in the task options.
+    >>> from activities.core.outputs import Number
+    >>>
+    >>> @task(outputs=Number)
+    >>> def add(a, b):
+    >>>     return Number(a + b)
+    >>>
+    >>> add_task = add(1, 2)
+    >>> add_task.outputs
+    Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
+
+    Tasks can return ``Detour`` objects cause new activities to be added to the Activity
+    graph. In this case, the outputs class of the Detour activity should be specified
+    in the task ``outputs`` option.
+    >>> from activities import Detour, Activity
+    >>>
+    >>> @task(outputs=Number)
+    >>> def detour_add(a, b):
+    >>>     add_task = add(a, b)
+    >>>     activity = Activity("My detour", [add_task], add_task.outputs)
+    >>>     return Detour(activity)
+
+    See Also
+    --------
+    Task : The object that stores function, argument, and outputs data.
+    Activity : The base object for constructing activities.
+    Outputs : The base class for defining ``Task`` outputs.
+    """
 
     def decorator(func):
         from functools import wraps
@@ -70,11 +145,11 @@ class Task(HasInputOutput, MSONable):
     @property
     def input_references(self) -> Tuple[Reference, ...]:
         references = set()
-        for arg in self.args + tuple(self.kwargs.values()):
+        for arg in tuple(self.args) + tuple(self.kwargs.values()):
             # TODO: could do this during init and store the references and their
             #   locations instead. Similarly, could store the serialized args and
             #   kwargs too.
-            references.update(find_references(arg))
+            references.update(find_and_get_references(arg))
 
         return tuple(references)
 
@@ -117,13 +192,9 @@ class Task(HasInputOutput, MSONable):
     ) -> "Task":
         from copy import deepcopy
 
-        resolved_args = []
-        for arg in self.args:
-            resolved_arg = find_and_resolve_references(
-                arg, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
-            )
-            resolved_args.append(resolved_arg)
-
+        resolved_args = find_and_resolve_references(
+            self.args, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
+        )
         resolved_kwargs = find_and_resolve_references(
             self.kwargs, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
         )

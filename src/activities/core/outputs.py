@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import warnings
 from abc import ABC
 from typing import Any, Dict, Optional, Sequence, Tuple
@@ -6,7 +8,9 @@ from uuid import UUID, uuid4
 from maggma.core import Store
 from monty.json import MSONable
 
-from activities.core.reference import Reference, resolve_references
+from activities.core.reference import Reference, resolve_references, \
+    find_and_get_references, find_and_resolve_references
+
 
 class Outputs(ABC, MSONable):
     def resolve(
@@ -18,15 +22,12 @@ class Outputs(ABC, MSONable):
         # note this function can add activity outputs to the output_cache
         from copy import deepcopy
 
-        output_cache = output_cache or {}
-        resolved_references = resolve_references(
-            self.references, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing,
+        resolved_outputs = find_and_resolve_references(
+            deepcopy(self),
+            output_store=output_store,
+            output_cache=output_cache,
+            error_on_missing=error_on_missing,
         )
-
-        resolved_outputs = deepcopy(self)
-        for name, reference in self.field_references:
-            setattr(resolved_outputs, name, resolved_references[reference])
-
         return resolved_outputs
 
     def to_db(self, output_store: Store, uuid: UUID):
@@ -54,17 +55,9 @@ class Outputs(ABC, MSONable):
     def references(self) -> Tuple[Reference, ...]:
         references = []
         for name in self.fields():
-            if hasattr(self, name) and isinstance(getattr(self, name), Reference):
-                references.append(getattr(self, name))
-        return tuple(references)
+            if hasattr(self, name):
+                references.extend(find_and_get_references(getattr(self, name)))
 
-    @property
-    def field_references(self) -> Tuple[Tuple[str, Reference], ...]:
-        # returns a tuple of the field name and the associated reference
-        references = []
-        for name in self.fields():
-            if hasattr(self, name) and isinstance(getattr(self, name), Reference):
-                references.append((name, getattr(self, name)))
         return tuple(references)
 
     @property
@@ -81,16 +74,6 @@ class Outputs(ABC, MSONable):
 
         return {k: tuple(v) for k, v in groups.items()}
 
-    @property
-    def field_references_grouped(self) -> Dict[UUID, Tuple[Tuple[str, Reference]]]:
-        from collections import defaultdict
-
-        groups = defaultdict(set)
-        for name, ref in self.field_references:
-            groups[ref.uuid].add((name, ref))
-
-        return {k: tuple(v) for k, v in groups.items()}
-
     @classmethod
     def to_reference(cls, uuid: Optional[UUID] = None) -> "Outputs":
         if uuid is None:
@@ -101,6 +84,21 @@ class Outputs(ABC, MSONable):
             references[name] = Reference(uuid, name)
 
         return cls(**references)
+
+
+@dataclass
+class Number(Outputs):
+    number: float
+
+
+@dataclass
+class String(Outputs):
+    string: str
+
+
+@dataclass
+class Boolean(Outputs):
+    boolean: bool
 
 #
 # class OutputSet(Outputs):

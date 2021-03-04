@@ -10,8 +10,8 @@ def find_key_value(
 
     This function works on nested dictionaries, lists, and tuples.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     d
         A dict or list of dicts.
     key
@@ -19,13 +19,12 @@ def find_key_value(
     value
         A value.
 
-    Returns:
-    --------
+    Returns
+    -------
     A tuple of routes to where the matches were found.
 
-    Examples:
-    ---------
-
+    Examples
+    --------
     >>> data = {
     ...    "a": [0, {"b": 1, "x": 3}],
     ...    "c": {"d": {"x": 3}}
@@ -51,17 +50,20 @@ def find_key_value(
                 _lookup(v, path + (i,))
 
     _lookup(d)
-    return tuple(found_items)
+    return tuple([list(path) for path in found_items])
 
 
 def initialize_logger(level: int = logging.INFO) -> logging.Logger:
     """Initialize the default logger.
 
-    Args:
-        level: The log level.
+    Parameters
+    ----------
+    level
+        The log level.
 
-    Returns:
-        A logging instance with customized formatter and handlers.
+    Returns
+    -------
+    A logging instance with customized formatter and handlers.
     """
     import sys
     log = logging.getLogger("activities")

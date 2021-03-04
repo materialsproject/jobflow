@@ -38,12 +38,15 @@ class Activity(HasInputOutput, MSONable):
         if self.contains_activities:
             for task in self.tasks:
                 if task.host is not None and task.host != self.uuid:
+                    print(task.host, self.uuid)
                     raise ValueError(
                         f"Subactivity {task} already belongs to another activity"
                     )
                 task.host = self.uuid
 
-        if self.outputs is not None and self.output_sources is None:
+        if self.outputs is None and self.output_sources is not None:
+            self.outputs = self.outputs_sources.to_reference(self.uuid)
+        elif self.outputs is not None and self.output_sources is None:
             self.output_sources = self.outputs
             self.outputs = self.outputs.to_reference(self.uuid)
 
@@ -110,6 +113,12 @@ class Activity(HasInputOutput, MSONable):
             activity = graph.nodes[node]["object"]
             yield activity, parents
 
+    def set_uuid(self, uuid: UUID):
+        self.uuid = uuid
+        if self.contains_activities:
+            for task in self.tasks:
+                task.host = self.uuid
+
     def run(
         self,
         output_store: Optional[Store] = None,
@@ -137,6 +146,7 @@ class Activity(HasInputOutput, MSONable):
             if output_store:
                 outputs.to_db(output_store, self.uuid)
 
+            logger.info(f"Finished activity - {self.name} ({self.uuid})")
             return ActivityResponse()
 
         activity_response = ActivityResponse()
@@ -215,7 +225,7 @@ def create_detour_activities(
     #    have been calculated, se we should resolve them now, as it won't be possible
     #    to resolve them at a later stage as they are task outputs not activity outputs
     #    (and therefore won't have been added to the activity_outputs collection).
-    detour_activity.uuid = task_uuid
+    detour_activity.set_uuid(task_uuid)
     detour_activity.host = original_activity.uuid
     original_activity.output_sources.resolve(
         output_store=output_store,

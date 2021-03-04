@@ -26,6 +26,9 @@ class Reference(MSONable):
                 "At least one of output_store and output_cache must be set."
             )
 
+        if output_cache is None:
+            output_cache = {}
+
         if output_store and (
             self.uuid not in output_cache or self.name not in output_cache[self.uuid]
         ):
@@ -102,6 +105,8 @@ def resolve_references(
                 {"uuid": str(uuid)}, properties=missing_properties
             )
             if activity_outputs is not None:
+                if uuid not in output_cache:
+                    output_cache[uuid] = {}
                 output_cache[uuid].update(activity_outputs)
 
         for ref in references:
@@ -124,7 +129,10 @@ def find_reference_locations(arg: Union[Sequence, Dict]) -> Tuple[List[Any], ...
     return find_key_value(arg, "@class", "Reference")
 
 
-def find_references(arg: Any) -> Tuple[Reference, ...]:
+def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
+    import json
+
+    from activities.core.util import find_key_value
     from pydash import get
 
     if isinstance(arg, Reference):
@@ -135,7 +143,10 @@ def find_references(arg: Any) -> Tuple[Reference, ...]:
         # argument is a primitive, we won't find a reference here
         return tuple()
 
-    locations = find_reference_locations(arg)
+    arg = json.loads(MontyEncoder().encode(arg))
+
+    # recursively find any reference classes
+    locations = find_key_value(arg, "@class", "Reference")
 
     # deserialize references and return
     return tuple([Reference.from_dict(get(arg, loc)) for loc in locations])
