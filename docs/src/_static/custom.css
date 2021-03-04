@@ -1,0 +1,9 @@
+/* Hide nbsphinx prompt numbers */
+.prompt {
+    display: none;
+}
+
+/* Hide link icons in external links*/
+.rst-content.style-external-links a.reference.external:after {
+    display: none;
+}

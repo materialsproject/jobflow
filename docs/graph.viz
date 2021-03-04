@@ -1,0 +1,29 @@
+# http://www.graphviz.org/content/cluster
+
+digraph G {
+    compound=true;
+
+    edge[fontcolor=blue]
+
+	subgraph cluster_0 {
+	    node [shape=oval, style=filled];
+	    label="Relax + Static Activity";
+
+	    subgraph cluster1 {
+    	    "relax outputs";
+    	    label="Relax Activity";
+	    }
+
+	    subgraph cluster2 {
+	       "static outputs";
+    	    label="Static Activity";
+	    }
+
+	    "relax+static outputs"
+	}
+
+	"relax outputs" -> "static outputs" [ltail="cluster1",lhead=cluster2, label="structure"]
+	"relax outputs" -> "relax+static outputs" [ltail="cluster1",lhead=cluster0, label="energy"]
+	"static outputs" -> "relax+static outputs" [ltail="cluster2",lhead=cluster0, label="structure"]
+
+}
