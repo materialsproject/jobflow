@@ -1,15 +1,18 @@
-from dataclasses import dataclass
-
 import warnings
 from abc import ABC
+from dataclasses import dataclass
 from typing import Any, Dict, Optional, Sequence, Tuple
 from uuid import UUID, uuid4
 
 from maggma.core import Store
 from monty.json import MSONable
 
-from activities.core.reference import Reference, resolve_references, \
-    find_and_get_references, find_and_resolve_references
+from activities.core.reference import (
+    Reference,
+    find_and_get_references,
+    find_and_resolve_references,
+    resolve_references,
+)
 
 
 class Outputs(ABC, MSONable):
@@ -99,6 +102,7 @@ class String(Outputs):
 @dataclass
 class Boolean(Outputs):
     boolean: bool
+
 
 #
 # class OutputSet(Outputs):

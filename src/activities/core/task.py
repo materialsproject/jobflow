@@ -2,7 +2,7 @@
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, Hashable, Optional, Tuple
+from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type
 from uuid import UUID, uuid4
 
 from maggma.core import Store as MaggmaStore
@@ -12,14 +12,16 @@ from activities.core.base import HasInputOutput
 from activities.core.outputs import Outputs
 from activities.core.reference import (
     Reference,
-    find_and_resolve_references,
     find_and_get_references,
+    find_and_resolve_references,
 )
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["task", "Task", "Detour", "Restart", "Store", "Stop", "TaskResponse"]
 
-def task(method=None, outputs=None):
+
+def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = None):
     """
     Wraps a function to produce a ``Task``.
 
@@ -39,61 +41,60 @@ def task(method=None, outputs=None):
         ``Detour`` object, the then `outputs`` should be set ot the class of the
         detour activity outputs.
 
-    Returns
-    -------
-    A ``Task`` object containing the function.
-
     Examples
     --------
     >>> @task
-    >>> def print_message():
-    >>>     print("I am a Task")
-    >>>
-    >>> print_task = print_message()
-    >>> type(print_task)
+    ... def print_message():
+    ...     print("I am a Task")
+    ...
+    ... print_task = print_message()
+    ... type(print_task)
     <class 'activities.core.task.Task'>
     >>> print_task.function
     ('__main__', 'print_message')
 
     Tasks can have required and optional parameters.
+
     >>> @task
-    >>> def print_sum(a, b=0):
-    >>>     return print(a + b)
-    >>>
-    >>> print_sum_task = print_sum(1, 2)
-    >>> print_sum_task.args
+    ... def print_sum(a, b=0):
+    ...     return print(a + b)
+    ...
+    ... print_sum_task = print_sum(1, 2)
+    ... print_sum_task.args
     (1, )
-    >>> print_sum_task.kwargs
+    ... print_sum_task.kwargs
     {"b": 2}
 
     If the function returns an ``Outputs`` object, the outputs class should be specified
     in the task options.
+
     >>> from activities.core.outputs import Number
-    >>>
-    >>> @task(outputs=Number)
-    >>> def add(a, b):
-    >>>     return Number(a + b)
-    >>>
-    >>> add_task = add(1, 2)
-    >>> add_task.outputs
+    ...
+    ... @task(outputs=Number)
+    ... def add(a, b):
+    ...     return Number(a + b)
+    ...
+    ... add_task = add(1, 2)
+    ... add_task.outputs
     Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
 
-    Tasks can return ``Detour`` objects cause new activities to be added to the Activity
-    graph. In this case, the outputs class of the Detour activity should be specified
-    in the task ``outputs`` option.
+    Tasks can return ``Detour`` objects that cause new activities to be added to the
+    Activity graph. In this case, the outputs class of the Detour activity should be
+    specified in the task ``outputs`` option.
+
     >>> from activities import Detour, Activity
-    >>>
-    >>> @task(outputs=Number)
-    >>> def detour_add(a, b):
-    >>>     add_task = add(a, b)
-    >>>     activity = Activity("My detour", [add_task], add_task.outputs)
-    >>>     return Detour(activity)
+    ...
+    ... @task(outputs=Number)
+    ... def detour_add(a, b):
+    ...     add_task = add(a, b)
+    ...     activity = Activity("My detour", [add_task], add_task.outputs)
+    ...     return Detour(activity)
 
     See Also
     --------
-    Task : The object that stores function, argument, and outputs data.
-    Activity : The base object for constructing activities.
-    Outputs : The base class for defining ``Task`` outputs.
+    Task
+    Activity
+    Outputs
     """
 
     def decorator(func):
@@ -165,6 +166,7 @@ class Task(HasInputOutput, MSONable):
         output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
     ) -> "TaskResponse":
         from importlib import import_module
+
         logger.info(f"Starting task - {self.function[1]} ({self.uuid})")
 
         module = import_module(self.function[0])
@@ -193,10 +195,16 @@ class Task(HasInputOutput, MSONable):
         from copy import deepcopy
 
         resolved_args = find_and_resolve_references(
-            self.args, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
+            self.args,
+            output_store=output_store,
+            output_cache=output_cache,
+            error_on_missing=error_on_missing,
         )
         resolved_kwargs = find_and_resolve_references(
-            self.kwargs, output_store=output_store, output_cache=output_cache, error_on_missing=error_on_missing
+            self.kwargs,
+            output_store=output_store,
+            output_cache=output_cache,
+            error_on_missing=error_on_missing,
         )
 
         if inplace:

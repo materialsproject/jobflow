@@ -132,8 +132,9 @@ def find_reference_locations(arg: Union[Sequence, Dict]) -> Tuple[List[Any], ...
 def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
     import json
 
-    from activities.core.util import find_key_value
     from pydash import get
+
+    from activities.core.util import find_key_value
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
@@ -169,7 +170,7 @@ def find_and_resolve_references(
         return arg.resolve(
             output_store=output_store,
             output_cache=output_cache,
-            error_on_missing=error_on_missing
+            error_on_missing=error_on_missing,
         )
 
     elif isinstance(arg, (float, int, str, bool)):
@@ -185,8 +186,10 @@ def find_and_resolve_references(
     # resolve the references
     references = [Reference.from_dict(get(arg, list(loc))) for loc in locations]
     resolved_references = resolve_references(
-        references, output_store=output_store, output_cache=output_cache,
-        error_on_missing=error_on_missing
+        references,
+        output_store=output_store,
+        output_cache=output_cache,
+        error_on_missing=error_on_missing,
     )
 
     # replace the references in the arg dict

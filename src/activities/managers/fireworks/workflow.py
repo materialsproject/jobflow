@@ -6,9 +6,7 @@ from activities.managers.fireworks.firetask import ActivityFiretask
 
 
 def activity_to_workflow(
-    activity: Activity,
-    output_store: Store,
-    iteractivity: bool = True
+    activity: Activity, output_store: Store, iteractivity: bool = True
 ) -> Workflow:
     # TODO: handle activity config and metadata
 

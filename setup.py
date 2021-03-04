@@ -11,6 +11,8 @@ setup(
     name="activities",
     description="",
     long_description=long_desc,
+    use_scm_version=True,
+    setup_requires=["setuptools_scm"],
     long_description_content_type="text/markdown",
     url="https://github.com/hackingmaterials/activities",
     author="Alex Ganose",

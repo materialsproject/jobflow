@@ -66,11 +66,12 @@ def initialize_logger(level: int = logging.INFO) -> logging.Logger:
     A logging instance with customized formatter and handlers.
     """
     import sys
+
     log = logging.getLogger("activities")
     log.setLevel(level)
     log.handlers = []  # reset logging handlers if they already exist
 
-    fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     screen_handler = logging.StreamHandler(stream=sys.stdout)
     screen_handler.setFormatter(fmt)
     log.addHandler(screen_handler)

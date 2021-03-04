@@ -2,7 +2,7 @@
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Sequence, Tuple, Union, Generator, List
+from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
 from uuid import UUID, uuid4
 
 from maggma.core import Store
@@ -228,13 +228,11 @@ def create_detour_activities(
     detour_activity.set_uuid(task_uuid)
     detour_activity.host = original_activity.uuid
     original_activity.output_sources.resolve(
-        output_store=output_store,
-        output_cache=output_cache,
-        error_on_missing=False
+        output_store=output_store, output_cache=output_cache, error_on_missing=False
     )
     remaining_tasks = Activity(
         name=original_activity.name,
-        tasks=original_activity.tasks[task_index + 1:],
+        tasks=original_activity.tasks[task_index + 1 :],
         outputs=original_activity.outputs,
         output_sources=original_activity.output_sources,
         config=original_activity.config,
