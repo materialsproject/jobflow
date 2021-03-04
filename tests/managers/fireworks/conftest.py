@@ -3,7 +3,7 @@ import pytest
 
 @pytest.fixture(scope="session")
 def debug_mode():
-    return False
+        return True
 
 
 @pytest.fixture(scope="session")
@@ -15,5 +15,5 @@ def lpad(test_database, debug_mode):
 
     if not debug_mode:
         lpad.reset("", require_password=False)
-        for coll in lpad.db.collection_names():
+        for coll in lpad.db.list_collection_names():
             lpad.db[coll].drop()
