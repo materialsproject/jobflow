@@ -22,9 +22,9 @@ sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Project information -----------------------------------------------------
 
-project = "IFermi"
-copyright = "2021, Amy Searle and Alex Ganose"
-author = "Amy Searle and Alex Ganose"
+project = "activities"
+copyright = "2021, hackingmaterials"
+author = "Alex Ganose"
 
 # The short X.Y version
 version = __version__
@@ -52,8 +52,6 @@ extensions = [
     "sphinx_click",
     "sphinx.ext.todo",
     "m2r2",
-    "nbsphinx",
-    "nbsphinx_link",
 ]
 # napoleon_include_init_with_doc = True
 
@@ -119,10 +117,10 @@ html_favicon = '_static/favicon.ico'
 # -- Options for HTMLHelp test_log ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "Ifermidoc"
+htmlhelp_basename = "activitiesdoc"
 
 html_theme_options = {
-    "canonical_url": "https://github.com/fermisurfaces/IFermi",
+    "canonical_url": "https://github.com/hackingmaterials/activities",
     "logo_only": False,
     "display_version": True,
     "prev_next_buttons_location": None,
@@ -136,85 +134,14 @@ html_theme_options = {
 }
 
 # html_logo = "_static/logo-docs-01.png"
-html_logo = "_static/docs-logo2-02.png"
 
 html_context = {
     "display_github": True,
-    "github_user": "fermisurfaces",
-    "github_repo": "IFermi",
+    "github_user": "hackingmaterials",
+    "github_repo": "activities",
     "github_version": "master",
     "conf_py_path": "/docs_rst/",
 }
-
-
-# -- Options for LaTeX test_log ------------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
-
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
-#  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, "ifermi.tex", "IFermi Documentation", "Amy Searle", "manual")
-]
-
-
-# -- Options for manual page test_log ------------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "ifermi", "IFermi Documentation", [author], 1)]
-
-
-# -- Options for Texinfo test_log ----------------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-    (
-        master_doc,
-        "ifermi",
-        "IFermi Documentation",
-        author,
-        "IFermi",
-        "Generation, analysis, and plotting of Fermi surfaces and slices",
-    )
-]
-
-
-# -- Options for Epub test_log -------------------------------------------------
-
-# Bibliographic Dublin Core info.
-epub_title = project
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
-# A list of files that should not be packed into the epub file.
-epub_exclude_files = ["search.html"]
-
-
-# -- Extension configuration -------------------------------------------------
 
 # -- Options for intersphinx extension ---------------------------------------
 
