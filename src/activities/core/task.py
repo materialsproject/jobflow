@@ -1,5 +1,6 @@
 """This module defines functions and classes for representing Task objects."""
 from __future__ import annotations
+
 import logging
 import typing
 import warnings
@@ -204,7 +205,7 @@ class Task(HasInputOutput, MSONable):
         -------
         tuple(Reference, ...)
             The references in the inputs to the task.
-       """
+        """
         references = set()
         for arg in tuple(self.args) + tuple(self.kwargs.values()):
             # TODO: could do this during init and store the references and their
@@ -223,7 +224,7 @@ class Task(HasInputOutput, MSONable):
         -------
         tuple(Reference, ...)
             The references belonging to the ``Task`` outputs.
-       """
+        """
         if self.outputs is None:
             return tuple()
         return self.outputs.references

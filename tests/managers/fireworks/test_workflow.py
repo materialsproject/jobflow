@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from activities import task, Outputs
+
+from activities import Outputs, task
 
 
 @dataclass
@@ -45,7 +46,7 @@ def test_fireworks_integration(lpad, output_store, clean_dir):
     fw_id = list(fw_ids.values())[0]
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == 'COMPLETED' for s in wf.fw_states.values()])
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
 
     # check output_store has the activity output
     output_store.connect()
@@ -55,7 +56,8 @@ def test_fireworks_integration(lpad, output_store, clean_dir):
 
 from dataclasses import dataclass
 from typing import List
-from activities import Outputs, task, Activity, Detour
+
+from activities import Activity, Detour, Outputs, task
 
 
 @dataclass
@@ -69,6 +71,7 @@ def read_websites():
 
 
 # define a task, outputs and activity to calculate how long it takes to load a website
+
 
 @dataclass
 class TimeTaken(Outputs):
@@ -95,6 +98,7 @@ def get_time_activity(website: str):
 
 # define a task and outputs to generate time activities for multiple websites
 
+
 @dataclass
 class ListOfTimeTaken(Outputs):
     times: List[float]
@@ -109,6 +113,7 @@ def detour_timing_activities(websites: List[str]):
 
 
 # define a task to sum multiple times together
+
 
 @task(outputs=TimeTaken)
 def sum_times(times: List[float]):
@@ -127,7 +132,7 @@ def get_detour_activity_test():
     my_activity = Activity(
         "Time websites",
         [load_websites_task, detour_activities, sum_task],
-        sum_task.outputs
+        sum_task.outputs,
     )
     return my_activity
 
@@ -147,7 +152,7 @@ def test_fireworks_detour(lpad, output_store, clean_dir):
     fw_id = list(fw_ids.values())[0]
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == 'COMPLETED' for s in wf.fw_states.values()])
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
 
     # check output_store has the activity output
     output_store.connect()

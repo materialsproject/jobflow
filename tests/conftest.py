@@ -9,14 +9,15 @@ def test_database():
 @pytest.fixture(scope="session")
 def output_store(test_database):
     from maggma.stores import MongoStore
+
     return MongoStore(test_database, "activity_outputs")
 
 
 @pytest.fixture
 def clean_dir():
     import os
-    import tempfile
     import shutil
+    import tempfile
 
     old_cwd = os.getcwd()
     newpath = tempfile.mkdtemp()

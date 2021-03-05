@@ -3,12 +3,13 @@ import pytest
 
 @pytest.fixture(scope="session")
 def debug_mode():
-        return True
+    return True
 
 
 @pytest.fixture(scope="session")
 def lpad(test_database, debug_mode):
     from fireworks import LaunchPad
+
     lpad = LaunchPad(name=test_database)
     lpad.reset("", require_password=False)
     yield lpad
