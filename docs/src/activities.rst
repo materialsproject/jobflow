@@ -1,9 +1,6 @@
 activities package
 ==================
 
-Subpackages
------------
-
 .. toctree::
    :maxdepth: 4
 

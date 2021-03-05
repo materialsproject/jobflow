@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Activity(HasInputOutput, MSONable):
 
-    name: str
-    tasks: Union[Sequence[Activity], Sequence[Task]]
+    name: str = "Activity"
+    tasks: Union[Sequence[Activity], Sequence[Task]] = field(default_factory=list)
     outputs: Optional[Outputs] = None
     host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
@@ -149,7 +149,7 @@ class Activity(HasInputOutput, MSONable):
             cache_outputs(self.uuid, outputs, output_cache)
 
             if output_store:
-                outputs.to_db(output_store, self.uuid)
+                outputs.to_store(output_store, self.uuid)
 
             logger.info(f"Finished activity - {self.name} ({self.uuid})")
             return ActivityResponse()
@@ -205,7 +205,7 @@ class Activity(HasInputOutput, MSONable):
             cache_outputs(self.uuid, outputs, output_cache)
 
             if output_store:
-                outputs.to_db(output_store, self.uuid)
+                outputs.to_store(output_store, self.uuid)
 
         logger.info(f"Finished activity - {self.name} ({self.uuid})")
         return activity_response

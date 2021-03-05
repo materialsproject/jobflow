@@ -1,15 +1,16 @@
+import pytest
 from uuid import uuid4
-
-from activities.core.outputs import Number
-from activities.core.reference import Reference
-from activities.core.task import Task
 
 
 def add(a, b=5):
+    from activities.core.outputs import Number
     return Number(a + b)
 
 
 def test_task_init():
+    from activities.core.outputs import Number
+    from activities.core.task import Task
+
     # test basic init
     test_task = Task(function=("builtins", "print"), args=("I am a task",))
     assert test_task
@@ -33,6 +34,10 @@ def test_task_init():
 
 
 def test_task_run(capsys):
+    from activities.core.outputs import Number
+    from activities.core.reference import Reference
+    from activities.core.task import Task
+
     # test basic run
     test_task = Task(function=("builtins", "print"), args=("I am a task",))
     response = test_task.run()
@@ -60,6 +65,10 @@ def test_task_run(capsys):
 
 
 def test_task_input_references():
+    from activities.core.outputs import Number
+    from activities.core.reference import Reference
+    from activities.core.task import Task
+
     ref = Reference(uuid4(), "b")
     test_task = Task(
         function=(__name__, "add"), args=(1,), kwargs={"b": ref}, outputs=Number
@@ -82,6 +91,9 @@ def test_task_output_references():
 
 
 def test_task_resolve_args():
+    from activities.core.reference import Reference
+    from activities.core.task import Task
+
     # test basic run with no references
     test_task = Task(function=("builtins", "print"), args=("I am a task",))
     resolved_task = test_task.resolve_args()
@@ -125,3 +137,120 @@ def test_task_resolve_args():
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
     resolved_task = test_task.resolve_args(output_store=store, output_cache=cache)
     assert resolved_task.kwargs["b"] == 2
+
+
+def test_task_decorator():
+    from activities.core.outputs import Number
+    from activities.core.task import task
+
+    # test basic init
+    decorated = task(print)
+    test_task = decorated("I am a task")
+    assert test_task
+    assert test_task.function == ("builtins", "print")
+    assert test_task.args == ("I am a task",)
+    assert test_task.kwargs == {}
+    assert test_task.uuid is not None
+    assert test_task.outputs is None
+
+    # test init with outputs
+    decorated = task(add, outputs=Number)
+    test_task = decorated(1, b=2)
+    assert test_task
+    assert test_task.function == (__name__, "add")
+    assert test_task.args == (1,)
+    assert test_task.kwargs == {"b": 2}
+    assert test_task.uuid is not None
+    assert isinstance(test_task.outputs, Number)
+    assert test_task.uuid == test_task.outputs.number.uuid
+
+    # test applying the decorator without arguments
+    @task
+    def print_message(message):
+        print(message)
+
+    test_task = print_message("I am a task")
+    assert test_task
+    assert test_task.function == (__name__, "print_message")
+    assert test_task.args == ("I am a task",)
+    assert test_task.kwargs == {}
+    assert test_task.uuid is not None
+    assert test_task.outputs is None
+
+    # test applying the decorator with arguments
+    @task(outputs=Number)
+    def add_numbers(a, b=10):
+        return Number(a + b)
+
+    test_task = add_numbers(1, b=2)
+    assert test_task
+    assert test_task.function == (__name__, "add_numbers")
+    assert test_task.args == (1,)
+    assert test_task.kwargs == {"b": 2}
+    assert test_task.uuid is not None
+    assert isinstance(test_task.outputs, Number)
+    assert test_task.uuid == test_task.outputs.number.uuid
+
+
+def test_task_response():
+    # no need to test init as it is just a dataclass, instead test from_task_returns
+    # test no task returns
+    from activities.core.task import TaskResponse, Detour, Store, Stop
+    from activities.core.outputs import Number
+    from activities.core.activity import Activity
+
+    response = TaskResponse.from_task_returns(None)
+    assert response == TaskResponse()
+
+    # test outputs
+    outputs = Number(5)
+    response = TaskResponse.from_task_returns(outputs)
+    assert response == TaskResponse(outputs=outputs)
+
+    # test detour
+    detour = Detour(Activity())
+    response = TaskResponse.from_task_returns(detour)
+    assert response == TaskResponse(detour=detour.activity)
+
+    # test store
+    store = Store({"my_data": 123})
+    response = TaskResponse.from_task_returns(store)
+    assert response == TaskResponse(store=store.data)
+
+    # test stop
+    stop = Stop(stop_tasks=True, stop_children=True, stop_activities=True)
+    response = TaskResponse.from_task_returns(stop)
+    assert response == TaskResponse(stop_tasks=True, stop_activities=True, stop_children=True)
+
+    # test multiple
+    response = TaskResponse.from_task_returns((outputs, store, stop))
+    assert response == TaskResponse(
+        outputs=outputs,
+        store=store.data,
+        stop_tasks=True,
+        stop_activities=True,
+        stop_children=True
+    )
+
+    # test detour overrides outputs
+    response = TaskResponse.from_task_returns((outputs, detour, store, stop))
+    assert response == TaskResponse(
+        outputs=None,
+        detour=detour.activity,
+        store=store.data,
+        stop_tasks=True,
+        stop_activities=True,
+        stop_children=True
+    )
+
+    # test malformed outputs
+    with pytest.raises(ValueError):
+        TaskResponse.from_task_returns([1, 2, 3])
+
+    # test multiple of the same outputs
+    with pytest.raises(ValueError):
+        TaskResponse.from_task_returns((store, store))
+
+    with pytest.raises(ValueError):
+        TaskResponse.from_task_returns((detour, detour))
+

@@ -1,9 +1,6 @@
 activities.core package
 =======================
 
-Submodules
-----------
-
 activities.core.activity module
 -------------------------------
 
@@ -57,7 +54,6 @@ activities.core.task module
 
 .. automodule:: activities.core.task
    :members:
-   :undoc-members:
    :show-inheritance:
 
 activities.core.util module

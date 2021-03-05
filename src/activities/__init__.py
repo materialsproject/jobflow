@@ -6,18 +6,3 @@ from activities.core.outputs import Outputs
 from activities.core.reference import Reference
 from activities.core.task import Detour, Stop, Store, Task, task
 from activities.core.util import initialize_logger
-
-__all__ = [
-    "Activity",
-    "Reference",
-    "Outputs",
-    "Task",
-    "Detour",
-    "Store",
-    "Stop",
-    "task",
-    "Maker",
-    "initialize_logger",
-    "outputs",
-    "__version__",
-]

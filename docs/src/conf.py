@@ -15,6 +15,9 @@
 import os
 import sys
 
+import typing
+typing.TYPE_CHECKING = True
+
 from activities import __version__
 
 sys.path.insert(0, os.path.abspath("../../"))
@@ -54,6 +57,10 @@ extensions = [
     "m2r2",
 ]
 # napoleon_include_init_with_doc = True
+
+# properly resolve types
+set_type_checking_flag = True
+add_module_names = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

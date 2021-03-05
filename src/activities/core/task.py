@@ -3,38 +3,36 @@ from __future__ import annotations
 
 import logging
 import typing
-import warnings
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union
-from uuid import UUID, uuid4
 
-from maggma.core import Store as MaggmaStore
 from monty.json import MSONable
 
 from activities.core.base import HasInputOutput
-from activities.core.outputs import Outputs
-from activities.core.reference import (
-    Reference,
-    find_and_get_references,
-    find_and_resolve_references,
-)
 
 if typing.TYPE_CHECKING:
-    from activities.core.activity import Activity
+    from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union
+    from uuid import UUID, uuid4
+
+    from maggma.core import Store as MaggmaStore
+
+    import activities
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["task", "Task", "Detour", "Restart", "Store", "Stop", "TaskResponse"]
 
 
-def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = None):
+def task(
+    method: Optional[Callable] = None,
+    outputs: Optional[Type[activities.Outputs]] = None,
+):
     """
-    Wraps a function to produce a ``Task``.
+    Wraps a function to produce a :obj:`Task`.
 
-    ``Task`` objectss are delayed function calls that can be used in an ``Activity``. A
-    task is a composed of the function name, the arguments for the function, and the
-    outputs of the function. This decorator makes it simple to create ``Task`` objects
-    directly from a function definition. See the examples for more details.
+    :obj:`Task` objects are delayed function calls that can be used in an
+    :obj:`Activity`. A task is a composed of the function name, the arguments for the
+    function, and the outputs of the function. This decorator makes it simple to create
+    task objects directly from a function definition. See the examples for more details.
 
     Parameters
     ----------
@@ -42,9 +40,9 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
         A function to wrap. This should not be specified directly and is implied
         by the decorator.
     outputs
-        If the function returns an ``Outputs`` object, the ``outputs`` option should be
+        If the function returns an :obj:`Outputs` object, the outputs option should be
         specified to enable static parameter checking. If the function returns a
-        ``Detour`` object, the then `outputs`` should be set ot the class of the
+        :obj:`Detour` object, then the outputs should be set os the class of the
         detour activity outputs.
 
     Examples
@@ -71,8 +69,8 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
     ... print_sum_task.kwargs
     {"b": 2}
 
-    If the function returns an ``Outputs`` object, the outputs class should be specified
-    in the task options.
+    If the function returns an :obj:`Outputs` object, the outputs class should be
+    specified in the task options.
 
     >>> from activities.core.outputs import Number
     ...
@@ -84,11 +82,12 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
     ... add_task.outputs
     Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
 
-    Tasks can return ``Detour`` objects that cause new activities to be added to the
+    Tasks can return :obj:`Detour` objects that cause new activities to be added to the
     Activity graph. In this case, the outputs class of the Detour activity should be
     specified in the task ``outputs`` option.
 
-    >>> from activities import Detour, Activity
+    >>> from activities import Activity
+    ... from activities.core.outputs import Number
     ...
     ... @task(outputs=Number)
     ... def detour_add(a, b):
@@ -98,9 +97,7 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
 
     See Also
     --------
-    Task
-    Activity
-    Outputs
+    Task, .Activity, .Outputs
     """
 
     def decorator(func):
@@ -128,11 +125,11 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
 @dataclass
 class Task(HasInputOutput, MSONable):
     """
-    A ``Task`` is a delayed function call that can be used in an ``Activity``.
+    A :obj:`Task` is a delayed function call that can be used in an :obj:`.Activity`.
 
-    In general, one should not create ``Task`` objects directly but instead use the
-    ``task`` decorator on a function. Any calls to that function will return a ``Task``
-    object.
+    In general, one should not create :obj:`Task` objects directly but instead use the
+    :obj:`task` decorator on a function. Any calls to that function will return a
+    :obj:`Task` object.
 
     Parameters
     ----------
@@ -143,14 +140,14 @@ class Task(HasInputOutput, MSONable):
     kwargs
         The keyword arguments to the function call.
     outputs
-        An ``Outputs`` class that specifies the type of outputs returned by the
+        An :obj:`Outputs` class that specifies the type of outputs returned by the
         function.
     uuid
         A unique identifier for the task.
 
     Examples
     --------
-    Builtin functions such as ``print`` can be specified using the ``"builtins"``
+    Builtin functions such as :obj:`print` can be specified using the ``builtins``
     module.
 
     >>> print_task = Task(function=("builtins", "print"), args=("I am a task", ))
@@ -159,9 +156,9 @@ class Task(HasInputOutput, MSONable):
 
     >>> Task(function=("os.path", "join"), args=("folder", "filename.txt"))
 
-    If a function returns an ``Outputs`` object, the outputs class should be specified
-    to enable static parameter checking. For example, if the following function is
-    defined in the ``"my_package`` module.
+    If a function returns an :obj:`.Outputs` object, the outputs class should be
+    specified to enable static parameter checking. For example, if the following
+    function is defined in the ``my_package`` module.
 
     >>> from activities.core.outputs import Number
     ...
@@ -170,8 +167,8 @@ class Task(HasInputOutput, MSONable):
     ...
     ... add_task = Task(function=("my_package", "add"), args=(1, 2), outputs=Number)
 
-    ``Tasks`` can be executed using the ``run()`` method. The output is always a
-    ``TaskResponse`` object that contains the outputs and other options that
+    :obj:`Tasks` can be executed using the :obj:`run()` method. The output is always a
+    :obj:`TaskResponse` object that contains the outputs and other options that
     control the activity execution.
 
     >>> response = add_task.run()
@@ -180,13 +177,13 @@ class Task(HasInputOutput, MSONable):
 
     See Also
     --------
-    task, Outputs, TaskRepsonse, Outputs
+    task, TaskResponse, .Outputs
     """
 
     function: Tuple[str, str]
     args: Tuple[Any, ...] = field(default_factory=tuple)
     kwargs: Dict[str, Any] = field(default_factory=dict)
-    outputs: Optional[Union[Outputs, Type[Outputs]]] = None
+    outputs: Optional[Union[activities.Outputs, Type[activities.Outputs]]] = None
     uuid: UUID = field(default_factory=uuid4)
 
     def __post_init__(self):
@@ -197,15 +194,17 @@ class Task(HasInputOutput, MSONable):
             self.outputs = self.outputs.to_reference(self.uuid)
 
     @property
-    def input_references(self) -> Tuple[Reference, ...]:
+    def input_references(self) -> Tuple[activities.Reference, ...]:
         """
-        Find ``Reference`` objects in the ``Task`` inputs.
+        Find :obj:`.Reference` objects in the task inputs.
 
         Returns
         -------
         tuple(Reference, ...)
             The references in the inputs to the task.
         """
+        from activities.core.reference import find_and_get_references
+
         references = set()
         for arg in tuple(self.args) + tuple(self.kwargs.values()):
             # TODO: could do this during init and store the references and their
@@ -216,14 +215,14 @@ class Task(HasInputOutput, MSONable):
         return tuple(references)
 
     @property
-    def output_references(self) -> Tuple[Reference, ...]:
+    def output_references(self) -> Tuple[activities.Reference, ...]:
         """
-        Find ``Reference`` objects in the ``Task`` outputs.
+        Find :obj:`.Reference` objects in the task outputs.
 
         Returns
         -------
         tuple(Reference, ...)
-            The references belonging to the ``Task`` outputs.
+            The references belonging to the task outputs.
         """
         if self.outputs is None:
             return tuple()
@@ -237,21 +236,21 @@ class Task(HasInputOutput, MSONable):
         """
         Run the task.
 
-        If the task has inputs that are ``Reference`` objects, then they will need
+        If the task has inputs that are :obj:`.Reference` objects, then they will need
         to be resolved before the task can run. See the docstring for
-        ``Reference.resolve()`` for more details.
+        :obj:`.Reference.resolve()` for more details.
 
         Parameters
         ----------
         output_store
-            A maggma ``Store`` to use for resolving references.
+            A maggma store to use for resolving references.
         output_cache
             A cache dictionary to use for resolving references.
 
         Returns
         -------
         TaskResponse
-            A the response of the task, containing the ``Outputs``, and other settings
+            A the response of the task, containing the outputs, and other settings
             that determine the activity execution.
 
         Raises
@@ -261,7 +260,7 @@ class Task(HasInputOutput, MSONable):
 
         See Also
         --------
-        TaskResponse, Reference
+        TaskResponse, .Reference
         """
         from importlib import import_module
 
@@ -278,8 +277,10 @@ class Task(HasInputOutput, MSONable):
             function = function.__wrapped__
 
         self.resolve_args(output_store=output_store, output_cache=output_cache)
-        all_returned_data = function(*self.args, **self.kwargs)
-        response = TaskResponse.from_task_returns(all_returned_data, type(self.outputs))
+
+        response = function(*self.args, **self.kwargs)
+        if not isinstance(response, TaskResponse):
+            response = TaskResponse.from_task_returns(response, type(self.outputs))
 
         logger.info(f"Finished task - {self.function[1]} ({self.uuid})")
         return response
@@ -292,20 +293,20 @@ class Task(HasInputOutput, MSONable):
         inplace: bool = True,
     ) -> "Task":
         """
-        Resolve any ``Reference`` objects in the input arguments.
+        Resolve any :obj:`.Reference` objects in the input arguments.
 
-        See the docstring for ``Reference.resolve()`` for more details.
+        See the docstring for :obj:`.Reference.resolve()` for more details.
 
         Parameters
         ----------
         output_store
-            A maggma ``Store`` to use for resolving references.
+            A maggma store to use for resolving references.
         output_cache
             A cache dictionary to use for resolving references.
         error_on_missing
             Whether to raise an error if a reference cannot be resolved.
         inplace
-            Update the arguments of the current task or return a new ``Task`` object.
+            Update the arguments of the current task or return a new task object.
 
         Returns
         -------
@@ -313,6 +314,8 @@ class Task(HasInputOutput, MSONable):
             A task with the references resolved.
         """
         from copy import deepcopy
+
+        from activities.core.reference import find_and_resolve_references
 
         resolved_args = find_and_resolve_references(
             self.args,
@@ -342,7 +345,7 @@ class Task(HasInputOutput, MSONable):
 @dataclass
 class Store:
     """
-    Data to be stored in by the activity manager.
+    Data to be stored by the activity manager.
 
     Parameters
     ----------
@@ -355,18 +358,47 @@ class Store:
 
 @dataclass
 class Detour:
+    """
+    Insert an activity between the current task and the next.
 
-    activity: Activity
+    Parameters
+    ----------
+    activity
+        An activity to detour to.
+    """
+
+    activity: activities.Activity
 
 
 @dataclass
 class Restart:
+    """
+    Restart the current activity with modifications.
 
-    activity: Activity
+    Parameters
+    ----------
+    activity
+        An activity that will replace the current activity.
+    """
+
+    activity: activities.Activity
 
 
 @dataclass
 class Stop:
+    """
+    Stop the execution of subsequent tasks or activities.
+
+    Parameters
+    ----------
+    stop_tasks
+        Stop the remaining tasks in the current activity.
+    stop_children
+        Stop any children of the current activity.
+    stop_activities
+        Stop executing all subsequent activities.
+    """
+
     stop_tasks: bool = False
     stop_children: bool = False
     stop_activities: bool = False
@@ -374,11 +406,35 @@ class Stop:
 
 @dataclass
 class TaskResponse:
+    """
+    The :obj:`TaskResponse` contains the outputs, detours, and stop commands of a task.
 
-    outputs: Optional[Outputs] = None
-    detour: Optional[Activity] = None
-    restart: Optional[Activity] = None
-    store: Optional[Dict[str, Any]] = None
+    The response is generated automatically from the :obj:`Outputs`, :obj:`Detour`,
+    :obj:`Stop`, :obj:`Restart` objects returned by a task. There is no need to
+    construct this object yourself.
+
+    Parameters
+    ----------
+    outputs
+        The task outputs.
+    detour
+        A task to detour to.
+    restart
+        A task to replace the current task.
+    store
+        Data to be stored by the activity manager.
+    stop_tasks
+        Stop the remaining tasks in the current activity.
+    stop_children
+        Stop any children of the current activity.
+    stop_activities
+        Stop executing all subsequent activities.
+    """
+
+    outputs: Optional[activities.Outputs] = None
+    detour: Optional[activities.Activity] = None
+    restart: Optional[activities.Activity] = None
+    store: Optional[Dict[Hashable, Any]] = None
     stop_tasks: bool = False
     stop_children: bool = False
     stop_activities: bool = False
@@ -387,9 +443,48 @@ class TaskResponse:
     def from_task_returns(
         cls,
         task_returns: Optional[Any],
-        task_output_class: Optional[str],
+        task_output_class: Optional[str] = None,
     ) -> TaskResponse:
+        """
+        Generate a :obj:`TaskResponse` from the outputs of a :obj:`Task`.
+
+        Parameters
+        ----------
+        task_returns
+            The outputs of a task. Should be a single or list of :obj:`Outputs`,
+            :obj:`Store`, :obj:`Detour`, :obj:`Restart`, or :obj:`Stop` objects. Only
+            one of each type of object is supported.
+
+            .. Warning::
+                :obj:`Detour` and :obj:`Outputs` objects should not be specified
+                simultaneously. The outputs of the detour activity will be used instead.
+
+        task_output_class
+            The outputs class associated with the task. Used to enforce a schema for the
+            outputs. Currently, only a warning will be given if the task outputs do not
+            match the expected outputs class.
+
+        Returns
+        -------
+        TaskResponse
+            The task response controlling the data to store and activity execution
+            options.
+
+        Raises
+        ------
+        ValueError
+            If the task returns type ares not :obj:`Outputs`, :obj:`Store`, :obj:`Detour`,
+            :obj:`Restart`, or :obj:`Stop` objects.
+        ValueError
+            If more than one of the same return type is given.
+
+        See Also
+        --------
+        .Outputs, Store, Detour, Restart, Stop
+        """
         from collections import defaultdict
+
+        from activities import Outputs
 
         if task_returns is None:
             return TaskResponse()
@@ -409,7 +504,7 @@ class TaskResponse:
                 )
 
         if Outputs in to_parse and Detour in to_parse:
-            warnings.warn(
+            logger.warning(
                 "Outputs cannot not be specified at the same time as Detour. The "
                 "outputs of the Detour activity will be used instead."
             )
@@ -424,13 +519,14 @@ class TaskResponse:
 
             data = data[0]
             if return_type == Outputs and task_output_class is None:
-                warnings.warn(
+                logger.warning(
                     "Task returned outputs but none were expected. "
-                    "Outputs will be ignored"
+                    "Outputs schema will not be validated."
                 )
-            elif return_type == Outputs:
+
+            if return_type == Outputs:
                 if type(data) != task_output_class:
-                    warnings.warn(
+                    logger.warning(
                         f"Output class returned by task {type(data)} does "
                         f"not match expected output class {task_output_class}."
                     )

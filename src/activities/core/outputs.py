@@ -33,9 +33,11 @@ class Outputs(ABC, MSONable):
         )
         return resolved_outputs
 
-    def to_db(self, output_store: Store, uuid: UUID):
+    def to_store(self, output_store: Store, uuid: UUID):
         if len(self.references) > 0:
-            warnings.warn("Outputs contains references – call resolve() before to_db()")
+            warnings.warn(
+                "Outputs contains references – call resolve() before to_store()"
+            )
 
         # serialize to dict
         data = self.as_dict()
