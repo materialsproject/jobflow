@@ -1,8 +1,10 @@
 """This module defines functions and classes for representing Task objects."""
+from __future__ import annotations
 import logging
+import typing
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type
+from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union
 from uuid import UUID, uuid4
 
 from maggma.core import Store as MaggmaStore
@@ -16,6 +18,9 @@ from activities.core.reference import (
     find_and_resolve_references,
 )
 
+if typing.TYPE_CHECKING:
+    from activities.core.activity import Activity
+
 logger = logging.getLogger(__name__)
 
 __all__ = ["task", "Task", "Detour", "Restart", "Store", "Stop", "TaskResponse"]
@@ -25,10 +30,10 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
     """
     Wraps a function to produce a ``Task``.
 
-    Tasks are delayed function calls that can be used in an ``Activity``. A task is a
-    composed of the function name, the arguments for the function, and the outputs
-    of the function. This decorator makes it simple to create ``Task`` objects directly
-    from a function definition. See the examples for more details.
+    ``Task`` objectss are delayed function calls that can be used in an ``Activity``. A
+    task is a composed of the function name, the arguments for the function, and the
+    outputs of the function. This decorator makes it simple to create ``Task`` objects
+    directly from a function definition. See the examples for more details.
 
     Parameters
     ----------
@@ -121,11 +126,66 @@ def task(method: Optional[Callable] = None, outputs: Optional[Type[Outputs]] = N
 
 @dataclass
 class Task(HasInputOutput, MSONable):
+    """
+    A ``Task`` is a delayed function call that can be used in an ``Activity``.
+
+    In general, one should not create ``Task`` objects directly but instead use the
+    ``task`` decorator on a function. Any calls to that function will return a ``Task``
+    object.
+
+    Parameters
+    ----------
+    function
+        The delayed function to run specified as a tuple of (module, function_name).
+    args
+        The positional arguments to the function call.
+    kwargs
+        The keyword arguments to the function call.
+    outputs
+        An ``Outputs`` class that specifies the type of outputs returned by the
+        function.
+    uuid
+        A unique identifier for the task.
+
+    Examples
+    --------
+    Builtin functions such as ``print`` can be specified using the ``"builtins"``
+    module.
+
+    >>> print_task = Task(function=("builtins", "print"), args=("I am a task", ))
+
+    Other functions should specify the full module path.
+
+    >>> Task(function=("os.path", "join"), args=("folder", "filename.txt"))
+
+    If a function returns an ``Outputs`` object, the outputs class should be specified
+    to enable static parameter checking. For example, if the following function is
+    defined in the ``"my_package`` module.
+
+    >>> from activities.core.outputs import Number
+    ...
+    ... def add(a, b):
+    ...     return Number(a + b)
+    ...
+    ... add_task = Task(function=("my_package", "add"), args=(1, 2), outputs=Number)
+
+    ``Tasks`` can be executed using the ``run()`` method. The output is always a
+    ``TaskResponse`` object that contains the outputs and other options that
+    control the activity execution.
+
+    >>> response = add_task.run()
+    ... response.outputs
+    Number(number=3)
+
+    See Also
+    --------
+    task, Outputs, TaskRepsonse, Outputs
+    """
 
     function: Tuple[str, str]
-    args: Tuple[Any] = field(default_factory=tuple)
+    args: Tuple[Any, ...] = field(default_factory=tuple)
     kwargs: Dict[str, Any] = field(default_factory=dict)
-    outputs: Optional[Outputs] = None
+    outputs: Optional[Union[Outputs, Type[Outputs]]] = None
     uuid: UUID = field(default_factory=uuid4)
 
     def __post_init__(self):
@@ -135,16 +195,16 @@ class Task(HasInputOutput, MSONable):
         if self.outputs and inspect.isclass(self.outputs):
             self.outputs = self.outputs.to_reference(self.uuid)
 
-    def __call__(self, *args, **kwargs):
-        return Task(
-            function=self.function,
-            args=args,
-            kwargs=kwargs,
-            outputs=self.outputs.to_reference(self.uuid),
-        )
-
     @property
     def input_references(self) -> Tuple[Reference, ...]:
+        """
+        Find ``Reference`` objects in the ``Task`` inputs.
+
+        Returns
+        -------
+        tuple(Reference, ...)
+            The references in the inputs to the task.
+       """
         references = set()
         for arg in tuple(self.args) + tuple(self.kwargs.values()):
             # TODO: could do this during init and store the references and their
@@ -156,6 +216,14 @@ class Task(HasInputOutput, MSONable):
 
     @property
     def output_references(self) -> Tuple[Reference, ...]:
+        """
+        Find ``Reference`` objects in the ``Task`` outputs.
+
+        Returns
+        -------
+        tuple(Reference, ...)
+            The references belonging to the ``Task`` outputs.
+       """
         if self.outputs is None:
             return tuple()
         return self.outputs.references
@@ -165,6 +233,35 @@ class Task(HasInputOutput, MSONable):
         output_store: Optional[MaggmaStore] = None,
         output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
     ) -> "TaskResponse":
+        """
+        Run the task.
+
+        If the task has inputs that are ``Reference`` objects, then they will need
+        to be resolved before the task can run. See the docstring for
+        ``Reference.resolve()`` for more details.
+
+        Parameters
+        ----------
+        output_store
+            A maggma ``Store`` to use for resolving references.
+        output_cache
+            A cache dictionary to use for resolving references.
+
+        Returns
+        -------
+        TaskResponse
+            A the response of the task, containing the ``Outputs``, and other settings
+            that determine the activity execution.
+
+        Raises
+        ------
+        ValueError
+            If the task function cannot be imported.
+
+        See Also
+        --------
+        TaskResponse, Reference
+        """
         from importlib import import_module
 
         logger.info(f"Starting task - {self.function[1]} ({self.uuid})")
@@ -175,8 +272,9 @@ class Task(HasInputOutput, MSONable):
         if function is None:
             raise ValueError(f"Could not import {function} from {module}")
 
-        # strip the wrapper so we can call the actual function
-        function = function.__wrapped__
+        if hasattr(function, "__wrapped__"):
+            # strip the wrapper so we can call the actual function
+            function = function.__wrapped__
 
         self.resolve_args(output_store=output_store, output_cache=output_cache)
         all_returned_data = function(*self.args, **self.kwargs)
@@ -192,6 +290,27 @@ class Task(HasInputOutput, MSONable):
         error_on_missing: bool = True,
         inplace: bool = True,
     ) -> "Task":
+        """
+        Resolve any ``Reference`` objects in the input arguments.
+
+        See the docstring for ``Reference.resolve()`` for more details.
+
+        Parameters
+        ----------
+        output_store
+            A maggma ``Store`` to use for resolving references.
+        output_cache
+            A cache dictionary to use for resolving references.
+        error_on_missing
+            Whether to raise an error if a reference cannot be resolved.
+        inplace
+            Update the arguments of the current task or return a new ``Task`` object.
+
+        Returns
+        -------
+        Task
+            A task with the references resolved.
+        """
         from copy import deepcopy
 
         resolved_args = find_and_resolve_references(
@@ -206,9 +325,10 @@ class Task(HasInputOutput, MSONable):
             output_cache=output_cache,
             error_on_missing=error_on_missing,
         )
+        resolved_args = tuple(resolved_args)
 
         if inplace:
-            self.args = tuple(resolved_args)
+            self.args = resolved_args
             self.kwargs = resolved_kwargs
             return self
 
@@ -220,19 +340,28 @@ class Task(HasInputOutput, MSONable):
 
 @dataclass
 class Store:
+    """
+    Data to be stored in by the activity manager.
+
+    Parameters
+    ----------
+    data
+        A dictionary of data to be stored.
+    """
+
     data: Dict[Hashable, Any]
 
 
 @dataclass
 class Detour:
 
-    activity: "Activity"
+    activity: Activity
 
 
 @dataclass
 class Restart:
 
-    activity: "Activity"
+    activity: Activity
 
 
 @dataclass
@@ -244,11 +373,10 @@ class Stop:
 
 @dataclass
 class TaskResponse:
-    # TODO: Consider merging this with ActivityResponse
 
     outputs: Optional[Outputs] = None
-    detour: Optional["Activity"] = None
-    restart: Optional["Activity"] = None
+    detour: Optional[Activity] = None
+    restart: Optional[Activity] = None
     store: Optional[Dict[str, Any]] = None
     stop_tasks: bool = False
     stop_children: bool = False
@@ -259,7 +387,7 @@ class TaskResponse:
         cls,
         task_returns: Optional[Any],
         task_output_class: Optional[str],
-    ) -> "TaskResponse":
+    ) -> TaskResponse:
         from collections import defaultdict
 
         if task_returns is None:

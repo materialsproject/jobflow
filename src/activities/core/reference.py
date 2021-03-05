@@ -71,12 +71,15 @@ class Reference(MSONable):
     def __hash__(self):
         return hash(str(self))
 
-    def __eq__(self, other: "Reference") -> bool:
-        return (
-            self.uuid == other.uuid
-            and self.name == other.name
-            and self.attributes == other.attributes
-        )
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Reference):
+            return (
+                self.uuid == other.uuid
+                and self.name == other.name
+                and len(self.attributes) == len(other.attributes)
+                and all([a == b for a, b in zip(self.attributes, other.attributes)])
+            )
+        return False
 
 
 def resolve_references(
@@ -91,6 +94,8 @@ def resolve_references(
         raise ValueError("At least one of output_store and output_cache must be set.")
 
     resolved_references = {}
+    output_cache = output_cache or {}
+
     for uuid, references in groupby(references, key=lambda x: x.uuid):
         references = list(references)
         if output_store:
@@ -178,13 +183,16 @@ def find_and_resolve_references(
         return arg
 
     # serialize the argument to a dictionary
-    arg = json.loads(MontyEncoder().encode(arg))
+    encoded_arg = json.loads(MontyEncoder().encode(arg))
 
     # recursively find any reference classes
-    locations = find_key_value(arg, "@class", "Reference")
+    locations = find_key_value(encoded_arg, "@class", "Reference")
+
+    if len(locations) == 0:
+        return arg
 
     # resolve the references
-    references = [Reference.from_dict(get(arg, list(loc))) for loc in locations]
+    references = [Reference.from_dict(get(encoded_arg, list(loc))) for loc in locations]
     resolved_references = resolve_references(
         references,
         output_store=output_store,
@@ -195,7 +203,7 @@ def find_and_resolve_references(
     # replace the references in the arg dict
     for location, reference in zip(locations, references):
         resolved_reference = resolved_references[reference]
-        set_(arg, list(location), resolved_reference)
+        set_(encoded_arg, list(location), resolved_reference)
 
     # deserialize dict array
-    return MontyDecoder().process_decoded(arg)
+    return MontyDecoder().process_decoded(encoded_arg)

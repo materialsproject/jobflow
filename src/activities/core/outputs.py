@@ -90,6 +90,16 @@ class Outputs(ABC, MSONable):
 
 
 @dataclass
+class AnyOutput(Outputs):
+    any: Any
+
+
+@dataclass
+class Bytes(Outputs):
+    bytes: bytes
+
+
+@dataclass
 class Number(Outputs):
     number: float
 

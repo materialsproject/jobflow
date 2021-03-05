@@ -1,8 +1,10 @@
 """Define base Activity object."""
+from __future__ import annotations
+
 import logging
-import warnings
+import typing
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Union
 from uuid import UUID, uuid4
 
 from maggma.core import Store
@@ -12,7 +14,10 @@ from networkx import DiGraph
 from activities.core.base import HasInputOutput
 from activities.core.outputs import Outputs
 from activities.core.reference import Reference
-from activities.core.task import Task
+
+if typing.TYPE_CHECKING:
+    from activities.core.task import Task
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +26,7 @@ logger = logging.getLogger(__name__)
 class Activity(HasInputOutput, MSONable):
 
     name: str
-    tasks: Union[Sequence["Activity"], Sequence[Task]]
+    tasks: Union[Sequence[Activity], Sequence[Task]]
     outputs: Optional[Outputs] = None
     host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
