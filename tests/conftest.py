@@ -1,8 +1,4 @@
-import typing
-
 import pytest
-
-typing.TYPE_CHECKING = True  # set type checking to ensure all type hints are valid
 
 
 @pytest.fixture(scope="session")

@@ -7,10 +7,3 @@ activities package
    activities.core
    activities.managers
 
-Module contents
----------------
-
-.. automodule:: activities
-   :members:
-   :undoc-members:
-   :show-inheritance:

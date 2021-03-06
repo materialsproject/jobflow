@@ -62,11 +62,3 @@ activities.core.util module
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: activities.core
-   :members:
-   :undoc-members:
-   :show-inheritance:

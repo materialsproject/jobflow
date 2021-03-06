@@ -1,9 +1,6 @@
 activities.managers.fireworks package
 =====================================
 
-Submodules
-----------
-
 activities.managers.fireworks.firetask module
 ---------------------------------------------
 
@@ -20,10 +17,3 @@ activities.managers.fireworks.workflow module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: activities.managers.fireworks
-   :members:
-   :undoc-members:
-   :show-inheritance:

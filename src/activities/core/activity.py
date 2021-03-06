@@ -25,16 +25,107 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Activity(HasInputOutput, MSONable):
+    """
+    An Activity contains a sequence of Tasks or other Activities to execute.
+
+    The :obj:`Activity: object is the main tool for constructing workflows. Activities
+    can either contain task or other activities. They cannot contain a mixture of both.
+    Like :obj:`Task` objects, activities can also have outputs. However, the outputs
+    of an activity will likely be stored in a database (depending on the manager used
+    to run the activity), whereas the outputs of tasks are only available while the
+    activity is running.
+
+    .. Note::
+        There is one important difference between activities containing :obj:`Task`
+        objects and those containing other :obj:`Activity` objects: Activities
+        containing :obj:`Task` objects will execute the tasks in the order they are
+        given in the ``tasks`` array, whereas activities containing :obj:`Activity`
+        objects sorted to determine the optimal execution order.
+
+        This may be changed in a future release.
+
+    Parameters
+    ----------
+    name
+        The activity name.
+    tasks
+        The tasks to be run. Can either be a list of :obj:`Task` objects or a list of
+        :obj:`Activity` objects.
+    outputs
+        The outputs of the activity. These should come from the outputs of one or more
+        of the tasks contained in the activity.
+    config
+        A config dictionary for controlling the execution of the activity.
+    host
+        The identifier of the host activity. This is set automatically when an activity
+        is included in the tasks of another activity.
+    uuid
+        A unique identifier for the activity. Generated automatically.
+    output_sources
+        The sources of the output of the activity. Set automatically.
+
+    Examples
+    --------
+
+    Below we define a simple task to add two numbers, and create an activity containing
+    that task.
+
+    >>> from activities import task, Activity
+    ...
+    ... @task
+    ... def add(a, b):
+    ...     return a + b
+    ...
+    ... add_task = add(1, 2)
+    ... activity = Activity(tasks=[add_task])
+
+    If we were to run this activity, what would happen to the output? It would be lost
+    as the outputs of the activity were not defined. To remedy that, we can set the
+    output source of the activity to be the outputs of the ``add_task`` task.
+
+    >>> activity = Activity(tasks=[add_task], outputs=add_task.outputs)
+
+    If we run the activity, we get an :obj:`ActivityResponse` object, that contains the
+    outputs amongst other things.
+
+    >>> response = activity.run()
+    ... response.outputs
+    Value(value=3)
+
+    It is not recommended to run the activity directly as we have done above. Instead,
+    we provide several activity managers for running activities locally or remotely.
+
+    >>> from activities.managers.local import run_activity_locally
+    ... response = run_activity_locally(activity)
+
+    Activities con contain multiple tasks.
+
+    >>> task1 = add(1, 2)
+    ... task2 = add(task1.outputs.value, 5)
+    ... activity = Activity(tasks=[task1, task2], outputs=task2.outputs)
+
+    Finally, by defining the task output class, activities can make use of static
+    parameter checking to ensure that connections between tasks are valid.
+
+    >>> from activities.core.outputs import Number
+    ... @task(outputs=Number)
+    ... def add(a, b):
+    ...     return Number(a + b)
+    ...
+    ... task1 = add(1, 2)
+    ... task2 = add(task1.outputs.bad_output, 5)
+    AttributeError: 'Number' object has no attribute 'bad_output'
+    """
 
     name: str = "Activity"
     tasks: Union[Sequence[Activity], Sequence[activities.Task]] = field(
         default_factory=list
     )
-    outputs: Optional[activities.Outputs] = None
+    output_sources: Optional[activities.Outputs] = field(default=None)
+    config: Dict = field(default_factory=dict)
     host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
-    config: Dict = field(default_factory=dict)
-    output_sources: Optional[activities.Outputs] = field(default=None)
+    outputs: Optional[activities.Outputs] = None
 
     def __post_init__(self):
         task_types = set(map(type, self.tasks))
@@ -52,9 +143,7 @@ class Activity(HasInputOutput, MSONable):
                     )
                 task.host = self.uuid
 
-        if self.outputs is None and self.output_sources is not None:
-            self.outputs = self.outputs_sources.with_references(self.uuid)
-        elif self.outputs is not None and self.output_sources is None:
+        if self.outputs is not None and self.output_sources is None:
             self.output_sources = self.outputs
             self.outputs = self.outputs.with_references(self.uuid)
 
@@ -126,6 +215,8 @@ class Activity(HasInputOutput, MSONable):
         if self.contains_activities:
             for task in self.tasks:
                 task.host = self.uuid
+        if self.outputs:
+            self.outputs = self.outputs.with_references(uuid=uuid)
 
     def run(
         self,
@@ -135,7 +226,7 @@ class Activity(HasInputOutput, MSONable):
         logger.info(f"Starting activity - {self.name} ({self.uuid})")
 
         # note this only executes the tasks associated with this activity and doesn't
-        # run subactivities. If want to excute the full activity tree you should
+        # run subactivities. If want to execute the full activity tree you should
         # call the run methods of the activities returned by activity.iteractivity()
         if self.contains_activities and self.outputs is None:
             logger.info(f"Activity has no outputs and no tasks, skipping...")

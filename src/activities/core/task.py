@@ -70,8 +70,41 @@ def task(
     ... print_sum_task.kwargs
     {"b": 2}
 
-    If the function returns an :obj:`Outputs` object, the outputs class should be
-    specified in the task options.
+    If the function returns a value, the values can be referenced using the ``outputs``
+    attribute of the task. Tasks can either return a single value, a dictionary of
+    values or an :obj:`Outputs` object. If a single value is returned, the output
+    value can be referenced using the field `value`.
+
+    >>> @task
+    ... def add(a, b):
+    ...     return a + b
+    ...
+    ... add_task = add(1, 2)
+    ... add_task.outputs.value
+    Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'value')
+
+    .. Note::
+        Because the task has not yet been run, the outputs are :obj:`Reference` objects.
+        The references are automatically converted to their actual values (resolved)
+        when the task runs.
+
+    If a dictionary of values is returned, the values can be referenced by the
+    dictionary keys. Note, the dictionary keys must be strings.
+
+    >>> from activities.core.outputs import Number
+    ...
+    ... @task
+    ... def compute(a, b):
+    ...     return {"sum": a + b, "product": a * b}
+    ...
+    ... compute_task = compute(1, 2)
+    ... compute_task.outputs.sum
+    ... compute_task.outputs.product
+
+    A better approach is to use :obj:`Outputs` classes.  These have several benefits
+    including the ability to make use of static parameter checking to ensure that
+    the task outputs are valid. To use an outputs class, it should be specified
+    in the task options.
 
     >>> from activities.core.outputs import Number
     ...
@@ -80,8 +113,10 @@ def task(
     ...     return Number(a + b)
     ...
     ... add_task = add(1, 2)
-    ... add_task.outputs
+    ... add_task.outputs.number
     Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
+    >>> add_task.outputs.bad_output
+    AttributeError: 'Number' object has no attribute 'bad_output'
 
     Tasks can return :obj:`Detour` objects that cause new activities to be added to the
     Activity graph. In this case, the outputs class of the Detour activity should be
@@ -157,16 +192,14 @@ class Task(HasInputOutput, MSONable):
 
     >>> Task(function=("os.path", "join"), args=("folder", "filename.txt"))
 
-    If a function returns an :obj:`.Outputs` object, the outputs class should be
-    specified to enable static parameter checking. For example, if the following
-    function is defined in the ``my_package`` module.
+    To use custom functions in a task, the functions should be importable (i.e. not
+    defined in another function). For example, if the following function is defined
+    in the ``my_package`` module.
 
-    >>> from activities.core.outputs import Number
+    >>> def add(a, b):
+    ...     return a + b
     ...
-    ... def add(a, b):
-    ...     return Number(a + b)
-    ...
-    ... add_task = Task(function=("my_package", "add"), args=(1, 2), outputs=Number)
+    ... add_task = Task(function=("my_package", "add"), args=(1, 2))
 
     :obj:`Tasks` can be executed using the :obj:`run()` method. The output is always a
     :obj:`TaskResponse` object that contains the outputs and other options that
@@ -174,7 +207,25 @@ class Task(HasInputOutput, MSONable):
 
     >>> response = add_task.run()
     ... response.outputs
+    Value(value=3)
+
+    The default output type of a task is a :obj:`Value` object that has a single
+    field `value`. If the function returns more than one outputs then
+    the output must be specified as dictionary or a custom :obj:`Outputs` class.
+
+    Using an :obj:`.Outputs` object also enables static parameter checking.
+
+    >>> from activities.core.outputs import Number
+    ...
+    ... def add(a, b):
+    ...     return Number(a + b)
+    ...
+    ... add_task = Task(function=("my_package", "add"), args=(1, 2), outputs=Number)
+    ... response = add_task.run()
+    ... response.outputs
     Number(number=3)
+
+    More details are given in the :obj:`task` decorator docstring.
 
     See Also
     --------
@@ -191,6 +242,9 @@ class Task(HasInputOutput, MSONable):
         import inspect
 
         # if outputs exists and hasn't already been initialized
+        if self.outputs is None:
+            self.outputs = Dynamic
+
         if self.outputs and inspect.isclass(self.outputs):
             self.outputs = self.outputs.with_references(self.uuid)
 
@@ -489,8 +543,8 @@ class TaskResponse:
 
         if task_returns is None:
             return TaskResponse()
-        elif not isinstance(task_returns, (float, tuple)):
-            task_returns = [task_returns]
+        elif not isinstance(task_returns, tuple):
+            task_returns = (task_returns, )
 
         to_parse = defaultdict(list)
         for returned_data in task_returns:

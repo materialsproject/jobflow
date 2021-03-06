@@ -153,7 +153,7 @@ class Outputs(MSONable, ABC):
             error_on_missing=error_on_missing,
         )
 
-        if isinstance(resolved_outputs, Dict):
+        if isinstance(resolved_outputs, dict):
             # monty could not determine outputs class, probably because the class was
             # defined in a function
             resolved_outputs = self.from_dict(resolved_outputs)
@@ -235,6 +235,21 @@ class Outputs(MSONable, ABC):
             references[name] = Reference(uuid, name)
 
         return cls(**references)
+
+
+class Dynamic(Outputs):
+    """
+    A special outputs class that creates its fields when they are referenced.
+
+    The dynamic class can also be initialized with any number of keyword arguments.
+
+    Parameters
+    ----------
+    kwargs
+        The keyword arguments.
+    """
+
+    value: Any
 
 
 @dataclass
