@@ -1,8 +1,14 @@
 .. toctree::
-   :caption: Usage Guide
+   :caption: Getting Started
    :hidden:
 
    Introduction <introduction>
+
+.. toctree::
+   :caption: User Interface
+   :hidden:
+
+   Task <task>
 
 .. toctree::
    :caption: Information

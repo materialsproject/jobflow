@@ -249,7 +249,21 @@ class Dynamic(Outputs):
         The keyword arguments.
     """
 
-    value: Any
+    def __init__(self, **kwargs):
+        self._uuid = uuid4()
+
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+
+    def __getitem__(self, item) -> Any:
+        if hasattr(self, item):
+            return getattr(self, item)
+
+        else:
+            from activities import Reference
+
+            ref = Reference(self._uuid, item, self.attributes + (item,))
+
 
 
 @dataclass

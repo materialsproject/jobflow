@@ -51,6 +51,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
     "sphinx_autodoc_typehints",
     "sphinx_click",
     "sphinx.ext.todo",

@@ -84,12 +84,12 @@ def task(
     Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'value')
 
     .. Note::
-        Because the task has not yet been run, the outputs are :obj:`Reference` objects.
-        The references are automatically converted to their actual values (resolved)
-        when the task runs.
+        Because the task has not yet been run, the output value is :obj:`Reference`
+        object. References are automatically converted to their computed values
+        (resolved) when the task runs.
 
     If a dictionary of values is returned, the values can be referenced by the
-    dictionary keys. Note, the dictionary keys must be strings.
+    dictionary keys. The dictionary keys must be strings.
 
     >>> from activities.core.outputs import Number
     ...
@@ -101,10 +101,10 @@ def task(
     ... compute_task.outputs.sum
     ... compute_task.outputs.product
 
-    A better approach is to use :obj:`Outputs` classes.  These have several benefits
+    A better approach is to use :obj:`Outputs` classes. These have several benefits
     including the ability to make use of static parameter checking to ensure that
     the task outputs are valid. To use an outputs class, it should be specified
-    in the task options.
+    in the :obj:`task` decorator options.
 
     >>> from activities.core.outputs import Number
     ...
@@ -164,7 +164,7 @@ class Task(HasInputOutput, MSONable):
     A :obj:`Task` is a delayed function call that can be used in an :obj:`.Activity`.
 
     In general, one should not create :obj:`Task` objects directly but instead use the
-    :obj:`task` decorator on a function. Any calls to that function will return a
+    :obj:`task` decorator on a function. Any calls to a decorated function will return a
     :obj:`Task` object.
 
     Parameters
