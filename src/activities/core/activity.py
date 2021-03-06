@@ -4,19 +4,20 @@ from __future__ import annotations
 import logging
 import typing
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Union
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from maggma.core import Store
 from monty.json import MSONable
-from networkx import DiGraph
 
 from activities.core.base import HasInputOutput
-from activities.core.outputs import Outputs
-from activities.core.reference import Reference
 
 if typing.TYPE_CHECKING:
-    from activities.core.task import Task
+    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Union
+    from uuid import UUID
+
+    from maggma.core import Store
+    from networkx import DiGraph
+
+    import activities
 
 
 logger = logging.getLogger(__name__)
@@ -26,12 +27,14 @@ logger = logging.getLogger(__name__)
 class Activity(HasInputOutput, MSONable):
 
     name: str = "Activity"
-    tasks: Union[Sequence[Activity], Sequence[Task]] = field(default_factory=list)
-    outputs: Optional[Outputs] = None
+    tasks: Union[Sequence[Activity], Sequence[activities.Task]] = field(
+        default_factory=list
+    )
+    outputs: Optional[activities.Outputs] = None
     host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
     config: Dict = field(default_factory=dict)
-    output_sources: Optional[Outputs] = field(default=None)
+    output_sources: Optional[activities.Outputs] = field(default=None)
 
     def __post_init__(self):
         task_types = set(map(type, self.tasks))
@@ -50,10 +53,10 @@ class Activity(HasInputOutput, MSONable):
                 task.host = self.uuid
 
         if self.outputs is None and self.output_sources is not None:
-            self.outputs = self.outputs_sources.to_reference(self.uuid)
+            self.outputs = self.outputs_sources.with_references(self.uuid)
         elif self.outputs is not None and self.output_sources is None:
             self.output_sources = self.outputs
-            self.outputs = self.outputs.to_reference(self.uuid)
+            self.outputs = self.outputs.with_references(self.uuid)
 
     @property
     def task_type(self) -> str:
@@ -68,7 +71,7 @@ class Activity(HasInputOutput, MSONable):
         return self.task_type == "activity"
 
     @property
-    def input_references(self) -> Tuple[Reference, ...]:
+    def input_references(self) -> Tuple[activities.Reference, ...]:
         references = set()
         task_uuids = set()
         for task in self.tasks:
@@ -78,7 +81,7 @@ class Activity(HasInputOutput, MSONable):
         return tuple([ref for ref in references if ref.uuid not in task_uuids])
 
     @property
-    def output_references(self) -> Tuple[Reference, ...]:
+    def output_references(self) -> Tuple[activities.Reference, ...]:
         if self.output_sources is None:
             return tuple()
         return self.output_sources.references
@@ -157,7 +160,7 @@ class Activity(HasInputOutput, MSONable):
         activity_response = ActivityResponse()
 
         # we have an activity of tasks, run tasks in sequential order
-        for i, task in enumerate(self.tasks):  # type: int, Task
+        for i, task in enumerate(self.tasks):  # type: int, activities.Task
             response = task.run(output_store, output_cache)
 
             if response.store is not None:
@@ -247,7 +250,9 @@ def create_detour_activities(
     return detour_activity, remaining_tasks
 
 
-def cache_outputs(uuid: UUID, outputs: Outputs, cache: Dict[UUID, Dict[str, Any]]):
+def cache_outputs(
+    uuid: UUID, outputs: activities.Outputs, cache: Dict[UUID, Dict[str, Any]]
+):
     for name, output in outputs.items():
         if uuid not in cache:
             cache[uuid] = {}

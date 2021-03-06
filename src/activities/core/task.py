@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import typing
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 from monty.json import MSONable
 
@@ -11,7 +12,7 @@ from activities.core.base import HasInputOutput
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union
-    from uuid import UUID, uuid4
+    from uuid import UUID
 
     from maggma.core import Store as MaggmaStore
 
@@ -19,7 +20,7 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["task", "Task", "Detour", "Restart", "Store", "Stop", "TaskResponse"]
+__all__ = ["task", "Task", "TaskResponse", "Detour", "Restart", "Store", "Stop"]
 
 
 def task(
@@ -191,7 +192,7 @@ class Task(HasInputOutput, MSONable):
 
         # if outputs exists and hasn't already been initialized
         if self.outputs and inspect.isclass(self.outputs):
-            self.outputs = self.outputs.to_reference(self.uuid)
+            self.outputs = self.outputs.with_references(self.uuid)
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:

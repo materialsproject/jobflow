@@ -38,7 +38,6 @@ activities.core.outputs module
 
 .. automodule:: activities.core.outputs
    :members:
-   :undoc-members:
    :show-inheritance:
 
 activities.core.reference module

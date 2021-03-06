@@ -1,5 +1,4 @@
 from activities._version import __version__
-from activities.core import outputs
 from activities.core.activity import Activity
 from activities.core.maker import Maker
 from activities.core.outputs import Outputs

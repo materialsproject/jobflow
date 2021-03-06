@@ -60,13 +60,13 @@ class Reference(MSONable):
     def __getitem__(self, item) -> "Reference":
         return Reference(self.uuid, self.name, self.attributes + (item,))
 
-    def __str__(self):
+    def __repr__(self):
         if len(self.attributes) > 0:
             attribute_str = ", " + ", ".join(map(str, self.attributes))
         else:
             attribute_str = ""
 
-        return f"Reference({str(self.uuid)}, {self.name}{attribute_str})"
+        return f'Reference({str(self.uuid)}, "{self.name}"{attribute_str})'
 
     def __hash__(self):
         return hash(str(self))

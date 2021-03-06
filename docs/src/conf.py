@@ -61,6 +61,7 @@ extensions = [
 # properly resolve types
 set_type_checking_flag = True
 add_module_names = False
+autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -154,7 +155,7 @@ html_context = {
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.6", None),
+    "python": ("https://docs.python.org/3.8", None),
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
     "pymatgen": ("http://pymatgen.org/", None),
     "h5py": ("http://docs.h5py.org/en/latest/", None),
