@@ -1,9 +1,11 @@
-import pytest
 from uuid import uuid4
+
+import pytest
 
 
 def add(a, b=5):
     from activities.core.outputs import Number
+
     return Number(a + b)
 
 
@@ -90,7 +92,7 @@ def test_task_output_references():
     assert set(references) == {test_task.outputs.number}
 
 
-def test_task_resolve_args():
+def test_task_resolve_args(output_store):
     from activities.core.reference import Reference
     from activities.core.task import Task
 
@@ -122,20 +124,17 @@ def test_task_resolve_args():
     assert resolved_task.kwargs["b"] == ref
 
     # test resolve with store
-    from maggma.stores import MemoryStore
-
-    store = MemoryStore()
-    store.connect()
-    store.update({"uuid": str(ref.uuid), ref.name: 2}, key="uuid")
-
+    output_store.update({"uuid": str(ref.uuid), ref.name: 2}, key="uuid")
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
-    resolved_task = test_task.resolve_args(output_store=store)
+    resolved_task = test_task.resolve_args(output_store=output_store)
     assert resolved_task.kwargs["b"] == 2
 
     # test cache is preferred over store
-    store.update({"uuid": str(ref.uuid), ref.name: 10}, key="uuid")
+    output_store.update({"uuid": str(ref.uuid), ref.name: 10}, key="uuid")
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
-    resolved_task = test_task.resolve_args(output_store=store, output_cache=cache)
+    resolved_task = test_task.resolve_args(
+        output_store=output_store, output_cache=cache
+    )
     assert resolved_task.kwargs["b"] == 2
 
 
@@ -195,9 +194,9 @@ def test_task_decorator():
 def test_task_response():
     # no need to test init as it is just a dataclass, instead test from_task_returns
     # test no task returns
-    from activities.core.task import TaskResponse, Detour, Store, Stop
-    from activities.core.outputs import Number
     from activities.core.activity import Activity
+    from activities.core.outputs import Number
+    from activities.core.task import Detour, Stop, Store, TaskResponse
 
     response = TaskResponse.from_task_returns(None)
     assert response == TaskResponse()
@@ -220,7 +219,9 @@ def test_task_response():
     # test stop
     stop = Stop(stop_tasks=True, stop_children=True, stop_activities=True)
     response = TaskResponse.from_task_returns(stop)
-    assert response == TaskResponse(stop_tasks=True, stop_activities=True, stop_children=True)
+    assert response == TaskResponse(
+        stop_tasks=True, stop_activities=True, stop_children=True
+    )
 
     # test multiple
     response = TaskResponse.from_task_returns((outputs, store, stop))
@@ -229,7 +230,7 @@ def test_task_response():
         store=store.data,
         stop_tasks=True,
         stop_activities=True,
-        stop_children=True
+        stop_children=True,
     )
 
     # test detour overrides outputs
@@ -240,7 +241,7 @@ def test_task_response():
         store=store.data,
         stop_tasks=True,
         stop_activities=True,
-        stop_children=True
+        stop_children=True,
     )
 
     # test malformed outputs
@@ -253,4 +254,3 @@ def test_task_response():
 
     with pytest.raises(ValueError):
         TaskResponse.from_task_returns((detour, detour))
-

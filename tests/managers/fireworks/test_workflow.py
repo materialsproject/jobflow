@@ -18,12 +18,12 @@ def simple_activity():
     return Activity("simple activity", [simple], simple.outputs)
 
 
-def test_activity_to_workflow(output_store):
+def test_activity_to_workflow(mongo_output_store):
     from activities.managers.fireworks.workflow import activity_to_workflow
     from fireworks import Workflow
 
     activity = simple_activity()
-    wf = activity_to_workflow(activity, output_store)
+    wf = activity_to_workflow(activity, mongo_output_store)
 
     assert type(wf) == Workflow
     assert wf.name == "simple activity"
@@ -31,12 +31,12 @@ def test_activity_to_workflow(output_store):
     assert wf.fws[0].name == "simple activity"
 
 
-def test_fireworks_integration(lpad, output_store, clean_dir):
+def test_fireworks_integration(lpad, mongo_output_store, clean_dir):
     from activities.managers.fireworks.workflow import activity_to_workflow
     from fireworks.core.rocket_launcher import rapidfire
 
     activity = simple_activity()
-    wf = activity_to_workflow(activity, output_store)
+    wf = activity_to_workflow(activity, mongo_output_store)
     fw_ids = lpad.add_wf(wf)
 
     # run the workflow
@@ -49,8 +49,7 @@ def test_fireworks_integration(lpad, output_store, clean_dir):
     assert all([s == "COMPLETED" for s in wf.fw_states.values()])
 
     # check output_store has the activity output
-    output_store.connect()
-    outputs = output_store.query_one({"uuid": str(activity.uuid)})
+    outputs = mongo_output_store.query_one({"uuid": str(activity.uuid)})
     assert outputs["message"] == "12345_end"
 
 
@@ -137,12 +136,12 @@ def get_detour_activity_test():
     return my_activity
 
 
-def test_fireworks_detour(lpad, output_store, clean_dir):
+def test_fireworks_detour(lpad, mongo_output_store, clean_dir):
     from activities.managers.fireworks.workflow import activity_to_workflow
     from fireworks.core.rocket_launcher import rapidfire
 
     activity = get_detour_activity_test()
-    wf = activity_to_workflow(activity, output_store)
+    wf = activity_to_workflow(activity, mongo_output_store)
     fw_ids = lpad.add_wf(wf)
 
     # run the workflow
@@ -155,6 +154,5 @@ def test_fireworks_detour(lpad, output_store, clean_dir):
     assert all([s == "COMPLETED" for s in wf.fw_states.values()])
 
     # check output_store has the activity output
-    output_store.connect()
-    outputs = output_store.query_one({"uuid": str(activity.uuid)})
+    outputs = mongo_output_store.query_one({"uuid": str(activity.uuid)})
     assert outputs["time"] > 0

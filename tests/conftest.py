@@ -1,6 +1,6 @@
-import pytest
-
 import typing
+
+import pytest
 
 typing.TYPE_CHECKING = True  # set type checking to ensure all type hints are valid
 
@@ -11,10 +11,21 @@ def test_database():
 
 
 @pytest.fixture(scope="session")
-def output_store(test_database):
+def mongo_output_store(test_database):
     from maggma.stores import MongoStore
 
-    return MongoStore(test_database, "activity_outputs")
+    store = MongoStore(test_database, "activity_outputs")
+    store.connect()
+    return store
+
+
+@pytest.fixture(scope="session")
+def output_store():
+    from maggma.stores import MemoryStore
+
+    store = MemoryStore()
+    store.connect()
+    return store
 
 
 @pytest.fixture
