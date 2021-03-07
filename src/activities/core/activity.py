@@ -253,7 +253,7 @@ class Activity(HasInputOutput, MSONable):
                 outputs.to_store(output_store, self.uuid)
 
             logger.info(f"Finished activity - {self.name} ({self.uuid})")
-            return ActivityResponse()
+            return ActivityResponse(outputs=outputs)
 
         activity_response = ActivityResponse()
 
@@ -304,6 +304,7 @@ class Activity(HasInputOutput, MSONable):
                 output_store=output_store, output_cache=output_cache
             )
             cache_outputs(self.uuid, outputs, output_cache)
+            activity_response.outputs = outputs
 
             if output_store:
                 outputs.to_store(output_store, self.uuid)
@@ -362,6 +363,7 @@ def cache_outputs(
 class ActivityResponse:
     # TODO: Consider merging this with TaskResponse
 
+    outputs: Optional[activities.Outputs] = None
     detour: Optional[Tuple[Activity, Activity]] = None
     restart: Optional[Activity] = None
     store: Dict[str, Any] = field(default_factory=dict)
