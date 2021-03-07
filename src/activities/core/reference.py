@@ -38,11 +38,13 @@ class Reference(MSONable):
             output_cache[self.uuid] = activity_outputs
 
         if error_on_missing and self.uuid not in output_cache:
-            raise ValueError("Could not resolve reference - uuid not in output_cache")
+            raise ValueError(
+                f"Could not resolve reference - {self.uuid} not in output_cache"
+            )
 
         if error_on_missing and self.name not in output_cache[self.uuid]:
             raise ValueError(
-                "Could not resolve reference - field name not in output_cache"
+                f"Could not resolve reference - {self.name} not in output_cache"
             )
 
         try:
@@ -60,13 +62,18 @@ class Reference(MSONable):
     def __getitem__(self, item) -> "Reference":
         return Reference(self.uuid, self.name, self.attributes + (item,))
 
+    def __getattr__(self, item) -> "Reference":
+        if item in {"kwargs", "args"}:
+            raise AttributeError
+        return Reference(self.uuid, self.name, self.attributes + (item,))
+
     def __repr__(self):
         if len(self.attributes) > 0:
-            attribute_str = ", " + ", ".join(map(str, self.attributes))
+            attribute_str = ", " + ", ".join(map(repr, self.attributes))
         else:
             attribute_str = ""
 
-        return f'Reference({str(self.uuid)}, "{self.name}"{attribute_str})'
+        return f"Reference({str(self.uuid)}, '{self.name}'{attribute_str})"
 
     def __hash__(self):
         return hash(str(self))
@@ -80,6 +87,17 @@ class Reference(MSONable):
                 and all([a == b for a, b in zip(self.attributes, other.attributes)])
             )
         return False
+
+    def as_dict(self):
+        data = {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
+            "@version": None,
+            "uuid": MontyEncoder().default(self.uuid),
+            "name": self.name,
+            "attributes": self.attributes,
+        }
+        return data
 
 
 def resolve_references(

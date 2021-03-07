@@ -21,7 +21,7 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["Outputs", "Value", "Number", "String", "Boolean", "Bytes"]
+__all__ = ["Outputs", "Value", "Number", "String", "Boolean", "Bytes", "Dynamic"]
 
 
 class Outputs(MSONable, ABC):
@@ -115,7 +115,7 @@ class Outputs(MSONable, ABC):
         from activities.core.reference import find_and_get_references
 
         references = []
-        for name in self.fields():
+        for name in self.fields:
             if hasattr(self, name):
                 references.extend(find_and_get_references(getattr(self, name)))
 
@@ -191,29 +191,27 @@ class Outputs(MSONable, ABC):
         (str, Any)
             The output name and value.
         """
-        for name in self.fields():
-            if hasattr(self, name):
-                yield name, getattr(self, name)
+        for name in self.fields:
+            yield name, getattr(self, name)
 
-    @classmethod
-    def fields(cls) -> Tuple[str]:
+    @property
+    def fields(self) -> Tuple[str]:
         """
         The fields (attributes) of the output object.
 
         Returns
         -------
-        List[str]
+        Tuple[str]
             A list of field names.
         """
         from inspect import signature
 
-        sig = signature(cls)
+        sig = signature(self.__class__)
         return tuple(sig.parameters.keys())
 
-    @classmethod
-    def with_references(cls: Type[T], uuid: Optional[UUID] = None) -> T:
+    def with_references(self: T, uuid: Optional[UUID] = None) -> T:
         """
-        Initialize the outputs with :obj:`.Reference` objects for all fields.
+        Fill the outputs with :obj:`.Reference` objects for all fields.
 
         Parameters
         ----------
@@ -231,10 +229,10 @@ class Outputs(MSONable, ABC):
             uuid = uuid4()
 
         references = {}
-        for name in cls.fields():
+        for name in self.fields:
             references[name] = Reference(uuid, name)
 
-        return cls(**references)
+        return self.__class__(**references)
 
 
 class Dynamic(Outputs):
@@ -249,21 +247,124 @@ class Dynamic(Outputs):
         The keyword arguments.
     """
 
-    def __init__(self, **kwargs):
-        self._uuid = uuid4()
+    def __init__(self, *args, _uuid: UUID = None, **kwargs):
+        self._uuid = _uuid if _uuid else uuid4()
+        self._data = kwargs or {}
 
-        for name, value in kwargs.items():
-            setattr(self, name, value)
+        if len(args) > 0:
+            raise ValueError(
+                "Dynamic output can only be initialized with keyword arguments"
+            )
+
+    @property
+    def fields(self) -> Tuple[str]:
+        """
+        The fields (attributes) of the output object.
+
+        Returns
+        -------
+        Tuple[str]
+            A list of field names.
+        """
+        return tuple(self._data.keys())
 
     def __getitem__(self, item) -> Any:
-        if hasattr(self, item):
-            return getattr(self, item)
+        return getattr(self, item)
 
-        else:
-            from activities import Reference
+    def __getattr__(self, item) -> Any:
+        if item in {"kwargs", "args"}:
+            raise AttributeError
 
-            ref = Reference(self._uuid, item, self.attributes + (item,))
+        if item in self._data:
+            return self._data[item]
 
+        from activities import Reference
+
+        ref = Reference(self._uuid, item)
+        self._data[item] = ref
+        return ref
+
+    def with_references(self: T, uuid: Optional[UUID] = None) -> T:
+        """
+        Fill the outputs with :obj:`.Reference` objects for all fields.
+
+        Dynamic objects have no fields to begin with, as they are created when
+        the attributes are accessed.
+
+        Parameters
+        ----------
+        uuid
+            The unique identifier for the references.
+
+        Returns
+        -------
+        cls
+            The outputs class with references for all fields.
+        """
+        from activities import Reference
+
+        if uuid is None:
+            uuid = uuid4()
+
+        references = {}
+        for name in self.fields:
+            references[name] = Reference(uuid, name)
+
+        return self.__class__(**references, _uuid=uuid)
+
+    def resolve(
+        self: T,
+        output_store: Optional[Store] = None,
+        output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+        error_on_missing: bool = True,
+    ) -> T:
+        """
+        Resolve (find and replace) all :obj:`.Reference` objects in the outputs.
+
+        Also finds all outputs in the store and cache with the same UUID as the output
+        class. This behaviour is necessary as dynamic outputs may not be explicitly
+        known when the class is created, and are instead determined by what outputs a
+        task returns.
+
+        Parameters
+        ----------
+        output_store
+            A maggma store to use for resolving references.
+        output_cache
+            A cache dictionary to use for resolving references.
+        error_on_missing
+            Whether to raise an error if a reference cannot be resolved.
+
+        Returns
+        -------
+        Outputs
+            An outputs with the references resolved.
+        """
+        resolved_dict = super().resolve(
+            output_store=output_store,
+            output_cache=output_cache,
+            error_on_missing=error_on_missing
+        ).as_dict()
+        if output_store:
+            results = output_store.query_one({"uuid": str(self._uuid)})
+            if results:
+                resolved_dict.update(results)
+        if output_cache and self._uuid in output_cache:
+            resolved_dict.update(output_cache[self._uuid])
+        return self.__class__(**resolved_dict)
+
+    def as_dict(self):
+        data = {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
+            "@version": None
+        }
+        data.update(self._data)
+        return data
+
+    def __repr__(self):
+        fields = ", ".join([f"{k}={repr(v)}" for k, v in self._data.items()])
+        return f"Dynamic({fields})"
 
 
 @dataclass

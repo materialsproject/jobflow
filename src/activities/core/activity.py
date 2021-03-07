@@ -121,13 +121,16 @@ class Activity(HasInputOutput, MSONable):
     tasks: Union[Sequence[Activity], Sequence[activities.Task]] = field(
         default_factory=list
     )
-    output_sources: Optional[activities.Outputs] = field(default=None)
+    outputs: Optional[activities.Outputs] = None
     config: Dict = field(default_factory=dict)
     host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
-    outputs: Optional[activities.Outputs] = None
+    output_sources: Optional[activities.Outputs] = field(default=None)
 
     def __post_init__(self):
+        from activities import Outputs
+        from activities.core.outputs import Dynamic
+
         task_types = set(map(type, self.tasks))
         if len(task_types) > 1:
             raise ValueError(
@@ -137,15 +140,19 @@ class Activity(HasInputOutput, MSONable):
         if self.contains_activities:
             for task in self.tasks:
                 if task.host is not None and task.host != self.uuid:
-                    print(task.host, self.uuid)
                     raise ValueError(
                         f"Subactivity {task} already belongs to another activity"
                     )
                 task.host = self.uuid
 
         if self.outputs is not None and self.output_sources is None:
+            if isinstance(self.outputs, dict):
+                self.outputs = Dynamic(**self.outputs)
+            elif not isinstance(self.outputs, Outputs):
+                self.outputs = Dynamic(value=self.outputs)
+
             self.output_sources = self.outputs
-            self.outputs = self.outputs.with_references(self.uuid)
+            self.outputs = self.outputs.with_references(uuid=self.uuid)
 
     @property
     def task_type(self) -> str:
@@ -258,6 +265,9 @@ class Activity(HasInputOutput, MSONable):
                 # add the stored data to the activity response
                 activity_response.store.update(response.store)
 
+            if response.outputs is not None:
+                cache_outputs(task.uuid, response.outputs, output_cache)
+
             if response.detour is not None:
                 # put remaining tasks into new activity; resolve all outputs
                 # so far calculated, and add the new activity at the end of the detour
@@ -270,9 +280,6 @@ class Activity(HasInputOutput, MSONable):
                     output_cache=output_cache,
                 )
                 break
-
-            if response.outputs is not None:
-                cache_outputs(task.uuid, response.outputs, output_cache)
 
             if response.restart is not None:
                 # cancel remaining tasks, resubmit restart using the same activity

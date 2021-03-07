@@ -10,6 +10,7 @@ from activities.core.task import Task
 
 
 def activity_input_graph(activity: Activity) -> nx.DiGraph:
+    from activities.core.outputs import Dynamic
     nodes = [(activity.uuid, {"type": "activity", "object": activity})]
     edges = []
 
@@ -24,9 +25,21 @@ def activity_input_graph(activity: Activity) -> nx.DiGraph:
 
 
 def activity_output_graph(activity: Activity) -> nx.DiGraph:
+    from activities.core.outputs import Dynamic
+
     # add references from the tasks to the activity
     nodes = [(activity.uuid, {"type": "activity", "object": activity})]
     edges = []
+
+    if (
+        isinstance(activity.output_sources, Dynamic) and
+        len(activity.output_sources.fields) == 0
+    ):
+        # dynamic output with no explicit fields, assume we may need all
+        # potential fields
+        edges.append(
+            (activity.output_sources._uuid, activity.uuid, {"properties": "[all outputs]"})
+        )
 
     for uuid, refs in activity.output_references_grouped.items():
         properties = list(set([ref.name for ref in refs]))
@@ -57,6 +70,7 @@ def task_graph(activity: Activity) -> nx.DiGraph:
     A networkx Graph.
     """
     from networkx.utils import pairwise
+    from activities.core.outputs import Dynamic
 
     if activity.contains_activities:
         raise ValueError("Activity must contain tasks not activities.")
@@ -80,6 +94,16 @@ def task_graph(activity: Activity) -> nx.DiGraph:
             edges.append((uuid, task.uuid, {"properties": properties}))
 
     # finally add references from the tasks to the activity
+    if (
+        isinstance(activity.output_sources, Dynamic) and
+        len(activity.output_sources.fields) == 0
+    ):
+        # dynamic output with no explicit fields, assume we may need all
+        # potential fields
+        edges.append(
+            (activity.output_sources._uuid, activity.uuid, {"properties": "[all outputs]"})
+        )
+
     for uuid, refs in activity.output_references_grouped.items():
         properties = list(set([ref.name for ref in refs]))
         edges.append((uuid, activity.uuid, {"properties": properties}))

@@ -6,6 +6,7 @@ import typing
 from dataclasses import dataclass, field
 from uuid import uuid4
 
+from activities.core.outputs import Dynamic
 from monty.json import MSONable
 
 from activities.core.base import HasInputOutput
@@ -25,7 +26,7 @@ __all__ = ["task", "Task", "TaskResponse", "Detour", "Restart", "Store", "Stop"]
 
 def task(
     method: Optional[Callable] = None,
-    outputs: Optional[Type[activities.Outputs]] = None,
+    outputs: Optional[Type[activities.Outputs]] = Dynamic,
 ):
     """
     Wraps a function to produce a :obj:`Task`.
@@ -117,6 +118,12 @@ def task(
     Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
     >>> add_task.outputs.bad_output
     AttributeError: 'Number' object has no attribute 'bad_output'
+
+    To indicate that a task has no outputs, the ``outputs`` parameter should be set to
+    ``None``.
+    >>> @task(outputs=None)
+    ... def print_message(message):
+    ...     print(message)
 
     Tasks can return :obj:`Detour` objects that cause new activities to be added to the
     Activity graph. In this case, the outputs class of the Detour activity should be
@@ -235,18 +242,15 @@ class Task(HasInputOutput, MSONable):
     function: Tuple[str, str]
     args: Tuple[Any, ...] = field(default_factory=tuple)
     kwargs: Dict[str, Any] = field(default_factory=dict)
-    outputs: Optional[Union[activities.Outputs, Type[activities.Outputs]]] = None
+    outputs: Optional[Union[activities.Outputs, Type[activities.Outputs]]] = Dynamic
     uuid: UUID = field(default_factory=uuid4)
 
     def __post_init__(self):
         import inspect
 
         # if outputs exists and hasn't already been initialized
-        if self.outputs is None:
-            self.outputs = Dynamic
-
         if self.outputs and inspect.isclass(self.outputs):
-            self.outputs = self.outputs.with_references(self.uuid)
+            self.outputs = _output_class_with_references(self.outputs, self.uuid)
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
@@ -263,8 +267,8 @@ class Task(HasInputOutput, MSONable):
         references = set()
         for arg in tuple(self.args) + tuple(self.kwargs.values()):
             # TODO: could do this during init and store the references and their
-            #   locations instead. Similarly, could store the serialized args and
-            #   kwargs too.
+            #       locations instead. Similarly, could store the serialized args and
+            #       kwargs too.
             references.update(find_and_get_references(arg))
 
         return tuple(references)
@@ -539,12 +543,24 @@ class TaskResponse:
         """
         from collections import defaultdict
 
-        from activities import Outputs
+        from activities.core.outputs import Outputs, Value
 
         if task_returns is None:
             return TaskResponse()
         elif not isinstance(task_returns, tuple):
             task_returns = (task_returns, )
+
+        objects = (Detour, Restart, Store, Outputs, Stop)
+        contains_return_object = any([isinstance(x, objects) for x in task_returns])
+        if not contains_return_object:
+            # function returned a single value, list of values, or dict
+            if len(task_returns) == 1 and isinstance(task_returns[0], dict):
+                outputs = Dynamic(**task_returns[0])
+            elif len(task_returns) == 1:
+                outputs = Value(task_returns[0])
+            else:
+                outputs = Value(task_returns)
+            return TaskResponse(outputs=outputs)
 
         to_parse = defaultdict(list)
         for returned_data in task_returns:
@@ -553,10 +569,7 @@ class TaskResponse:
             elif isinstance(returned_data, (Detour, Restart, Store, Stop)):
                 to_parse[type(returned_data)].append(returned_data)
             else:
-                raise ValueError(
-                    f"Unrecognised return type: {type(returned_data)}. Must be one of: "
-                    "Output, Detour, Restart, Store, Stop}"
-                )
+                to_parse[Outputs].append(Value(returned_data))
 
         if Outputs in to_parse and Detour in to_parse:
             logger.warning(
@@ -599,3 +612,19 @@ class TaskResponse:
                 task_response_data["stop_activities"] = data.stop_activities
 
         return cls(**task_response_data)
+
+
+def _output_class_with_references(outputs_class, uuid):
+    from inspect import signature
+    from activities import Reference
+
+    if outputs_class is Dynamic:
+        return outputs_class(_uuid=uuid)
+    else:
+        sig = signature(outputs_class)
+
+        references = {}
+        for name in sig.parameters.keys():
+            references[name] = Reference(uuid, name)
+
+        return outputs_class(**references)
