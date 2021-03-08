@@ -10,7 +10,7 @@ def add(a, b=5):
 
 
 def test_task_init():
-    from activities.core.outputs import Number
+    from activities.core.outputs import Number, Dynamic
     from activities.core.task import Task
 
     # test basic init
@@ -20,7 +20,7 @@ def test_task_init():
     assert test_task.args == ("I am a task",)
     assert test_task.kwargs == {}
     assert test_task.uuid is not None
-    assert test_task.outputs is None
+    assert isinstance(test_task.outputs, Dynamic)
 
     # test init with outputs
     test_task = Task(
@@ -32,7 +32,7 @@ def test_task_init():
     assert test_task.kwargs == {"b": 2}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Number)
-    assert test_task.uuid == test_task.outputs.number.uuid
+    assert test_task.uuid == test_task.outputs.value.uuid
 
 
 def test_task_run(capsys):
@@ -53,7 +53,7 @@ def test_task_run(capsys):
     response = test_task.run()
     assert type(response).__name__ == "TaskResponse"
     assert isinstance(response.outputs, Number)
-    assert response.outputs.number == 3
+    assert response.outputs.value == 3
 
     # test run with input references
     ref = Reference(uuid4(), "b")
@@ -63,7 +63,7 @@ def test_task_run(capsys):
     response = test_task.run(output_cache={ref.uuid: {ref.name: 2}})
     assert type(response).__name__ == "TaskResponse"
     assert isinstance(response.outputs, Number)
-    assert response.outputs.number == 3
+    assert response.outputs.value == 3
 
 
 def test_task_input_references():
@@ -89,7 +89,7 @@ def test_task_output_references():
     )
     references = test_task.output_references
 
-    assert set(references) == {test_task.outputs.number}
+    assert set(references) == {test_task.outputs.value}
 
 
 def test_task_resolve_args(output_store):
@@ -139,7 +139,7 @@ def test_task_resolve_args(output_store):
 
 
 def test_task_decorator():
-    from activities.core.outputs import Number
+    from activities.core.outputs import Number, Dynamic
     from activities.core.task import task
 
     # test basic init
@@ -150,7 +150,7 @@ def test_task_decorator():
     assert test_task.args == ("I am a task",)
     assert test_task.kwargs == {}
     assert test_task.uuid is not None
-    assert test_task.outputs is None
+    assert isinstance(test_task.outputs, Dynamic)
 
     # test init with outputs
     decorated = task(add, outputs=Number)
@@ -161,7 +161,7 @@ def test_task_decorator():
     assert test_task.kwargs == {"b": 2}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Number)
-    assert test_task.uuid == test_task.outputs.number.uuid
+    assert test_task.uuid == test_task.outputs.value.uuid
 
     # test applying the decorator without arguments
     @task
@@ -174,7 +174,7 @@ def test_task_decorator():
     assert test_task.args == ("I am a task",)
     assert test_task.kwargs == {}
     assert test_task.uuid is not None
-    assert test_task.outputs is None
+    assert isinstance(test_task.outputs, Dynamic)
 
     # test applying the decorator with arguments
     @task(outputs=Number)
@@ -188,18 +188,47 @@ def test_task_decorator():
     assert test_task.kwargs == {"b": 2}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Number)
-    assert test_task.uuid == test_task.outputs.number.uuid
+    assert test_task.uuid == test_task.outputs.value.uuid
+
+    # test setting outputs to None
+    @task(outputs=None)
+    def add_numbers(a, b=10):
+        print(a + b)
+
+    test_task = add_numbers(1, b=2)
+    assert test_task.outputs is None
 
 
 def test_task_response():
     # no need to test init as it is just a dataclass, instead test from_task_returns
     # test no task returns
     from activities.core.activity import Activity
-    from activities.core.outputs import Number
+    from activities.core.outputs import Number, Dynamic, Value
     from activities.core.task import Detour, Stop, Store, TaskResponse
 
     response = TaskResponse.from_task_returns(None)
     assert response == TaskResponse()
+
+    # test single output
+    response = TaskResponse.from_task_returns(1)
+    assert isinstance(response.outputs, Value)
+    assert response.outputs.value == 1
+
+    # test list output
+    response = TaskResponse.from_task_returns([1, 2, 3])
+    assert isinstance(response.outputs, Value)
+    assert response.outputs.value == [1, 2, 3]
+
+    # test tuple output
+    response = TaskResponse.from_task_returns((1, 2, 3))
+    assert isinstance(response.outputs, Value)
+    assert response.outputs.value == (1, 2, 3)
+
+    # test dict output
+    response = TaskResponse.from_task_returns({"a": 1, "b": 2})
+    assert isinstance(response.outputs, Dynamic)
+    assert response.outputs.a == 1
+    assert response.outputs.b == 2
 
     # test outputs
     outputs = Number(5)
@@ -233,6 +262,16 @@ def test_task_response():
         stop_children=True,
     )
 
+    # test multiple with no outputs class
+    response = TaskResponse.from_task_returns((123, store, stop))
+    assert response == TaskResponse(
+        outputs=Value(123),
+        store=store.data,
+        stop_tasks=True,
+        stop_activities=True,
+        stop_children=True,
+    )
+
     # test detour overrides outputs
     response = TaskResponse.from_task_returns((outputs, detour, store, stop))
     assert response == TaskResponse(
@@ -246,7 +285,7 @@ def test_task_response():
 
     # test malformed outputs
     with pytest.raises(ValueError):
-        TaskResponse.from_task_returns([1, 2, 3])
+        TaskResponse.from_task_returns([1, 2, 3, store])
 
     # test multiple of the same outputs
     with pytest.raises(ValueError):

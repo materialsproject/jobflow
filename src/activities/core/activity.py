@@ -152,7 +152,7 @@ class Activity(HasInputOutput, MSONable):
                 self.outputs = Dynamic(value=self.outputs)
 
             self.output_sources = self.outputs
-            self.outputs = self.outputs.with_references(uuid=self.uuid)
+            self.outputs = self.outputs.fields_to_references(uuid=self.uuid)
 
     @property
     def task_type(self) -> str:
@@ -223,7 +223,7 @@ class Activity(HasInputOutput, MSONable):
             for task in self.tasks:
                 task.host = self.uuid
         if self.outputs:
-            self.outputs = self.outputs.with_references(uuid=uuid)
+            self.outputs = self.outputs.fields_to_references(uuid=uuid)
 
     def run(
         self,

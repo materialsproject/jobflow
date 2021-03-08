@@ -63,7 +63,9 @@ class Reference(MSONable):
         return Reference(self.uuid, self.name, self.attributes + (item,))
 
     def __getattr__(self, item) -> "Reference":
-        if item in {"kwargs", "args"}:
+        if item in {"kwargs", "args"} or (
+            isinstance(item, str) and item.startswith("__")
+        ):
             raise AttributeError
         return Reference(self.uuid, self.name, self.attributes + (item,))
 

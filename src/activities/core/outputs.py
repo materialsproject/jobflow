@@ -70,25 +70,25 @@ class Outputs(MSONable, ABC):
 
     All outputs classes can be initialized with references for all fields.
 
-    >>> output_reference = MyOutputs.with_references()
+    >>> output_reference = MyOutputs.fields_to_references()
     ... output_reference.my_string
     Reference(4c79bd82-2400-4c25-bc12-6806ca595e53, "my_string")
 
     To avoid having to create new outputs classes for simple tasks, we have implemented
     several basic outputs objects.
 
-    ==============  =========  ========================================================
-    Name             Field                              Note
-    ==============  =========  ========================================================
-    :obj:`Value`    `value`    Output for any value (default if single output returned)
-    :obj:`Number`   `number`   Output for numerical values.
-    :obj:`String`   `string`   Output for string values.
-    :obj:`Boolean`  `boolean`  Output for string values.
-    :obj:`Bytes`    `bytes`    Output for byte values.
-    ==============  =========  ========================================================
+    ==============  =========  =============================
+    Name             Field                Note
+    ==============  =========  =============================
+    :obj:`Value`    `value`    Output for value of any type
+    :obj:`Number`   `value`    Output for numerical values.
+    :obj:`String`   `value`    Output for string values.
+    :obj:`Boolean`  `value`    Output for string values.
+    :obj:`Bytes`    `value`    Output for byte values.
+    ==============  =========  =============================
 
     For cases where you don't know the format of the data in advance or don't want to
-    enforce a schema, the :obj:`Dynmic` output class can be used. Here, fields are
+    enforce a schema, the :obj:`Dynamic` outputs class can be used. Here, fields are
     added to the outputs dynamically when the attributes are accessed. This class is
     used by default for tasks where the outputs class is not specified. One downside
     is that dynamic outputs cannot be used for static parameter checking. I.e., it isn't
@@ -209,7 +209,7 @@ class Outputs(MSONable, ABC):
         sig = signature(self.__class__)
         return tuple(sig.parameters.keys())
 
-    def with_references(self: T, uuid: Optional[UUID] = None) -> T:
+    def fields_to_references(self: T, uuid: Optional[UUID] = None) -> T:
         """
         Fill the outputs with :obj:`.Reference` objects for all fields.
 
@@ -223,16 +223,36 @@ class Outputs(MSONable, ABC):
         cls
             The outputs class with references for all fields.
         """
-        from activities import Reference
+        return self.with_references(uuid)
 
-        if uuid is None:
-            uuid = uuid4()
+    @classmethod
+    def with_references(cls: Type[T], uuid: Optional[UUID] = None) -> T:
+        """
+        Create an new Outputs object with :obj:`.Reference` objects for all fields.
+
+        This is similar to :obj:`Outputs.fields_to_references` but does not require an
+        initialized object and can instead be called directly from the class.
+
+        Parameters
+        ----------
+        uuid
+            The unique identifier for the references.
+
+        Returns
+        -------
+        cls
+            The outputs class with references for all fields.
+        """
+        from activities import Reference
+        from inspect import signature
+
+        sig = signature(cls)
 
         references = {}
-        for name in self.fields:
+        for name in sig.parameters.keys():
             references[name] = Reference(uuid, name)
 
-        return self.__class__(**references)
+        return cls(**references)
 
 
 class Dynamic(Outputs):
@@ -272,7 +292,9 @@ class Dynamic(Outputs):
         return getattr(self, item)
 
     def __getattr__(self, item) -> Any:
-        if item in {"kwargs", "args"}:
+        if item in {"kwargs", "args"} or (
+            isinstance(item, str) and item.startswith("__")
+        ):
             raise AttributeError
 
         if item in self._data:
@@ -284,12 +306,9 @@ class Dynamic(Outputs):
         self._data[item] = ref
         return ref
 
-    def with_references(self: T, uuid: Optional[UUID] = None) -> T:
+    def fields_to_references(self: T, uuid: Optional[UUID] = None) -> T:
         """
         Fill the outputs with :obj:`.Reference` objects for all fields.
-
-        Dynamic objects have no fields to begin with, as they are created when
-        the attributes are accessed.
 
         Parameters
         ----------
@@ -311,6 +330,30 @@ class Dynamic(Outputs):
             references[name] = Reference(uuid, name)
 
         return self.__class__(**references, _uuid=uuid)
+
+    @classmethod
+    def with_references(cls: Type[T], uuid: Optional[UUID] = None) -> T:
+        """
+        Create an new Outputs object with :obj:`.Reference` objects for all fields.
+
+        Dynamic objects have no fields to begin with as they are created when
+        the attributes are accessed. However, any dynamically created attributes will
+        have the correct reference uuid.
+
+        This is similar to :obj:`Outputs.fields_to_references` but does not require an
+        initialized object and can instead be called directly from the class.
+
+        Parameters
+        ----------
+        uuid
+            The unique identifier for the references.
+
+        Returns
+        -------
+        cls
+            The outputs class with references for all fields.
+        """
+        return cls(_uuid=uuid)
 
     def resolve(
         self: T,
@@ -340,24 +383,30 @@ class Dynamic(Outputs):
         Outputs
             An outputs with the references resolved.
         """
-        resolved_dict = super().resolve(
-            output_store=output_store,
-            output_cache=output_cache,
-            error_on_missing=error_on_missing
-        ).as_dict()
+        resolved_dict = (
+            super()
+            .resolve(
+                output_store=output_store,
+                output_cache=output_cache,
+                error_on_missing=error_on_missing,
+            )
+            .as_dict()
+        )
         if output_store:
-            results = output_store.query_one({"uuid": str(self._uuid)})
+            results = output_store.query_one(
+                {"uuid": str(self._uuid)}, {"_id": 0, "uuid": 0}
+            )
             if results:
                 resolved_dict.update(results)
         if output_cache and self._uuid in output_cache:
             resolved_dict.update(output_cache[self._uuid])
-        return self.__class__(**resolved_dict)
+        return self.__class__.from_dict(resolved_dict)
 
     def as_dict(self):
         data = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
-            "@version": None
+            "@version": None,
         }
         data.update(self._data)
         return data
@@ -388,11 +437,11 @@ class Bytes(Outputs):
 
     Parameters
     ----------
-    bytes
+    value
         A bytes object.
     """
 
-    bytes: bytes
+    value: bytes
 
 
 @dataclass
@@ -402,11 +451,11 @@ class Number(Outputs):
 
     Parameters
     ----------
-    number
+    value
         A number (float or int).
     """
 
-    number: float
+    value: float
 
 
 @dataclass
@@ -416,11 +465,11 @@ class String(Outputs):
 
     Parameters
     ----------
-    string
+    value
         A string.
     """
 
-    string: str
+    value: str
 
 
 @dataclass
@@ -430,8 +479,8 @@ class Boolean(Outputs):
 
     Parameters
     ----------
-    boolean
+    value
         A boolean.
     """
 
-    boolean: bool
+    value: bool

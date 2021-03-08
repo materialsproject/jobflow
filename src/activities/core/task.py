@@ -6,10 +6,10 @@ import typing
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-from activities.core.outputs import Dynamic
 from monty.json import MSONable
 
 from activities.core.base import HasInputOutput
+from activities.core.outputs import Dynamic
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union
@@ -52,9 +52,8 @@ def task(
     >>> @task
     ... def print_message():
     ...     print("I am a Task")
-    ...
-    ... print_task = print_message()
-    ... type(print_task)
+    >>> print_task = print_message()
+    >>> type(print_task)
     <class 'activities.core.task.Task'>
     >>> print_task.function
     ('__main__', 'print_message')
@@ -65,10 +64,10 @@ def task(
     ... def print_sum(a, b=0):
     ...     return print(a + b)
     ...
-    ... print_sum_task = print_sum(1, 2)
-    ... print_sum_task.args
+    >>> print_sum_task = print_sum(1, 2)
+    >>> print_sum_task.args
     (1, )
-    ... print_sum_task.kwargs
+    >>> print_sum_task.kwargs
     {"b": 2}
 
     If the function returns a value, the values can be referenced using the ``outputs``
@@ -80,8 +79,8 @@ def task(
     ... def add(a, b):
     ...     return a + b
     ...
-    ... add_task = add(1, 2)
-    ... add_task.outputs.value
+    >>> add_task = add(1, 2)
+    >>> add_task.outputs.value
     Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'value')
 
     .. Note::
@@ -94,13 +93,13 @@ def task(
 
     >>> from activities.core.outputs import Number
     ...
-    ... @task
+    >>> @task
     ... def compute(a, b):
     ...     return {"sum": a + b, "product": a * b}
     ...
-    ... compute_task = compute(1, 2)
-    ... compute_task.outputs.sum
-    ... compute_task.outputs.product
+    >>> compute_task = compute(1, 2)
+    >>> compute_task.outputs.sum
+    >>> compute_task.outputs.product
 
     A better approach is to use :obj:`Outputs` classes. These have several benefits
     including the ability to make use of static parameter checking to ensure that
@@ -109,12 +108,12 @@ def task(
 
     >>> from activities.core.outputs import Number
     ...
-    ... @task(outputs=Number)
+    >>> @task(outputs=Number)
     ... def add(a, b):
     ...     return Number(a + b)
     ...
-    ... add_task = add(1, 2)
-    ... add_task.outputs.number
+    >>> add_task = add(1, 2)
+    >>> add_task.outputs.number
     Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
     >>> add_task.outputs.bad_output
     AttributeError: 'Number' object has no attribute 'bad_output'
@@ -130,9 +129,9 @@ def task(
     specified in the task ``outputs`` option.
 
     >>> from activities import Activity
-    ... from activities.core.outputs import Number
+    >>> from activities.core.outputs import Number
     ...
-    ... @task(outputs=Number)
+    >>> @task(outputs=Number)
     ... def detour_add(a, b):
     ...     add_task = add(a, b)
     ...     activity = Activity("My detour", [add_task], add_task.outputs)
@@ -206,14 +205,14 @@ class Task(HasInputOutput, MSONable):
     >>> def add(a, b):
     ...     return a + b
     ...
-    ... add_task = Task(function=("my_package", "add"), args=(1, 2))
+    >>> add_task = Task(function=("my_package", "add"), args=(1, 2))
 
     :obj:`Tasks` can be executed using the :obj:`run()` method. The output is always a
     :obj:`TaskResponse` object that contains the outputs and other options that
     control the activity execution.
 
     >>> response = add_task.run()
-    ... response.outputs
+    >>> response.outputs
     Value(value=3)
 
     The default output type of a task is a :obj:`Value` object that has a single
@@ -224,12 +223,12 @@ class Task(HasInputOutput, MSONable):
 
     >>> from activities.core.outputs import Number
     ...
-    ... def add(a, b):
+    >>> def add(a, b):
     ...     return Number(a + b)
     ...
-    ... add_task = Task(function=("my_package", "add"), args=(1, 2), outputs=Number)
-    ... response = add_task.run()
-    ... response.outputs
+    >>> add_task = Task(function=("my_package", "add"), args=(1, 2), outputs=Number)
+    >>> response = add_task.run()
+    >>> response.outputs
     Number(number=3)
 
     More details are given in the :obj:`task` decorator docstring.
@@ -250,7 +249,7 @@ class Task(HasInputOutput, MSONable):
 
         # if outputs exists and hasn't already been initialized
         if self.outputs and inspect.isclass(self.outputs):
-            self.outputs = _output_class_with_references(self.outputs, self.uuid)
+            self.outputs = self.outputs.with_references(self.uuid)
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
@@ -547,8 +546,8 @@ class TaskResponse:
 
         if task_returns is None:
             return TaskResponse()
-        elif not isinstance(task_returns, tuple):
-            task_returns = (task_returns, )
+        elif not isinstance(task_returns, (tuple, list)):
+            task_returns = (task_returns,)
 
         objects = (Detour, Restart, Store, Outputs, Stop)
         contains_return_object = any([isinstance(x, objects) for x in task_returns])
@@ -613,18 +612,3 @@ class TaskResponse:
 
         return cls(**task_response_data)
 
-
-def _output_class_with_references(outputs_class, uuid):
-    from inspect import signature
-    from activities import Reference
-
-    if outputs_class is Dynamic:
-        return outputs_class(_uuid=uuid)
-    else:
-        sig = signature(outputs_class)
-
-        references = {}
-        for name in sig.parameters.keys():
-            references[name] = Reference(uuid, name)
-
-        return outputs_class(**references)
