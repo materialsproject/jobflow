@@ -77,15 +77,15 @@ class Outputs(MSONable, ABC):
     To avoid having to create new outputs classes for simple tasks, we have implemented
     several basic outputs objects.
 
-    ==============  =========  =============================
-    Name             Field                Note
-    ==============  =========  =============================
-    :obj:`Value`    `value`    Output for value of any type
-    :obj:`Number`   `value`    Output for numerical values.
-    :obj:`String`   `value`    Output for string values.
-    :obj:`Boolean`  `value`    Output for string values.
-    :obj:`Bytes`    `value`    Output for byte values.
-    ==============  =========  =============================
+    ==============  =======  =============================
+         Name        Field               Note
+    ==============  =======  =============================
+    :obj:`Value`    `value`  Output for value of any type.
+    :obj:`Number`   `value`  Output for numerical values.
+    :obj:`String`   `value`  Output for string values.
+    :obj:`Boolean`  `value`  Output for string values.
+    :obj:`Bytes`    `value`  Output for byte values.
+    ==============  =======  =============================
 
     For cases where you don't know the format of the data in advance or don't want to
     enforce a schema, the :obj:`Dynamic` outputs class can be used. Here, fields are

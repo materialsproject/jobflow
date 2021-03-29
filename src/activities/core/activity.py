@@ -29,8 +29,8 @@ class Activity(HasInputOutput, MSONable):
     An Activity contains a sequence of Tasks or other Activities to execute.
 
     The :obj:`Activity: object is the main tool for constructing workflows. Activities
-    can either contain task or other activities. They cannot contain a mixture of both.
-    Like :obj:`Task` objects, activities can also have outputs. However, the outputs
+    can either contain tasks or other activities but not a mixture of both.
+    Like :obj:`Task` objects, activities can also have outputs. The outputs
     of an activity will likely be stored in a database (depending on the manager used
     to run the activity), whereas the outputs of tasks are only available while the
     activity is running.
@@ -39,7 +39,7 @@ class Activity(HasInputOutput, MSONable):
         There is one important difference between activities containing :obj:`Task`
         objects and those containing other :obj:`Activity` objects: Activities
         containing :obj:`Task` objects will execute the tasks in the order they are
-        given in the ``tasks`` array, whereas activities containing :obj:`Activity`
+        given in the ``tasks`` list, whereas activities containing :obj:`Activity`
         objects sorted to determine the optimal execution order.
 
         This may be changed in a future release.
@@ -72,43 +72,55 @@ class Activity(HasInputOutput, MSONable):
 
     >>> from activities import task, Activity
     ...
-    ... @task
+    >>> @task
     ... def add(a, b):
     ...     return a + b
     ...
-    ... add_task = add(1, 2)
-    ... activity = Activity(tasks=[add_task])
+    >>> add_task = add(1, 2)
+    >>> activity = Activity(tasks=[add_task])
 
-    If we were to run this activity, what would happen to the output? It would be lost
-    as the outputs of the activity were not defined. To remedy that, we can set the
-    output source of the activity to be the outputs of the ``add_task`` task.
+    If we were to run this activity, what would happen to the output of the task? It
+    would be lost as the outputs of the activity was not defined. To remedy that, we
+    can set the outputs of the activity to be the outputs of the ``add_task`` task.
 
     >>> activity = Activity(tasks=[add_task], outputs=add_task.outputs)
 
     If we run the activity, we get an :obj:`ActivityResponse` object, that contains the
-    outputs amongst other things.
+    outputs among other things.
 
     >>> response = activity.run()
-    ... response.outputs
+    >>> response.outputs
     Value(value=3)
 
     It is not recommended to run the activity directly as we have done above. Instead,
     we provide several activity managers for running activities locally or remotely.
 
     >>> from activities.managers.local import run_activity_locally
-    ... response = run_activity_locally(activity)
+    >>> response = run_activity_locally(activity)
 
-    Activities con contain multiple tasks.
+    The outputs of activities can be used by other activities. Note also that
+    activities can contain activities.
 
     >>> task1 = add(1, 2)
-    ... task2 = add(task1.outputs.value, 5)
-    ... activity = Activity(tasks=[task1, task2], outputs=task2.outputs)
+    >>> activity1 = Activity(tasks=[task1], outputs=task1.outputs)
+    ...
+    ... # use the outputs of the activity in another activity
+    >>> task2 = add(activity1.outputs.value, 5)
+    >>> activity2 = Activity(tasks=[task2], outputs=task2.outputs)
+    ...
+    ... # now create an activity containing other activities
+    >>> activity = Activity(tasks=[activity1, activity2], outputs=activity2.outputs)
 
-    Finally, by defining the task output class, activities can make use of static
+    An activity cannot contain both tasks and activities simulatenously.
+
+    >>> activity = Activity(tasks=[task1, activity2])
+    ValueError("Cannot mix Activity objects and Task objects in the same Activity")
+
+    By defining the task output class, activities can make use of static
     parameter checking to ensure that connections between tasks are valid.
 
     >>> from activities.core.outputs import Number
-    ... @task(outputs=Number)
+    >>> @task(outputs=Number)
     ... def add(a, b):
     ...     return Number(a + b)
     ...
@@ -134,7 +146,7 @@ class Activity(HasInputOutput, MSONable):
         task_types = set(map(type, self.tasks))
         if len(task_types) > 1:
             raise ValueError(
-                "Activity tasks must either be all Task objects or all Activity objects"
+                "Cannot mix Activity objects and Task objects in the same Activity"
             )
 
         if self.contains_activities:
