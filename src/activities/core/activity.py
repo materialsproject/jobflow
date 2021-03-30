@@ -96,8 +96,8 @@ class Activity(HasInputOutput, MSONable):
     It is not recommended to run the activity directly as we have done above. Instead,
     we provide several activity managers for running activities locally or remotely.
 
-    >>> from activities.managers.local import run_activity_locally
-    >>> response = run_activity_locally(activity)
+    >>> from activities.managers.local import run_locally
+    >>> response = run_locally(activity)
 
     The outputs of activities can be used by other activities. Note also that
     activities can contain activities.
@@ -207,3 +207,8 @@ class Activity(HasInputOutput, MSONable):
     def set_uuid(self, uuid: UUID):
         self.uuid = uuid
         self.output = self.output.set_uuid(uuid)
+
+    def draw_graph(self):
+        from activities.core.graph import draw_graph
+
+        return draw_graph(self.graph)
