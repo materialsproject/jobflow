@@ -9,13 +9,14 @@ from uuid import uuid4
 from monty.json import MSONable
 
 from activities.core.base import HasInputOutput
+from activities.core.reference import Reference
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Union
+    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union
     from uuid import UUID
 
-    from maggma.core import Store
     from networkx import DiGraph
+    from pydantic.main import BaseModel
 
     import activities
 
@@ -30,15 +31,15 @@ class Activity(HasInputOutput, MSONable):
 
     The :obj:`Activity: object is the main tool for constructing workflows. Activities
     can either contain tasks or other activities but not a mixture of both.
-    Like :obj:`Task` objects, activities can also have outputs. The outputs
+    Like :obj:`Job` objects, activities can also have outputs. The outputs
     of an activity will likely be stored in a database (depending on the manager used
     to run the activity), whereas the outputs of tasks are only available while the
     activity is running.
 
     .. Note::
-        There is one important difference between activities containing :obj:`Task`
+        There is one important difference between activities containing :obj:`Job`
         objects and those containing other :obj:`Activity` objects: Activities
-        containing :obj:`Task` objects will execute the tasks in the order they are
+        containing :obj:`Job` objects will execute the tasks in the order they are
         given in the ``tasks`` list, whereas activities containing :obj:`Activity`
         objects sorted to determine the optimal execution order.
 
@@ -49,7 +50,7 @@ class Activity(HasInputOutput, MSONable):
     name
         The activity name.
     tasks
-        The tasks to be run. Can either be a list of :obj:`Task` objects or a list of
+        The tasks to be run. Can either be a list of :obj:`Job` objects or a list of
         :obj:`Activity` objects.
     outputs
         The outputs of the activity. These should come from the outputs of one or more
@@ -61,27 +62,27 @@ class Activity(HasInputOutput, MSONable):
         is included in the tasks of another activity.
     uuid
         A unique identifier for the activity. Generated automatically.
-    output_sources
+    output_source
         The sources of the output of the activity. Set automatically.
 
     Examples
     --------
 
-    Below we define a simple task to add two numbers, and create an activity containing
-    that task.
+    Below we define a simple job to add two numbers, and create an activity containing
+    that job.
 
-    >>> from activities import task, Activity
+    >>> from activities import job, Activity
     ...
-    >>> @task
+    >>> @job
     ... def add(a, b):
     ...     return a + b
     ...
     >>> add_task = add(1, 2)
     >>> activity = Activity(tasks=[add_task])
 
-    If we were to run this activity, what would happen to the output of the task? It
+    If we were to run this activity, what would happen to the output of the job? It
     would be lost as the outputs of the activity was not defined. To remedy that, we
-    can set the outputs of the activity to be the outputs of the ``add_task`` task.
+    can set the outputs of the activity to be the outputs of the ``add_task`` job.
 
     >>> activity = Activity(tasks=[add_task], outputs=add_task.outputs)
 
@@ -114,13 +115,13 @@ class Activity(HasInputOutput, MSONable):
     An activity cannot contain both tasks and activities simulatenously.
 
     >>> activity = Activity(tasks=[task1, activity2])
-    ValueError("Cannot mix Activity objects and Task objects in the same Activity")
+    ValueError("Cannot mix Activity objects and Job objects in the same Activity")
 
-    By defining the task output class, activities can make use of static
+    By defining the job output class, activities can make use of static
     parameter checking to ensure that connections between tasks are valid.
 
     >>> from activities.core.outputs import Number
-    >>> @task(outputs=Number)
+    >>> @job(outputs=Number)
     ... def add(a, b):
     ...     return Number(a + b)
     ...
@@ -130,100 +131,73 @@ class Activity(HasInputOutput, MSONable):
     """
 
     name: str = "Activity"
-    tasks: Union[Sequence[Activity], Sequence[activities.Task]] = field(
-        default_factory=list
-    )
-    outputs: Optional[activities.Outputs] = None
+    jobs: Sequence[Union[Activity, activities.Job]] = field(default_factory=list)
+    output_source: Optional[Any] = field(default=None)
+    output_schema: Optional[Type[BaseModel]] = None
     config: Dict = field(default_factory=dict)
-    host: Optional[UUID] = None
     uuid: UUID = field(default_factory=uuid4)
-    output_sources: Optional[activities.Outputs] = field(default=None)
+    output: Reference = field(init=False)
 
     def __post_init__(self):
-        from activities import Outputs
-        from activities.core.outputs import Dynamic
-
-        task_types = set(map(type, self.tasks))
-        if len(task_types) > 1:
-            raise ValueError(
-                "Cannot mix Activity objects and Task objects in the same Activity"
-            )
-
-        if self.contains_activities:
-            for task in self.tasks:
-                if task.host is not None and task.host != self.uuid:
-                    raise ValueError(
-                        f"Subactivity {task} already belongs to another activity"
-                    )
-                task.host = self.uuid
-
-        if self.outputs is not None and self.output_sources is None:
-            if isinstance(self.outputs, dict):
-                self.outputs = Dynamic(**self.outputs)
-            elif not isinstance(self.outputs, Outputs):
-                self.outputs = Dynamic(value=self.outputs)
-
-            self.output_sources = self.outputs
-            self.outputs = self.outputs.fields_to_references(uuid=self.uuid)
-
-    @property
-    def task_type(self) -> str:
-        if len(self.tasks) < 1:
-            # this is just a ToOutputs container task, probably from a detour.
-            return "task"
-        else:
-            return "activity" if isinstance(self.tasks[0], Activity) else "task"
-
-    @property
-    def contains_activities(self) -> bool:
-        return self.task_type == "activity"
+        self.output = Reference(self.uuid, schema=self.output_schema)
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
         references = set()
         task_uuids = set()
-        for task in self.tasks:
-            references.update(task.input_references)
-            task_uuids.add(task.uuid)
+        for job in self.jobs:
+            references.update(job.input_references)
+            task_uuids.add(job.uuid)
 
         return tuple([ref for ref in references if ref.uuid not in task_uuids])
 
     @property
     def output_references(self) -> Tuple[activities.Reference, ...]:
-        if self.output_sources is None:
+        from activities.core.reference import find_and_get_references
+
+        if self.output_source is None:
             return tuple()
-        return self.output_sources.references
+        return find_and_get_references(self.output_source)
 
     @property
-    def activity_graph(self) -> DiGraph:
+    def graph(self) -> DiGraph:
         import networkx as nx
 
-        from activities.core.graph import activity_input_graph, activity_output_graph
+        from activities.core.job import store_output
 
-        if self.contains_activities:
-            graph = activity_output_graph(self)
-            activity_graphs = [task.activity_graph for task in self.tasks]
-            return nx.compose_all(activity_graphs + [graph])
-        else:
-            return activity_input_graph(self)
+        graph = []
+        if self.output_source is not None:
+            # only create input-output graph for this activity if it has outputs
 
-    @property
-    def task_graph(self) -> DiGraph:
-        import networkx as nx
+            edges = []
+            for uuid, refs in self.output_references_grouped.items():
+                properties = [
+                    ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
+                ]
+                properties = properties if len(properties) > 0 else ""
+                edges.append((uuid, self.uuid, {"properties": properties}))
 
-        from activities.core.graph import activity_output_graph, task_graph
+            store_output_job = store_output(self.output_source)
+            store_output_job.uuid = self.uuid
+            store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
 
-        if self.contains_activities:
-            graph = activity_output_graph(self)
-            activity_graphs = [activity.task_graph for activity in self.tasks]
-            return nx.compose_all(activity_graphs + [graph])
-        else:
-            return task_graph(self)
+            graph = nx.DiGraph()
+            graph.add_node(
+                self.uuid,
+                object=store_output_job,
+                type="activity",
+                label=self.name + " to store",
+            )
+            graph.add_edges_from(edges)
+            graph = [graph]
+
+        job_graphs = [job.graph for job in self.jobs]
+        return nx.compose_all(job_graphs + graph)
 
     def iteractivity(self) -> Generator[Tuple["Activity", Sequence[UUID]], None, None]:
         from activities.core.graph import itergraph
 
-        graph = self.activity_graph
+        graph = self.graph
         for node in itergraph(graph):
             parents = [u for u, v in graph.in_edges(node)]
             activity = graph.nodes[node]["object"]
@@ -231,153 +205,4 @@ class Activity(HasInputOutput, MSONable):
 
     def set_uuid(self, uuid: UUID):
         self.uuid = uuid
-        if self.contains_activities:
-            for task in self.tasks:
-                task.host = self.uuid
-        if self.outputs:
-            self.outputs = self.outputs.fields_to_references(uuid=uuid)
-
-    def run(
-        self,
-        output_store: Optional[Store] = None,
-        output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
-    ) -> "ActivityResponse":
-        logger.info(f"Starting activity - {self.name} ({self.uuid})")
-
-        # note this only executes the tasks associated with this activity and doesn't
-        # run subactivities. If want to execute the full activity tree you should
-        # call the run methods of the activities returned by activity.iteractivity()
-        if self.contains_activities and self.outputs is None:
-            logger.info(f"Activity has no outputs and no tasks, skipping...")
-            # nothing to do here
-            return ActivityResponse()
-
-        output_cache = output_cache if output_cache is not None else {}
-        if self.contains_activities:
-            # output sources are from other activities; these should be stored in the
-            # output store. Resolve them and store the activity outputs in the DB.
-            outputs = self.output_sources.resolve(
-                output_store=output_store, output_cache=output_cache
-            )
-            cache_outputs(self.uuid, outputs, output_cache)
-
-            if output_store:
-                outputs.to_store(output_store, self.uuid)
-
-            logger.info(f"Finished activity - {self.name} ({self.uuid})")
-            return ActivityResponse(outputs=outputs)
-
-        activity_response = ActivityResponse()
-
-        # we have an activity of tasks, run tasks in sequential order
-        for i, task in enumerate(self.tasks):  # type: int, activities.Task
-            response = task.run(output_store, output_cache)
-
-            if response.store is not None:
-                # add the stored data to the activity response
-                activity_response.store.update(response.store)
-
-            if response.outputs is not None:
-                cache_outputs(task.uuid, response.outputs, output_cache)
-
-            if response.detour is not None:
-                # put remaining tasks into new activity; resolve all outputs
-                # so far calculated, and add the new activity at the end of the detour
-                activity_response.detour = create_detour_activities(
-                    task.uuid,
-                    i,
-                    response.detour,
-                    self,
-                    output_store=output_store,
-                    output_cache=output_cache,
-                )
-                break
-
-            if response.restart is not None:
-                # cancel remaining tasks, resubmit restart using the same activity
-                # id but increment the run index
-                # what should we do if response.detour is not None also?
-                pass
-
-            if response.stop_children:
-                activity_response.stop_children = True
-
-            if response.stop_activities:
-                activity_response.stop_activities = True
-
-            if response.stop_tasks:
-                logging.warning(
-                    "Stopping subsequent tasks. This may break output references."
-                )
-                break
-
-        if self.output_sources and not activity_response.detour:
-            outputs = self.output_sources.resolve(
-                output_store=output_store, output_cache=output_cache
-            )
-            cache_outputs(self.uuid, outputs, output_cache)
-            activity_response.outputs = outputs
-
-            if output_store:
-                outputs.to_store(output_store, self.uuid)
-
-        logger.info(f"Finished activity - {self.name} ({self.uuid})")
-        return activity_response
-
-
-def create_detour_activities(
-    task_uuid: UUID,
-    task_index: int,
-    detour_activity: Activity,
-    original_activity: Activity,
-    output_store: Optional[Store] = None,
-    output_cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
-):
-    # put remaining tasks into new activity; resolve all outputs
-    # so far calculated, and add the new activity at the end of the detour
-    # when detouring we have to make 2 new activities:
-    # 1. The actual detoured activity as returned by the Task but with the
-    #    UUID set to the UUID of the task that generated it (so that its references)
-    #    can be resolved.
-    # 2. An activity with the same UUID as the generating Activity, with any remaining
-    #    tasks, and the same outputs. For this activity, some of the outputs may already
-    #    have been calculated, se we should resolve them now, as it won't be possible
-    #    to resolve them at a later stage as they are task outputs not activity outputs
-    #    (and therefore won't have been added to the activity_outputs collection).
-    detour_activity.set_uuid(task_uuid)
-    detour_activity.host = original_activity.uuid
-    original_activity.output_sources.resolve(
-        output_store=output_store, output_cache=output_cache, error_on_missing=False
-    )
-    remaining_tasks = Activity(
-        name=original_activity.name,
-        tasks=original_activity.tasks[task_index + 1 :],
-        outputs=original_activity.outputs,
-        output_sources=original_activity.output_sources,
-        config=original_activity.config,
-        host=original_activity.host,
-        uuid=original_activity.uuid,
-    )
-    return detour_activity, remaining_tasks
-
-
-def cache_outputs(
-    uuid: UUID, outputs: activities.Outputs, cache: Dict[UUID, Dict[str, Any]]
-):
-    for name, output in outputs.items():
-        if uuid not in cache:
-            cache[uuid] = {}
-
-        cache[uuid][name] = output
-
-
-@dataclass
-class ActivityResponse:
-    # TODO: Consider merging this with TaskResponse
-
-    outputs: Optional[activities.Outputs] = None
-    detour: Optional[Tuple[Activity, Activity]] = None
-    restart: Optional[Activity] = None
-    store: Dict[str, Any] = field(default_factory=dict)
-    stop_children: bool = False
-    stop_activities: bool = False
+        self.output = self.output.set_uuid(uuid)

@@ -26,11 +26,11 @@ __all__ = ["Outputs", "Value", "Number", "String", "Boolean", "Bytes", "Dynamic"
 
 class Outputs(MSONable, ABC):
     """
-    Abstract class representing the outputs of a :obj:`.Task` or :obj:`.Activity`.
+    Abstract class representing the outputs of a :obj:`.Job` or :obj:`.Activity`.
 
     Outputs can be used to enable static parameter checking, so that the connections
     between tasks can be validated before an activity is submitted. It also allows
-    for tasks to have default values and enforce a schema for the task output.
+    for tasks to have default values and enforce a schema for the job output.
 
     Outputs are also used as the basis for tracking references between tasks and
     activities. For this reason, all :obj:`Outputs` classes contains helper methods
@@ -38,7 +38,7 @@ class Outputs(MSONable, ABC):
     outputs in a maggma store.
 
     This class should not be used directly but instead subclassed to customise the
-    outputs for a specific task.
+    outputs for a specific job.
 
     Examples
     --------
@@ -148,8 +148,8 @@ class Outputs(MSONable, ABC):
 
         resolved_outputs = find_and_resolve_references(
             self,
-            output_store=output_store,
-            output_cache=output_cache,
+            store=output_store,
+            cache=output_cache,
             error_on_missing=error_on_missing,
         )
 
@@ -243,8 +243,9 @@ class Outputs(MSONable, ABC):
         cls
             The outputs class with references for all fields.
         """
-        from activities import Reference
         from inspect import signature
+
+        from activities import Reference
 
         sig = signature(cls)
 
@@ -367,7 +368,7 @@ class Dynamic(Outputs):
         Also finds all outputs in the store and cache with the same UUID as the output
         class. This behaviour is necessary as dynamic outputs may not be explicitly
         known when the class is created, and are instead determined by what outputs a
-        task returns.
+        job returns.
 
         Parameters
         ----------

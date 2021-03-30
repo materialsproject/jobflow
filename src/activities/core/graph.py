@@ -1,4 +1,4 @@
-"""Tools for constructing Task and Activity graphs."""
+"""Tools for constructing Job and Activity graphs."""
 import warnings
 from typing import Union
 from uuid import uuid4
@@ -6,10 +6,11 @@ from uuid import uuid4
 import networkx as nx
 
 from activities.core.activity import Activity
-from activities.core.task import Task
+
+# from activities.core.task import Task
 
 
-def activity_input_graph(activity: Activity) -> nx.DiGraph:
+def input_graph(activity: Activity) -> nx.DiGraph:
     nodes = [(activity.uuid, {"type": "activity", "object": activity})]
     edges = []
 
@@ -31,16 +32,16 @@ def activity_output_graph(activity: Activity) -> nx.DiGraph:
     edges = []
 
     if (
-        isinstance(activity.output_sources, Dynamic)
-        and len(activity.output_sources.fields) == 0
+        isinstance(activity.output_source, Dynamic)
+        and len(activity.output_source.fields) == 0
     ):
         # dynamic output with no explicit fields, assume we may need all
         # potential fields
         edges.append(
             (
-                activity.output_sources._uuid,
+                activity.output_source._uuid,
                 activity.uuid,
-                {"properties": "[all outputs]"},
+                {"properties": "[all]"},
             )
         )
 
@@ -56,12 +57,12 @@ def activity_output_graph(activity: Activity) -> nx.DiGraph:
 
 def task_graph(activity: Activity) -> nx.DiGraph:
     """
-    Get a task graph from an ``Activity``.
+    Get a job graph from an ``Activity``.
 
     Parameters
     ----------
     activity
-        An activity object containing ``Task``s.
+        An activity object containing ``Job``s.
 
     Raises
     ------
@@ -87,26 +88,26 @@ def task_graph(activity: Activity) -> nx.DiGraph:
     for task_a, task_b in pairwise(activity.tasks):
         edges.append((task_a.uuid, task_b.uuid))
 
-    # add edge between last task and the activity
+    # add edge between last job and the activity
     edges.append((activity.tasks[-1].uuid, activity.uuid))
 
     # next add input references
     for task in activity.tasks:
-        nodes.append((task.uuid, {"type": "task", "object": task}))
+        nodes.append((task.uuid, {"type": "job", "object": task}))
         for uuid, refs in task.input_references_grouped.items():
             properties = list(set([ref.name for ref in refs]))
             edges.append((uuid, task.uuid, {"properties": properties}))
 
     # finally add references from the tasks to the activity
     if (
-        isinstance(activity.output_sources, Dynamic)
-        and len(activity.output_sources.fields) == 0
+        isinstance(activity.output_source, Dynamic)
+        and len(activity.output_source.fields) == 0
     ):
         # dynamic output with no explicit fields, assume we may need all
         # potential fields
         edges.append(
             (
-                activity.output_sources._uuid,
+                activity.output_source._uuid,
                 activity.uuid,
                 {"properties": "[all outputs]"},
             )
@@ -159,14 +160,13 @@ def itergraph(graph: nx.DiGraph):
             yield node
 
 
-def draw_graph(graph: nx.DiGraph, name_mapping=None, path=None):
+def draw_graph(graph: nx.DiGraph, path=None):
     import matplotlib.pyplot as plt
 
-    if name_mapping is not None:
-        graph = nx.relabel_nodes(graph, name_mapping)
-        if path is not None:
-            path = [name_mapping.get(p, p) for p in path]
-
+    # if name_mapping is not None:
+    #     graph = nx.relabel_nodes(graph, name_mapping)
+    #     if path is not None:
+    #         path = [name_mapping.get(p, p) for p in path]
     # pos = nx.circular_layout(graph)
     # pos = nx.kamada_kawai_layout(graph)
     # pos = nx.planar_layout(graph)
@@ -182,12 +182,13 @@ def draw_graph(graph: nx.DiGraph, name_mapping=None, path=None):
         "#5571AB" if node_types.get(n, "activity") == "activity" else "#B65555"
         for n in nodes
     ]
+    labels = nx.get_node_attributes(graph, "label")
 
     nx.draw_networkx_edges(graph, pos)
     nx.draw_networkx_nodes(
         graph, pos, nodelist=nodes, node_color=colors, linewidths=1, edgecolors="k"
     )
-    nx.draw_networkx_labels(graph, pos)
+    nx.draw_networkx_labels(graph, pos, labels=labels)
 
     edge_labels = nx.get_edge_attributes(graph, "properties")
     nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, rotate=False)
