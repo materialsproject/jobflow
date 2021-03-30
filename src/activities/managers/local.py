@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 def run_activity_locally(activity: activities.Activity, log: bool = True):
     from maggma.stores import MemoryStore
+
     from activities.core.util import initialize_logger
 
     if log:

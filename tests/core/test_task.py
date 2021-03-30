@@ -10,7 +10,7 @@ def add(a, b=5):
 
 
 def test_task_init():
-    from activities.core.outputs import Number, Dynamic
+    from activities.core.outputs import Dynamic, Number
     from activities.core.task import Task
 
     # test basic init
@@ -139,7 +139,7 @@ def test_task_resolve_args(output_store):
 
 
 def test_task_decorator():
-    from activities.core.outputs import Number, Dynamic
+    from activities.core.outputs import Dynamic, Number
     from activities.core.task import task
 
     # test basic init
@@ -203,7 +203,7 @@ def test_task_response():
     # no need to test init as it is just a dataclass, instead test from_task_returns
     # test no job returns
     from activities.core.activity import Activity
-    from activities.core.outputs import Number, Dynamic, Value
+    from activities.core.outputs import Dynamic, Number, Value
     from activities.core.task import Detour, Stop, Store, TaskResponse
 
     response = TaskResponse.from_task_returns(None)

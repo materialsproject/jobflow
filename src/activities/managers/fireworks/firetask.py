@@ -8,8 +8,8 @@ class JobFiretask(FiretaskBase):
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
-        from activities.core.util import initialize_logger
         from activities.core.job import Job
+        from activities.core.util import initialize_logger
         from activities.managers.fireworks.workflow import activity_to_workflow
 
         job: Job = self.get("job")

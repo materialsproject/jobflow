@@ -1,6 +1,6 @@
-from activities import job, Activity, Response
-
 from typing import List
+
+from activities import Activity, Response, job
 
 
 @job
@@ -81,7 +81,9 @@ def get_detour_activity_test():
     detour_job = detour_timing_jobs(read_job.output)
     sum_job = sum_times(detour_job.output)
     my_activity = Activity(
-        "time websites", [read_job, detour_job, sum_job], sum_job.output,
+        "time websites",
+        [read_job, detour_job, sum_job],
+        sum_job.output,
     )
     return my_activity
 

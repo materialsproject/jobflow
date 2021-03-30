@@ -5,9 +5,7 @@ from activities.core.activity import Activity
 from activities.managers.fireworks.firetask import JobFiretask
 
 
-def activity_to_workflow(
-    activity: Activity, store: Store
-) -> Workflow:
+def activity_to_workflow(activity: Activity, store: Store) -> Workflow:
     # TODO: handle activity config and metadata
 
     parent_map = {}

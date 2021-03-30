@@ -3,13 +3,15 @@ import pytest
 
 def get_task():
     from activities import Task
+
     return Task(function=("builtins", "sum"), args=(1, 2))
 
 
 def test_activity_of_tasks_init():
-    from activities.core.activity import Activity
-    from activities.core.outputs import Value, Dynamic
     from uuid import UUID
+
+    from activities.core.activity import Activity
+    from activities.core.outputs import Dynamic, Value
 
     # test empty activity
     activity = Activity()
@@ -21,7 +23,7 @@ def test_activity_of_tasks_init():
     # test single job
     add_task = get_task()
     activity = Activity(name="Add", tasks=[add_task])
-    assert activity.name == 'Add'
+    assert activity.name == "Add"
     assert activity.host is None
     assert activity.outputs is None
     assert activity.task_type == "job"
@@ -89,13 +91,13 @@ def test_activity_of_tasks_init():
 
 def test_activity_of_activities_init():
     from activities.core.activity import Activity
-    from activities.core.outputs import Value, Dynamic
+    from activities.core.outputs import Dynamic, Value
 
     # test single activity
     add_task = get_task()
     subactivity = Activity(tasks=[add_task])
     activity = Activity(name="Add", tasks=[subactivity])
-    assert activity.name == 'Add'
+    assert activity.name == "Add"
     assert activity.host is None
     assert activity.outputs is None
     assert activity.task_type == "activity"
@@ -127,7 +129,9 @@ def test_activity_of_activities_init():
     # test single job and reference output
     add_task = get_task()
     subactivity = Activity(tasks=[add_task])
-    activity = Activity(name="Add", tasks=[subactivity], outputs=subactivity.outputs.value)
+    activity = Activity(
+        name="Add", tasks=[subactivity], outputs=subactivity.outputs.value
+    )
     assert isinstance(activity.outputs, Value)
 
     # test multi job and list multi outputs
@@ -137,7 +141,7 @@ def test_activity_of_activities_init():
     subactivity2 = Activity(tasks=[add_task2])
     activity = Activity(
         tasks=[subactivity1, subactivity2],
-        outputs=[subactivity1.outputs, subactivity2.outputs.value]
+        outputs=[subactivity1.outputs, subactivity2.outputs.value],
     )
     assert isinstance(activity.outputs, Value)
 
@@ -146,7 +150,7 @@ def test_activity_of_activities_init():
     subactivity = Activity(tasks=[add_task])
     activity = Activity(
         tasks=[subactivity],
-        outputs={"a": subactivity.outputs, "b": subactivity.outputs.value}
+        outputs={"a": subactivity.outputs, "b": subactivity.outputs.value},
     )
     assert isinstance(activity.outputs, Dynamic)
 
@@ -227,8 +231,7 @@ def test_activity_multiplicity():
 
 
 def test_task_dag_validation():
-    from activities import Activity
-    from activities import Task
+    from activities import Activity, Task
 
     # test tasks out of order
     task1 = Task(function=("builtins", "sum"), args=(1, 2))
@@ -254,8 +257,7 @@ def test_task_dag_validation():
 
 
 def test_activity_dag_validation():
-    from activities import Activity
-    from activities import Task
+    from activities import Activity, Task
 
     # test cycle detection of sub-activities
     task1 = Task(function=("builtins", "sum"), args=(1, 2))
