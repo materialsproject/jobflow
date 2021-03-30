@@ -16,37 +16,37 @@ def test_activity_of_tasks_init():
     assert isinstance(activity.uuid, UUID)
     assert activity.host is None
     assert activity.outputs is None
-    assert activity.task_type == "task"
+    assert activity.task_type == "job"
 
-    # test single task
+    # test single job
     add_task = get_task()
     activity = Activity(name="Add", tasks=[add_task])
     assert activity.name == 'Add'
     assert activity.host is None
     assert activity.outputs is None
-    assert activity.task_type == "task"
+    assert activity.task_type == "job"
 
-    # test multiple task
+    # test multiple job
     add_task1 = get_task()
     add_task2 = get_task()
     activity = Activity(tasks=[add_task1, add_task2])
     assert activity.host is None
     assert activity.outputs is None
-    assert activity.task_type == "task"
+    assert activity.task_type == "job"
 
-    # test single task and outputs
+    # test single job and outputs
     add_task = get_task()
     activity = Activity(tasks=[add_task], outputs=add_task.outputs)
     assert isinstance(activity.outputs, type(add_task.outputs))
     assert activity.outputs is not add_task.outputs
-    assert activity.output_sources is add_task.outputs
+    assert activity.output_source is add_task.outputs
 
-    # test single task and reference output
+    # test single job and reference output
     add_task = get_task()
     activity = Activity(tasks=[add_task], outputs=add_task.outputs.value)
     assert isinstance(activity.outputs, Value)
 
-    # test multi task and list multi outputs
+    # test multi job and list multi outputs
     add_task1 = get_task()
     add_task2 = get_task()
     activity = Activity(
@@ -66,7 +66,7 @@ def test_activity_of_tasks_init():
     with pytest.raises(ValueError):
         Activity(tasks=[], outputs=add_task.outputs)
 
-    # test task given rather than outputs
+    # test job given rather than outputs
     with pytest.raises(ValueError):
         add_task = get_task()
         Activity(tasks=[add_task], outputs=add_task)
@@ -81,7 +81,7 @@ def test_activity_of_tasks_init():
         add_task = get_task()
         Activity(tasks=[add_task], outputs={"a": add_task})
 
-    # test complex object containing task given rather than outputs
+    # test complex object containing job given rather than outputs
     with pytest.raises(ValueError):
         add_task = get_task()
         Activity(tasks=[add_task], outputs={1: [[{"a": add_task}]]})
@@ -113,7 +113,7 @@ def test_activity_of_activities_init():
     assert activity.tasks[0].host == activity.uuid
     assert activity.tasks[1].host == activity.uuid
 
-    # test single task and outputs
+    # test single job and outputs
     add_task = get_task()
     subactivity = Activity(tasks=[add_task])
     activity = Activity(name="Add", tasks=[subactivity], outputs=subactivity.outputs)
@@ -121,16 +121,16 @@ def test_activity_of_activities_init():
     assert isinstance(activity.outputs, type(subactivity.outputs))
     assert activity.outputs is not add_task.outputs
     assert activity.outputs is not subactivity.outputs
-    assert activity.output_sources is not add_task.outputs
-    assert activity.output_sources is subactivity.outputs
+    assert activity.output_source is not add_task.outputs
+    assert activity.output_source is subactivity.outputs
 
-    # test single task and reference output
+    # test single job and reference output
     add_task = get_task()
     subactivity = Activity(tasks=[add_task])
     activity = Activity(name="Add", tasks=[subactivity], outputs=subactivity.outputs.value)
     assert isinstance(activity.outputs, Value)
 
-    # test multi task and list multi outputs
+    # test multi job and list multi outputs
     add_task1 = get_task()
     subactivity1 = Activity(tasks=[add_task1])
     add_task2 = get_task()
@@ -174,7 +174,7 @@ def test_activity_of_activities_init():
         subactivity = Activity(tasks=[add_task])
         Activity(tasks=[subactivity], outputs={"a": subactivity})
 
-    # test complex object containing task given rather than outputs
+    # test complex object containing job given rather than outputs
     with pytest.raises(ValueError):
         add_task = get_task()
         subactivity = Activity(tasks=[add_task])
@@ -209,7 +209,7 @@ def test_task_sharing():
 def test_task_multiplicity():
     from activities import Activity
 
-    # test that two of the same task cannot be used in the same activity
+    # test that two of the same job cannot be used in the same activity
     add_task = get_task()
     with pytest.raises(ValueError):
         Activity(tasks=[add_task, add_task])
@@ -270,7 +270,7 @@ def test_activity_dag_validation():
     # other things to test:
     # - DAG for activities and tasks
     # - test all tasks (activities or tasks) included for graph to work
-    # - test all the above bad inputs but for task Task object args and kwargs
+    # - test all the above bad inputs but for job Job object args and kwargs
     # - add validate call inside either task_to_wf or iteractivity
 
 

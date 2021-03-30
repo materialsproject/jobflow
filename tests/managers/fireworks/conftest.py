@@ -7,10 +7,10 @@ def debug_mode():
 
 
 @pytest.fixture(scope="session")
-def lpad(test_database, debug_mode):
+def lpad(database, debug_mode):
     from fireworks import LaunchPad
 
-    lpad = LaunchPad(name=test_database)
+    lpad = LaunchPad(name=database)
     lpad.reset("", require_password=False)
     yield lpad
 

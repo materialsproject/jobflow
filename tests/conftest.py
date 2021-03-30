@@ -2,21 +2,21 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def test_database():
+def database():
     return "activities_test"
 
 
 @pytest.fixture(scope="session")
-def mongo_output_store(test_database):
+def mongo_store(database):
     from maggma.stores import MongoStore
 
-    store = MongoStore(test_database, "activity_outputs")
+    store = MongoStore(database, "activity_outputs")
     store.connect()
     return store
 
 
 @pytest.fixture(scope="session")
-def output_store():
+def memory_store():
     from maggma.stores import MemoryStore
 
     store = MemoryStore()

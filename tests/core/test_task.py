@@ -14,10 +14,10 @@ def test_task_init():
     from activities.core.task import Task
 
     # test basic init
-    test_task = Task(function=("builtins", "print"), args=("I am a task",))
+    test_task = Task(function=("builtins", "print"), args=("I am a job",))
     assert test_task
     assert test_task.function == ("builtins", "print")
-    assert test_task.args == ("I am a task",)
+    assert test_task.args == ("I am a job",)
     assert test_task.kwargs == {}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Dynamic)
@@ -41,17 +41,17 @@ def test_task_run(capsys):
     from activities.core.task import Task
 
     # test basic run
-    test_task = Task(function=("builtins", "print"), args=("I am a task",))
+    test_task = Task(function=("builtins", "print"), args=("I am a job",))
     response = test_task.run()
-    assert capsys.readouterr().out == "I am a task\n"
-    assert type(response).__name__ == "TaskResponse"
+    assert capsys.readouterr().out == "I am a job\n"
+    assert type(response).__name__ == "Response"
 
     # test run with outputs
     test_task = Task(
         function=(__name__, "add"), args=(1,), kwargs={"b": 2}, outputs=Number
     )
     response = test_task.run()
-    assert type(response).__name__ == "TaskResponse"
+    assert type(response).__name__ == "Response"
     assert isinstance(response.outputs, Number)
     assert response.outputs.value == 3
 
@@ -61,7 +61,7 @@ def test_task_run(capsys):
         function=(__name__, "add"), args=(1,), kwargs={"b": ref}, outputs=Number
     )
     response = test_task.run(output_cache={ref.uuid: {ref.name: 2}})
-    assert type(response).__name__ == "TaskResponse"
+    assert type(response).__name__ == "Response"
     assert isinstance(response.outputs, Number)
     assert response.outputs.value == 3
 
@@ -97,7 +97,7 @@ def test_task_resolve_args(output_store):
     from activities.core.task import Task
 
     # test basic run with no references
-    test_task = Task(function=("builtins", "print"), args=("I am a task",))
+    test_task = Task(function=("builtins", "print"), args=("I am a job",))
     resolved_task = test_task.resolve_args()
     assert test_task == resolved_task
 
@@ -144,10 +144,10 @@ def test_task_decorator():
 
     # test basic init
     decorated = task(print)
-    test_task = decorated("I am a task")
+    test_task = decorated("I am a job")
     assert test_task
     assert test_task.function == ("builtins", "print")
-    assert test_task.args == ("I am a task",)
+    assert test_task.args == ("I am a job",)
     assert test_task.kwargs == {}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Dynamic)
@@ -168,10 +168,10 @@ def test_task_decorator():
     def print_message(message):
         print(message)
 
-    test_task = print_message("I am a task")
+    test_task = print_message("I am a job")
     assert test_task
     assert test_task.function == (__name__, "print_message")
-    assert test_task.args == ("I am a task",)
+    assert test_task.args == ("I am a job",)
     assert test_task.kwargs == {}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Dynamic)
@@ -201,7 +201,7 @@ def test_task_decorator():
 
 def test_task_response():
     # no need to test init as it is just a dataclass, instead test from_task_returns
-    # test no task returns
+    # test no job returns
     from activities.core.activity import Activity
     from activities.core.outputs import Number, Dynamic, Value
     from activities.core.task import Detour, Stop, Store, TaskResponse
