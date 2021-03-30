@@ -1,21 +1,28 @@
 """Tools for running activities locally."""
+from __future__ import annotations
+
 import logging
+import typing
 
-from maggma.stores import MemoryStore
-
-from activities import Job
-from activities.core.activity import Activity
+if typing.TYPE_CHECKING:
+    import activities
 
 logger = logging.getLogger(__name__)
 
 
-def run_activity_locally(activity: Activity):
-    output_cache = {}
+def run_activity_locally(activity: activities.Activity, log: bool = True):
+    from maggma.stores import MemoryStore
+    from activities.core.util import initialize_logger
+
+    if log:
+        initialize_logger()
+
     store = MemoryStore()
     store.connect()
     stopped_parents = set()
+    responses = {}
 
-    def _run_job(job: Job, parents):
+    def _run_job(job: activities.Job, parents):
         if len(set(parents).intersection(stopped_parents)) > 0:
             # stop children has been called for one of the jobs' parents
             logger.info(
@@ -42,15 +49,16 @@ def run_activity_locally(activity: Activity):
         return response
 
     def _run_iter(root_activity):
-        job: Job
+        job: activities.Job
         response = None
         for job, parents in root_activity.iteractivity():
             response = _run_job(job, parents)
             if response is False:
                 return
+            responses[job.uuid] = response
         return response
 
     logger.info(f"Started executing activities locally")
-    r = _run_iter(activity)
+    _run_iter(activity)
     logger.info(f"Finished executing activities locally")
-    return r
+    return responses

@@ -340,7 +340,7 @@ class Job(HasInputOutput, MSONable):
         from datetime import datetime
         from importlib import import_module
 
-        logger.info(f"Starting job - {self.function[1]} ({self.uuid})")
+        logger.info(f"Starting job - {self.name} ({self.uuid})")
 
         module = import_module(self.function[0])
         function = getattr(module, self.function[1], None)
@@ -371,7 +371,7 @@ class Job(HasInputOutput, MSONable):
             data.update(self.metadata)
             store.update(data, key="uuid")
 
-        logger.info(f"Finished job - {self.function[1]} ({self.uuid})")
+        logger.info(f"Finished job - {self.name} ({self.uuid})")
         return response
 
     def set_uuid(self, uuid: UUID):

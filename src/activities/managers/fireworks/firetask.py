@@ -3,35 +3,26 @@ from fireworks.utilities.fw_utilities import explicit_serialize
 
 
 @explicit_serialize
-class ActivityFiretask(FiretaskBase):
+class JobFiretask(FiretaskBase):
 
-    required_params = ["activity", "output_store"]
+    required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
-        from activities.core.activity import Activity
         from activities.core.util import initialize_logger
+        from activities.core.job import Job
         from activities.managers.fireworks.workflow import activity_to_workflow
 
-        activity: Activity = self.get("activity")
-        output_store = self.get("output_store")
-        output_store.connect()
+        job: Job = self.get("job")
+        store = self.get("store")
+        store.connect()
 
         initialize_logger()
-        response = activity.run(output_store=output_store)
+        response = job.run(store=store)
 
         detours = None
         if response.detour is not None:
             # create a workflow from the new additions
-            detour_wf = activity_to_workflow(response.detour[0], output_store)
-
-            # create a workflow to finish the remaining tasks of the current firework
-            complete_task_wf = activity_to_workflow(
-                response.detour[1], output_store, iteractivity=False
-            )
-
-            # join the workflows together
-            detour_wf.append_wf(complete_task_wf, fw_ids=detour_wf.leaf_fw_ids)
-            detours = [detour_wf]
+            detours = [activity_to_workflow(response.detour, store)]
 
         if response.restart is not None:
             pass

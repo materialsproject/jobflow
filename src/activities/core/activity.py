@@ -178,6 +178,7 @@ class Activity(HasInputOutput, MSONable):
                 edges.append((uuid, self.uuid, {"properties": properties}))
 
             store_output_job = store_output(self.output_source)
+            store_output_job.name = self.name + " to store"
             store_output_job.uuid = self.uuid
             store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
 
@@ -186,7 +187,7 @@ class Activity(HasInputOutput, MSONable):
                 self.uuid,
                 object=store_output_job,
                 type="activity",
-                label=self.name + " to store",
+                label=store_output_job.name,
             )
             graph.add_edges_from(edges)
             graph = [graph]

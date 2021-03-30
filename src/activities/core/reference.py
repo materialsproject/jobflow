@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from monty.json import MontyDecoder, MontyEncoder, MSONable
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Optional, Sequence, Tuple
+    from typing import Any, Dict, Optional, Sequence, Tuple, Type
     from uuid import UUID
 
     from maggma.core import Store
@@ -18,7 +18,7 @@ class Reference(MSONable):
 
     uuid: UUID
     attributes: Optional[Tuple[Any]] = tuple()
-    schema: Optional[BaseModel] = None
+    schema: Optional[Type[BaseModel]] = None
 
     def resolve(
         self,
@@ -67,6 +67,9 @@ class Reference(MSONable):
             return new_reference
 
     def __getitem__(self, item) -> "Reference":
+        if self.schema is not None:
+            validate_schema_access(self.schema, item)
+
         return Reference(self.uuid, self.attributes + (item,))
 
     def __getattr__(self, item) -> "Reference":
@@ -74,6 +77,10 @@ class Reference(MSONable):
             isinstance(item, str) and item.startswith("__")
         ):
             raise AttributeError
+
+        if self.schema is not None:
+            validate_schema_access(self.schema, item)
+
         return Reference(self.uuid, self.attributes + (item,))
 
     def __repr__(self):
@@ -197,3 +204,10 @@ def find_and_resolve_references(
 
     # deserialize dict array
     return MontyDecoder().process_decoded(encoded_arg)
+
+
+def validate_schema_access(schema: Type[BaseModel], item: str):
+    schema_dict = schema.schema()
+    if item not in schema_dict["properties"]:
+        raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
+    return True
