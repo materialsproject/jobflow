@@ -1,10 +1,10 @@
-from pydantic import Field, BaseModel
-
 from activities import job
+from pydantic import BaseModel, Field
 
 
 class ComputeSchema(BaseModel):
     """Document defining job output schema."""
+
     total: float = Field(description="Sum of the inputs.")
     product: float = Field(description="Product of the inputs.")
 

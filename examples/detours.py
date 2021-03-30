@@ -1,13 +1,12 @@
 from typing import List
 
-from activities import job, Activity, initialize_logger
-from activities.core.graph import draw_graph
-from activities.managers.local import run_activity_locally
+from activities import Activity, job, run_locally
 
 
 @job
 def read_websites():
     from pathlib import Path
+
     file_contents = Path("websites.txt").read_text()
     return file_contents.split()
 
@@ -44,19 +43,18 @@ def sum_times(times: List[float]):
     return sum(times)
 
 
-# create an activity that will first load a list of websites, then generate new
-# jobs to calculate the time taken to load each website, and finally, sum all the
-# times together
-
+# create an activity that will:
+# 1. load a list of websites from a file.
+# 2. generate one new job for each website to time the website loading
+# 3. sum all the times together
 read_websites_job = read_websites()
 timings_job = detour_timing_jobs(read_websites_job.output)
 sum_job = sum_times(timings_job.output)
-
 my_activity = Activity(jobs=[read_websites_job, timings_job, sum_job])
 
-draw_graph(my_activity.graph).show()
+# draw the activity graph
+my_activity.draw_graph().show()
 
-# run the activity
-initialize_logger()
-responses = run_activity_locally(my_activity)
+# run the activity, "responses" contains the output of all jobs
+responses = run_locally(my_activity)
 print(responses)
