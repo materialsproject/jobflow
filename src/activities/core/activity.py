@@ -140,7 +140,7 @@ class Activity(HasInputOutput, MSONable):
     index: int = 1
     metadata: Dict[str, Any] = field(default_factory=dict)
     to_store_job_config: JobConfig = field(default_factory=JobConfig)
-    job_order: JobOrder = JobOrder.AUTO
+    order: JobOrder = JobOrder.AUTO
     output: activities.Reference = field(init=False)
 
     def __post_init__(self):
@@ -199,7 +199,15 @@ class Activity(HasInputOutput, MSONable):
             graph = [graph]
 
         job_graphs = [job.graph for job in self.jobs]
-        return nx.compose_all(job_graphs + graph)
+        graph = nx.compose_all(job_graphs + graph)
+
+        if self.order == JobOrder.LINEAR:
+            # add fake edges between jobs to force linear order
+            edges = []
+            for job_a, job_b in nx.utils.pairwise(self.jobs):
+                edges.append((job_a.uuid, job_b.uuid, {"properties": ""}))
+            graph.add_edges_from(edges)
+        return graph
 
     def iteractivity(
         self

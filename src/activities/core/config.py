@@ -11,7 +11,7 @@ class JobOrder(ValueEnum):
 class ReferenceFallback(ValueEnum):
     ERROR = "error"
     NONE = "none"
-    PASS = "PASS"
+    PASS = "pass"
 
 
 @dataclass

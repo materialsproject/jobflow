@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 import typing
 
+from activities.core.config import ReferenceFallback
+
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
@@ -34,6 +36,7 @@ def run_locally(
         activity = Activity(jobs=activity)
 
     stopped_parents = set()
+    fizzled = set()
     responses = {}
     stop_activities = False
 
@@ -51,7 +54,21 @@ def run_locally(
             stopped_parents.add(job.uuid)
             return
 
-        response = job.run(store=store)
+        if (
+            len(set(parents).intersection(fizzled)) > 0 and
+            job.config.on_missing_references == ReferenceFallback.ERROR
+        ):
+            fizzled.add(job.uuid)
+            return
+
+        try:
+            response = job.run(store=store)
+        except Exception:
+            import traceback
+            logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
+            fizzled.add(job.uuid)
+            return
+
         responses[job.uuid] = response
 
         if response.stored_data is not None:
