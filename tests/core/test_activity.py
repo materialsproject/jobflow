@@ -243,7 +243,7 @@ def test_task_dag_validation():
     # test cycle detection of tasks
     task1 = Task(function=("builtins", "sum"), args=(1, 2))
     task2 = Task(function=("builtins", "sum"), args=(task1.outputs.value, 2))
-    task1.args = (task2.outputs.value, 2)
+    task1.function_args = (task2.outputs.value, 2)
     activity = Activity(tasks=[task1, task2])
     with pytest.raises(ValueError):
         activity.validate()

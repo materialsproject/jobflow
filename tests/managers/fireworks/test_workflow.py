@@ -64,7 +64,7 @@ def detour_timing_jobs(websites: List[str]):
     jobs = [time_website(website) for website in websites]
     output = [j.output for j in jobs]
     detour_activity = Activity("timings", jobs, output)
-    return Response(detour=detour_activity)
+    return Response(restart=detour_activity)
 
 
 @job
@@ -108,3 +108,71 @@ def test_fireworks_detour(lpad, mongo_store, clean_dir):
     # check output_store has the activity output
     result = mongo_store.query_one({"uuid": str(activity.uuid)})
     assert result["output"] == 3578
+
+
+@job
+def fibonacci_restart(smaller: int, larger: int, stop_point: int = 1000):
+    total = smaller + larger
+
+    if total > stop_point:
+        return total
+
+    new_job = fibonacci_restart(larger, total, stop_point=stop_point)
+    return Response(output=total, restart=new_job)
+
+
+@job
+def fibonacci_addition(smaller: int, larger: int, stop_point: int = 1000):
+    total = smaller + larger
+
+    if total > stop_point:
+        return total
+
+    new_job = fibonacci_addition(larger, total, stop_point=stop_point)
+    return Response(output=total, addition=new_job)
+
+
+def test_fireworks_restart(lpad, mongo_store, clean_dir):
+    from activities.managers.fireworks.workflow import activity_to_workflow
+    from fireworks.core.rocket_launcher import rapidfire
+
+    fibonacci_job = fibonacci_addition(1, 1)
+    wf = activity_to_workflow(fibonacci_job, mongo_store)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = list(fw_ids.values())[0]
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    assert len(wf.fw_states) == 15
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+
+    # check output_store has the activity output
+    result = mongo_store.query_one(sort={"completed_at": -1})
+    assert result["output"] == 1597
+
+
+def test_fireworks_addition(lpad, mongo_store, clean_dir):
+    from activities.managers.fireworks.workflow import activity_to_workflow
+    from fireworks.core.rocket_launcher import rapidfire
+
+    fibonacci_job = fibonacci_addition(1, 1)
+    wf = activity_to_workflow(fibonacci_job, mongo_store)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = list(fw_ids.values())[0]
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    assert len(wf.fw_states) == 15
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+
+    # check output_store has the activity output
+    result = mongo_store.query_one(sort={"completed_at": -1})
+    assert result["output"] == 1597

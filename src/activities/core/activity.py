@@ -9,10 +9,9 @@ from uuid import uuid4
 from monty.json import MSONable
 
 from activities.core.base import HasInputOutput
-from activities.core.reference import Reference
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union, List
+    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union
     from uuid import UUID
 
     from networkx import DiGraph
@@ -138,10 +137,11 @@ class Activity(HasInputOutput, MSONable):
     uuid: UUID = field(default_factory=uuid4)
     index: int = 1
     metadata: Dict[str, Any] = field(default_factory=dict)
-    output: Reference = field(init=False)
+    output: activities.Reference = field(init=False)
 
     def __post_init__(self):
         from activities import Job
+        from activities.core.reference import Reference
 
         self.output = Reference(self.uuid, schema=self.output_schema)
 
@@ -196,7 +196,9 @@ class Activity(HasInputOutput, MSONable):
         job_graphs = [job.graph for job in self.jobs]
         return nx.compose_all(job_graphs + graph)
 
-    def iteractivity(self) -> Generator[Tuple["Activity", Sequence[UUID]], None, None]:
+    def iteractivity(
+        self
+    ) -> Generator[Tuple["activities.Job", Sequence[UUID]], None, None]:
         from activities.core.graph import itergraph
 
         graph = self.graph

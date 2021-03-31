@@ -69,9 +69,9 @@ def job(
     ...     return print(a + b)
     ...
     >>> print_sum_job = print_sum(1, 2)
-    >>> print_sum_job.args
+    >>> print_sum_job.function_args
     (1, )
-    >>> print_sum_job.kwargs
+    >>> print_sum_job.function_kwargs
     {"b": 2}
 
     If the function returns a value it can be referenced using the ``output``
@@ -154,8 +154,8 @@ def job(
             return Job(
                 function=(func_module, func_name),
                 output_schema=output_schema,
-                args=args,
-                kwargs=kwargs,
+                function_args=args,
+                function_kwargs=kwargs,
                 name=name,
             )
 
@@ -249,8 +249,8 @@ class Job(HasInputOutput, MSONable):
     """
 
     function: Tuple[str, str]
-    args: Tuple[Any, ...] = field(default_factory=tuple)
-    kwargs: Dict[str, Any] = field(default_factory=dict)
+    function_args: Tuple[Any, ...] = field(default_factory=tuple)
+    function_kwargs: Dict[str, Any] = field(default_factory=dict)
     output_schema: Optional[Type[BaseModel]] = None
     uuid: UUID = field(default_factory=uuid4)
     index: int = 1
@@ -276,7 +276,7 @@ class Job(HasInputOutput, MSONable):
         from activities.core.reference import find_and_get_references
 
         references = set()
-        for arg in tuple(self.args) + tuple(self.kwargs.values()):
+        for arg in tuple(self.function_args) + tuple(self.function_kwargs.values()):
             references.update(find_and_get_references(arg))
 
         return tuple(references)
@@ -359,7 +359,7 @@ class Job(HasInputOutput, MSONable):
 
         self.resolve_args(store=store)
 
-        response: Response = function(*self.args, **self.kwargs)
+        response: Response = function(*self.function_args, **self.function_kwargs)
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
 
@@ -413,25 +413,25 @@ class Job(HasInputOutput, MSONable):
         from activities.core.reference import find_and_resolve_references
 
         resolved_args = find_and_resolve_references(
-            self.args,
+            self.function_args,
             store=store,
             error_on_missing=error_on_missing,
         )
         resolved_kwargs = find_and_resolve_references(
-            self.kwargs,
+            self.function_kwargs,
             store=store,
             error_on_missing=error_on_missing,
         )
         resolved_args = tuple(resolved_args)
 
         if inplace:
-            self.args = resolved_args
-            self.kwargs = resolved_kwargs
+            self.function_args = resolved_args
+            self.function_kwargs = resolved_kwargs
             return self
 
         new_job = deepcopy(self)
-        new_job.args = resolved_args
-        new_job.kwargs = resolved_kwargs
+        new_job.function_args = resolved_args
+        new_job.function_kwargs = resolved_kwargs
         return new_job
 
 
@@ -460,7 +460,7 @@ class Response:
     restart: Optional[Union[activities.Activity, Job, List[Job]]] = None
     detour: Optional[Union[activities.Activity, Job, List[Job]]] = None
     addition: Optional[Union[activities.Activity, Job, List[Job]]] = None
-    store: Optional[Dict[Hashable, Any]] = None
+    stored_data: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
     stop_activities: bool = False
 

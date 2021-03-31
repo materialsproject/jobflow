@@ -17,8 +17,8 @@ def test_task_init():
     test_task = Task(function=("builtins", "print"), args=("I am a job",))
     assert test_task
     assert test_task.function == ("builtins", "print")
-    assert test_task.args == ("I am a job",)
-    assert test_task.kwargs == {}
+    assert test_task.function_args == ("I am a job",)
+    assert test_task.function_kwargs == {}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Dynamic)
 
@@ -28,8 +28,8 @@ def test_task_init():
     )
     assert test_task
     assert test_task.function == (__name__, "add")
-    assert test_task.args == (1,)
-    assert test_task.kwargs == {"b": 2}
+    assert test_task.function_args == (1,)
+    assert test_task.function_kwargs == {"b": 2}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Number)
     assert test_task.uuid == test_task.outputs.value.uuid
@@ -108,26 +108,26 @@ def test_task_resolve_args(output_store):
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
     resolved_task = test_task.resolve_args(output_cache=cache)
     assert test_task == resolved_task
-    assert resolved_task.kwargs["b"] == 2
+    assert resolved_task.function_kwargs["b"] == 2
 
     # test resolve with inplace=False
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
     resolved_task = test_task.resolve_args(output_cache=cache, inplace=False)
     assert test_task != resolved_task
-    assert resolved_task.kwargs["b"] == 2
-    assert isinstance(test_task.kwargs["b"], Reference)
+    assert resolved_task.function_kwargs["b"] == 2
+    assert isinstance(test_task.function_kwargs["b"], Reference)
 
     # test resolve with allow errors
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
     resolved_task = test_task.resolve_args(output_cache={}, error_on_missing=False)
     assert test_task == resolved_task
-    assert resolved_task.kwargs["b"] == ref
+    assert resolved_task.function_kwargs["b"] == ref
 
     # test resolve with store
     output_store.update({"uuid": str(ref.uuid), ref.name: 2}, key="uuid")
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})
     resolved_task = test_task.resolve_args(output_store=output_store)
-    assert resolved_task.kwargs["b"] == 2
+    assert resolved_task.function_kwargs["b"] == 2
 
     # test cache is preferred over store
     output_store.update({"uuid": str(ref.uuid), ref.name: 10}, key="uuid")
@@ -135,7 +135,7 @@ def test_task_resolve_args(output_store):
     resolved_task = test_task.resolve_args(
         output_store=output_store, output_cache=cache
     )
-    assert resolved_task.kwargs["b"] == 2
+    assert resolved_task.function_kwargs["b"] == 2
 
 
 def test_task_decorator():
@@ -147,8 +147,8 @@ def test_task_decorator():
     test_task = decorated("I am a job")
     assert test_task
     assert test_task.function == ("builtins", "print")
-    assert test_task.args == ("I am a job",)
-    assert test_task.kwargs == {}
+    assert test_task.function_args == ("I am a job",)
+    assert test_task.function_kwargs == {}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Dynamic)
 
@@ -157,8 +157,8 @@ def test_task_decorator():
     test_task = decorated(1, b=2)
     assert test_task
     assert test_task.function == (__name__, "add")
-    assert test_task.args == (1,)
-    assert test_task.kwargs == {"b": 2}
+    assert test_task.function_args == (1,)
+    assert test_task.function_kwargs == {"b": 2}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Number)
     assert test_task.uuid == test_task.outputs.value.uuid
@@ -184,8 +184,8 @@ def test_task_decorator():
     test_task = add_numbers(1, b=2)
     assert test_task
     assert test_task.function == (__name__, "add_numbers")
-    assert test_task.args == (1,)
-    assert test_task.kwargs == {"b": 2}
+    assert test_task.function_args == (1,)
+    assert test_task.function_kwargs == {"b": 2}
     assert test_task.uuid is not None
     assert isinstance(test_task.outputs, Number)
     assert test_task.uuid == test_task.outputs.value.uuid
