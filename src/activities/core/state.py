@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["CURRENT_JOB"]
 
 
-class _State:
+class State:
     uuid: Optional[UUID] = None
     store: Optional[Store] = None
 
@@ -19,4 +19,4 @@ class _State:
         self.store = None
 
 
-CURRENT_JOB = _State()
+CURRENT_JOB = State()

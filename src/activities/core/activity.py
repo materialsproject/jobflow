@@ -170,8 +170,6 @@ class Activity(HasInputOutput, MSONable):
     def graph(self) -> DiGraph:
         import networkx as nx
 
-        from activities.core.job import store_output
-
         graph = []
         if self.output_source is not None:
             # only create input-output graph for this activity if it has outputs
@@ -184,14 +182,7 @@ class Activity(HasInputOutput, MSONable):
                 properties = properties if len(properties) > 0 else ""
                 edges.append((uuid, self.uuid, {"properties": properties}))
 
-            store_output_job = store_output(self.output_source)
-            store_output_job.name = self.name + " to store"
-            store_output_job.uuid = self.uuid
-            store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
-            store_output_job.metadata.update(self.metadata)
-            store_output_job.previous_uuids = self.previous_uuids
-            store_output_job.output_schema = self.output_schema
-
+            store_output_job = self.to_job()
             graph = nx.DiGraph()
             graph.add_node(
                 self.uuid,
@@ -222,3 +213,17 @@ class Activity(HasInputOutput, MSONable):
         from activities.core.graph import draw_graph
 
         return draw_graph(self.graph)
+
+    def to_job(self):
+        from activities.core.job import store_output
+
+        store_output_job = store_output(self.output_source)
+        store_output_job.name = self.name + " to store"
+        store_output_job.uuid = self.uuid
+        store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
+        store_output_job.metadata.update(self.metadata)
+        store_output_job.previous_uuids = self.previous_uuids
+        store_output_job.output_schema = self.output_schema
+        return store_output_job
+
+
