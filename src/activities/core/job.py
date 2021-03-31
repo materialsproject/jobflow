@@ -253,10 +253,10 @@ class Job(HasInputOutput, MSONable):
     kwargs: Dict[str, Any] = field(default_factory=dict)
     output_schema: Optional[Type[BaseModel]] = None
     uuid: UUID = field(default_factory=uuid4)
+    index: int = 1
     name: Optional[str] = None
     output: Reference = field(init=False)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    previous_uuids: List[UUID] = field(default_factory=list)
 
     def __post_init__(self):
         self.output = Reference(self.uuid, schema=self.output_schema)
@@ -342,7 +342,8 @@ class Job(HasInputOutput, MSONable):
         from activities import CURRENT_JOB
         from importlib import import_module
 
-        logger.info(f"Starting job - {self.name} ({self.uuid})")
+        index_str = f", {self.index}" if self.index != 1 else ""
+        logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
         CURRENT_JOB.uuid = self.uuid
         CURRENT_JOB.store = store
 
@@ -362,27 +363,20 @@ class Job(HasInputOutput, MSONable):
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
 
-        data = {
-            "output": jsanitize(response.output, strict=True),
-            "uuid": str(self.uuid),
-            "completed_at": datetime.now().isoformat(),
-            "previous_uuids": [str(uuid) for uuid in self.previous_uuids],
-        }
-        data.update(self.metadata)
-
         if response.restart is not None:
-            # generate a new uuid to the current job under
-            new_uuid = uuid4()
-            logger.info(f"Remapping {self.uuid} -> {new_uuid}")
-            response.restart = prepare_restart(response.restart, self, new_uuid)
-            self.set_uuid(new_uuid)
-            data["original_uuid"] = str(self.uuid)
-            data["uuid"] = new_uuid
+            response.restart = prepare_restart(response.restart, self)
 
-        store.update(data, key="uuid")
+        data = {
+            "uuid": str(self.uuid),
+            "index": self.index,
+            "output": jsanitize(response.output, strict=True),
+            "completed_at": datetime.now().isoformat(),
+            "metadata": self.metadata
+        }
+        store.update(data, key=["uuid", "index"])
 
         CURRENT_JOB.reset()
-        logger.info(f"Finished job - {self.name} ({self.uuid})")
+        logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
 
     def set_uuid(self, uuid: UUID):
@@ -514,10 +508,11 @@ class Response:
         .Outputs, Store, Detour, Restart, Stop
         """
         if isinstance(job_returns, Response):
-            return job_returns
+            if job_returns.restart is not None:
+                # only apply output schema if there is no restart.
+                job_returns.output = apply_schema(job_returns.output)
 
-        if job_returns is None:
-            return Response()
+            return job_returns
 
         if isinstance(job_returns, (list, tuple)):
             # check that a Response object is not given as one of many outputs
@@ -528,10 +523,25 @@ class Response:
                         "outputs."
                     )
 
-        if output_schema is not None:
-            job_returns = output_schema(job_returns)
+        return cls(output=apply_schema(job_returns, output_schema))
 
-        return cls(output=job_returns)
+
+def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
+    if schema is None or isinstance(output, schema):
+        return output
+
+    if output is None:
+        raise ValueError(
+            f"Expected output of type {schema.__name__} but got no output"
+        )
+
+    if not isinstance(output, Dict):
+        raise ValueError(
+            f"Expected output to be {schema.__name__} or dict but got output type "
+            f"of {type(output).__name__}."
+        )
+
+    return schema(**output)
 
 
 @job
@@ -542,7 +552,6 @@ def store_output(outputs: Any):
 def prepare_restart(
     restart: Union[activities.Activity, Job, List[Job]],
     current_job: Job,
-    new_uuid: UUID,
 ):
     from activities.core.activity import Activity
 
@@ -559,6 +568,5 @@ def prepare_restart(
     metadata = deepcopy(current_job.metadata)
     metadata.update(restart.metadata)
     restart.metadata = metadata
-    restart.previous_uuids.extend(current_job.previous_uuids)
-    restart.previous_uuids.append(new_uuid)
+    restart.index = current_job.index + 1
     return restart

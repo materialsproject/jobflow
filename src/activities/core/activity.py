@@ -136,9 +136,9 @@ class Activity(HasInputOutput, MSONable):
     output_schema: Optional[Type[BaseModel]] = None
     config: Dict = field(default_factory=dict)
     uuid: UUID = field(default_factory=uuid4)
-    output: Reference = field(init=False)
+    index: int = 1
     metadata: Dict[str, Any] = field(default_factory=dict)
-    previous_uuids: List[UUID] = field(default_factory=list)
+    output: Reference = field(init=False)
 
     def __post_init__(self):
         from activities import Job
@@ -222,7 +222,7 @@ class Activity(HasInputOutput, MSONable):
         store_output_job.uuid = self.uuid
         store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
         store_output_job.metadata.update(self.metadata)
-        store_output_job.previous_uuids = self.previous_uuids
+        store_output_job.index = self.index
         store_output_job.output_schema = self.output_schema
         return store_output_job
 

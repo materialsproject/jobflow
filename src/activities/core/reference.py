@@ -36,8 +36,9 @@ class Reference(MSONable):
             cache = {}
 
         if store and self.uuid not in cache:
-            output = store.query_one({"uuid": str(self.uuid)}, properties=["output"])
-            cache[self.uuid] = output["output"]
+            output = store.query_one({"uuid": str(self.uuid)}, ["output"], {"index": -1})
+            if output is not None:
+                cache[self.uuid] = output["output"]
 
         if error_on_missing and self.uuid not in cache:
             raise ValueError(
@@ -126,9 +127,11 @@ def resolve_references(
     cache = {}
 
     for uuid, ref_group in groupby(references, key=lambda x: x.uuid):
-        output = store.query_one({"uuid": str(uuid)}, properties=["output"])["output"]
+        output = store.query_one(
+            {"uuid": str(uuid)}, ["output"], {"index": -1}
+        )
         if output is not None:
-            cache[uuid] = output
+            cache[uuid] = output["output"]
 
         for ref in ref_group:
             resolved_references[ref] = ref.resolve(
