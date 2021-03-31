@@ -20,9 +20,9 @@ class JobFiretask(FiretaskBase):
         response = job.run(store=store)
 
         detours = None
-        if response.detour is not None:
+        if response.restart is not None:
             # create a workflow from the new additions
-            detours = [activity_to_workflow(response.detour, store)]
+            detours = [activity_to_workflow(response.restart, store)]
 
         if response.restart is not None:
             pass

@@ -26,7 +26,7 @@ def draw_graph(graph: nx.DiGraph, path=None, layout_function=nx.spring_layout):
 
     nodes = graph.nodes()
     node_types = nx.get_node_attributes(graph, "type")
-    colors = ["#5571AB" if node_types["n"] == "activity" else "#B65555" for n in nodes]
+    colors = ["#5571AB" if node_types[n] == "activity" else "#B65555" for n in nodes]
     labels = nx.get_node_attributes(graph, "label")
 
     nx.draw_networkx_edges(graph, pos)

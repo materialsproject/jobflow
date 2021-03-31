@@ -5,3 +5,4 @@ from activities.core.maker import Maker
 from activities.core.reference import Reference
 from activities.core.util import initialize_logger
 from activities.managers.local import run_locally
+from activities.core.state import CURRENT_JOB

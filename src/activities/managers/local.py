@@ -30,10 +30,8 @@ def run_locally(
     if log:
         initialize_logger()
 
-    if isinstance(activity, List):
+    if not isinstance(activity, Activity):
         activity = Activity(jobs=activity)
-    elif isinstance(activity, Job):
-        activity = Activity(jobs=[activity])
 
     stopped_parents = set()
     responses = {}
@@ -55,11 +53,8 @@ def run_locally(
         if response.stop_activities:
             return False
 
-        if response.detour is not None:
-            return _run_iter(response.detour)
-
         if response.restart is not None:
-            pass
+            return _run_iter(response.restart)
 
         return response
 

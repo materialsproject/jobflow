@@ -12,7 +12,7 @@ from activities.core.base import HasInputOutput
 from activities.core.reference import Reference
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union
+    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union, List
     from uuid import UUID
 
     from networkx import DiGraph
@@ -131,15 +131,22 @@ class Activity(HasInputOutput, MSONable):
     """
 
     name: str = "Activity"
-    jobs: Sequence[Union[Activity, activities.Job]] = field(default_factory=list)
+    jobs: Union[Sequence[Union[Activity, activities.Job]], activities.Job] = field(default_factory=list)
     output_source: Optional[Any] = field(default=None)
     output_schema: Optional[Type[BaseModel]] = None
     config: Dict = field(default_factory=dict)
     uuid: UUID = field(default_factory=uuid4)
     output: Reference = field(init=False)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    previous_uuids: List[UUID] = field(default_factory=list)
 
     def __post_init__(self):
+        from activities import Job
+
         self.output = Reference(self.uuid, schema=self.output_schema)
+
+        if isinstance(self.jobs, Job):
+            self.jobs = [self.jobs]
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
@@ -181,6 +188,9 @@ class Activity(HasInputOutput, MSONable):
             store_output_job.name = self.name + " to store"
             store_output_job.uuid = self.uuid
             store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
+            store_output_job.metadata.update(self.metadata)
+            store_output_job.previous_uuids = self.previous_uuids
+            store_output_job.output_schema = self.output_schema
 
             graph = nx.DiGraph()
             graph.add_node(

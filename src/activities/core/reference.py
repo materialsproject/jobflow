@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+
 import typing
 from dataclasses import dataclass
 
-from monty.json import MontyDecoder, MontyEncoder, MSONable
+from monty.json import MontyDecoder, MSONable, jsanitize, MontyEncoder
 
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Optional, Sequence, Tuple, Type
@@ -152,7 +153,7 @@ def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
         # argument is a primitive, we won't find a reference here
         return tuple()
 
-    arg = json.loads(MontyEncoder().encode(arg))
+    arg = jsanitize(arg, strict=True)
 
     # recursively find any reference classes
     locations = find_key_value(arg, "@class", "Reference")
@@ -166,8 +167,6 @@ def find_and_resolve_references(
     store: Store,
     error_on_missing: bool = True,
 ) -> Any:
-    import json
-
     from pydash import get, set_
 
     from activities.core.util import find_key_value
@@ -181,7 +180,7 @@ def find_and_resolve_references(
         return arg
 
     # serialize the argument to a dictionary
-    encoded_arg = json.loads(MontyEncoder().encode(arg))
+    encoded_arg = jsanitize(arg, strict=True)
 
     # recursively find any reference classes
     locations = find_key_value(encoded_arg, "@class", "Reference")

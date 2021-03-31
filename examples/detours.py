@@ -25,7 +25,7 @@ def time_website(website: str):
 
 
 @job
-def detour_timing_jobs(websites: List[str]):
+def start_timing_jobs(websites: List[str]):
     from activities.core.job import Response
 
     jobs = []
@@ -35,7 +35,7 @@ def detour_timing_jobs(websites: List[str]):
         jobs.append(time_job)
 
     output = [j.output for j in jobs]
-    return Response(detour=Activity("timings", jobs, output))
+    return Response(restart=Activity("timings", jobs, output))
 
 
 @job
@@ -48,7 +48,7 @@ def sum_times(times: List[float]):
 # 2. generate one new job for each website to time the website loading
 # 3. sum all the times together
 read_websites_job = read_websites()
-timings_job = detour_timing_jobs(read_websites_job.output)
+timings_job = start_timing_jobs(read_websites_job.output)
 sum_job = sum_times(timings_job.output)
 my_activity = Activity(jobs=[read_websites_job, timings_job, sum_job])
 

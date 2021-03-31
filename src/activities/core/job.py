@@ -1,20 +1,20 @@
 """This module defines functions and classes for representing Job objects."""
 from __future__ import annotations
 
-import json
+from copy import deepcopy
+
 import logging
 import typing
-from collections import Iterable
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-from monty.json import MontyEncoder, MSONable
+from monty.json import MSONable, jsanitize
 
 from activities.core.base import HasInputOutput
 from activities.core.reference import Reference
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union
+    from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union, List
     from uuid import UUID
 
     from maggma.core import Store
@@ -256,6 +256,7 @@ class Job(HasInputOutput, MSONable):
     name: Optional[str] = None
     output: Reference = field(init=False)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    previous_uuids: List[UUID] = field(default_factory=list)
 
     def __post_init__(self):
         self.output = Reference(self.uuid, schema=self.output_schema)
@@ -309,7 +310,7 @@ class Job(HasInputOutput, MSONable):
         graph.add_edges_from(edges)
         return graph
 
-    def run(self, store: Optional[Store] = None) -> "Response":
+    def run(self, store: Store) -> "Response":
         """
         Run the job.
 
@@ -338,9 +339,12 @@ class Job(HasInputOutput, MSONable):
         Response, .Reference
         """
         from datetime import datetime
+        from activities import CURRENT_JOB
         from importlib import import_module
 
         logger.info(f"Starting job - {self.name} ({self.uuid})")
+        CURRENT_JOB.uuid = self.uuid
+        CURRENT_JOB.store = store
 
         module = import_module(self.function[0])
         function = getattr(module, self.function[1], None)
@@ -358,19 +362,24 @@ class Job(HasInputOutput, MSONable):
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
 
-        if response.detour is not None:
-            # don't store job output on detours
-            response.detour.set_uuid(self.uuid)
-        elif store is not None:
-            # serialize the output to a dictionary
-            data = {
-                "output": json.loads(MontyEncoder().encode(response.output)),
-                "uuid": str(self.uuid),
-                "completed_at": datetime.now().isoformat(),
-            }
-            data.update(self.metadata)
-            store.update(data, key="uuid")
+        data = {
+            "output": jsanitize(response.output, strict=True),
+            "uuid": str(self.uuid),
+            "completed_at": datetime.now().isoformat(),
+            "previous_uuids": [str(uuid) for uuid in self.previous_uuids],
+        }
+        data.update(self.metadata)
 
+        if response.restart is not None:
+            # generate a new uuid to the current job under
+            new_uuid = uuid4()
+            response.restart = prepare_restart(response.restart, self, new_uuid)
+            data["original_uuid"] = str(self.uuid)
+            data["uuid"] = new_uuid
+
+        store.update(data, key="uuid")
+
+        CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid})")
         return response
 
@@ -452,17 +461,12 @@ class Response:
     """
 
     output: Optional[Any] = None
-    detour: Optional[Union[activities.Activity, Job]] = None
-    restart: Optional[Union[activities.Activity, Job]] = None
+    restart: Optional[Union[activities.Activity, Job, List[Job]]] = None
+    detour: Optional[Union[activities.Activity, Job, List[Job]]] = None
+    addition: Optional[Union[activities.Activity, Job, List[Job]]] = None
     store: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
     stop_activities: bool = False
-
-    def __post_init__(self):
-        if self.output is not None and self.detour is not None:
-            raise ValueError(
-                "output and detour cannot not be specified at the same time."
-            )
 
     @classmethod
     def from_job_returns(
@@ -513,7 +517,7 @@ class Response:
         if job_returns is None:
             return Response()
 
-        if isinstance(job_returns, Iterable):
+        if isinstance(job_returns, (list, tuple)):
             # check that a Response object is not given as one of many outputs
             for r in job_returns:
                 if isinstance(r, Response):
@@ -531,3 +535,27 @@ class Response:
 @job
 def store_output(outputs: Any):
     return outputs
+
+
+def prepare_restart(
+    restart: Union[activities.Activity, Job, List[Job]],
+    current_job: Job,
+    new_uuid: UUID,
+):
+    from activities.core.activity import Activity
+
+    # restarts inherit the metadata and output schema of the current job
+    # unless they are already set
+    if isinstance(restart, (list, tuple)):
+        restart = Activity(name=restart[0].name, jobs=restart)
+
+    restart.set_uuid(current_job.uuid)
+
+    if restart.output_schema is not None:
+        restart.output_schema = current_job.output_schema
+
+    metadata = deepcopy(current_job.metadata)
+    metadata.update(restart.metadata)
+    restart.metadata = metadata
+    restart.previous_uuids.append(new_uuid)
+    return restart
