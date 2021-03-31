@@ -9,7 +9,7 @@ def fibonacci(smaller: int, larger: int, stop_point: int = 1000):
         return total
 
     new_job = fibonacci(larger, total, stop_point=stop_point)
-    return Response(output=total, restart=new_job)
+    return Response(output=total, addition=new_job)
 
 
 fibonacci_job = fibonacci(1, 1)
