@@ -1,6 +1,5 @@
-from enum import Enum
-
 import logging
+from enum import Enum
 from typing import Any, Dict, Hashable, List, Tuple, Union
 
 

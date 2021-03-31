@@ -1,4 +1,4 @@
-from activities import job, Activity, JobOrder
+from activities import Activity, JobOrder, job
 
 
 @job

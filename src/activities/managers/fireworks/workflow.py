@@ -3,20 +3,21 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Union, List, Optional, Dict, Sequence
+    from typing import Dict, List, Optional, Sequence, Union
     from uuid import UUID
 
+    from fireworks.core.firework import Firework, Workflow
     from maggma.core import Store
-    from fireworks.core.firework import Workflow, Firework
 
     import activities
 
 
 def activity_to_workflow(
     activity: Union[activities.Activity, activities.Job, List[activities.Job]],
-    store: Store
+    store: Store,
 ) -> Workflow:
     from fireworks.core.firework import Workflow
+
     from activities.core.activity import Activity
 
     parent_mapping = {}
@@ -39,9 +40,10 @@ def job_to_firework(
     parents: Optional[Sequence[UUID]] = None,
     parent_mapping: Optional[Dict[UUID, Firework]] = None,
 ):
-    from activities.managers.fireworks.firetask import JobFiretask
     from fireworks.core.firework import Firework
+
     from activities.core.config import ReferenceFallback
+    from activities.managers.fireworks.firetask import JobFiretask
 
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
@@ -50,19 +52,16 @@ def job_to_firework(
 
     job_parents = None
     if parents is not None:
-        job_parents = [parent_mapping[parent] for parent in parents] if parents else None
+        job_parents = (
+            [parent_mapping[parent] for parent in parents] if parents else None
+        )
 
     spec = {"_add_launchpad_and_fw_id": True}  # this allows the job to know the fw_id
     if job.config.on_missing_references != ReferenceFallback.ERROR:
         spec["_allow_fizzled_parents"] = True
     spec.update(job.config.manager_config)
 
-    fw = Firework(
-        tasks=[job_firetask],
-        name=job.name,
-        parents=job_parents,
-        spec=spec
-    )
+    fw = Firework(tasks=[job_firetask], name=job.name, parents=job_parents, spec=spec)
 
     if parent_mapping is not None:
         parent_mapping[job.uuid] = fw

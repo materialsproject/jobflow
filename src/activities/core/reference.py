@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-
 import typing
 from dataclasses import dataclass
 
+from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
+
 from activities.core.config import ReferenceFallback
-from monty.json import MontyDecoder, MSONable, jsanitize, MontyEncoder
 
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Optional, Sequence, Tuple, Type
@@ -37,7 +37,9 @@ class Reference(MSONable):
             cache = {}
 
         if store and self.uuid not in cache:
-            output = store.query_one({"uuid": str(self.uuid)}, ["output"], {"index": -1})
+            output = store.query_one(
+                {"uuid": str(self.uuid)}, ["output"], {"index": -1}
+            )
             if output is not None:
                 cache[self.uuid] = output["output"]
 
@@ -131,9 +133,7 @@ def resolve_references(
     cache = {}
 
     for uuid, ref_group in groupby(references, key=lambda x: x.uuid):
-        output = store.query_one(
-            {"uuid": str(uuid)}, ["output"], {"index": -1}
-        )
+        output = store.query_one({"uuid": str(uuid)}, ["output"], {"index": -1})
         if output is not None:
             cache[uuid] = output["output"]
 

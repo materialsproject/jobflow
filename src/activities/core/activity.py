@@ -1,11 +1,10 @@
 """Define base Activity object."""
 from __future__ import annotations
 
-from enum import Enum
-
 import logging
 import typing
 from dataclasses import dataclass, field
+from enum import Enum
 from uuid import uuid4
 
 from monty.json import MSONable
@@ -133,7 +132,9 @@ class Activity(HasInputOutput, MSONable):
     """
 
     name: str = "Activity"
-    jobs: Union[Sequence[Union[Activity, activities.Job]], activities.Job] = field(default_factory=list)
+    jobs: Union[Sequence[Union[Activity, activities.Job]], activities.Job] = field(
+        default_factory=list
+    )
     output_source: Optional[Any] = field(default=None)
     output_schema: Optional[Type[BaseModel]] = None
     uuid: UUID = field(default_factory=uuid4)
@@ -210,7 +211,7 @@ class Activity(HasInputOutput, MSONable):
         return graph
 
     def iteractivity(
-        self
+        self,
     ) -> Generator[Tuple["activities.Job", Sequence[UUID]], None, None]:
         from activities.core.graph import itergraph
 
@@ -243,5 +244,3 @@ class Activity(HasInputOutput, MSONable):
         store_output_job.config = self.to_store_job_config
 
         return store_output_job
-
-

@@ -1,21 +1,20 @@
 """This module defines functions and classes for representing Job objects."""
 from __future__ import annotations
 
-from copy import deepcopy
-
 import logging
 import typing
+from copy import deepcopy
 from dataclasses import dataclass, field
 from uuid import uuid4
 
 from monty.json import MSONable, jsanitize
 
 from activities.core.base import HasInputOutput
-from activities.core.reference import Reference
 from activities.core.config import JobConfig, ReferenceFallback
+from activities.core.reference import Reference
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union, List
+    from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
     from uuid import UUID
 
     from maggma.core import Store
@@ -341,8 +340,9 @@ class Job(HasInputOutput, MSONable):
         Response, .Reference
         """
         from datetime import datetime
-        from activities import CURRENT_JOB
         from importlib import import_module
+
+        from activities import CURRENT_JOB
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -373,7 +373,7 @@ class Job(HasInputOutput, MSONable):
             "index": self.index,
             "output": jsanitize(response.output, strict=True),
             "completed_at": datetime.now().isoformat(),
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
         store.update(data, key=["uuid", "index"])
 
@@ -535,9 +535,7 @@ def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
         return output
 
     if output is None:
-        raise ValueError(
-            f"Expected output of type {schema.__name__} but got no output"
-        )
+        raise ValueError(f"Expected output of type {schema.__name__} but got no output")
 
     if not isinstance(output, Dict):
         raise ValueError(

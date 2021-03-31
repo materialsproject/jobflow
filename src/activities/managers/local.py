@@ -55,8 +55,8 @@ def run_locally(
             return
 
         if (
-            len(set(parents).intersection(fizzled)) > 0 and
-            job.config.on_missing_references == ReferenceFallback.ERROR
+            len(set(parents).intersection(fizzled)) > 0
+            and job.config.on_missing_references == ReferenceFallback.ERROR
         ):
             fizzled.add(job.uuid)
             return
@@ -65,6 +65,7 @@ def run_locally(
             response = job.run(store=store)
         except Exception:
             import traceback
+
             logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
             fizzled.add(job.uuid)
             return
