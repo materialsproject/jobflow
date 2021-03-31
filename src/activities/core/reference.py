@@ -4,6 +4,7 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass
 
+from activities.core.config import ReferenceFallback
 from monty.json import MontyDecoder, MSONable, jsanitize, MontyEncoder
 
 if typing.TYPE_CHECKING:
@@ -25,11 +26,11 @@ class Reference(MSONable):
         self,
         store: Optional[Store] = None,
         cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
-        error_on_missing: bool = True,
+        on_missing: ReferenceFallback = ReferenceFallback.ERROR,
     ):
         # when resolving multiple references simultaneously it is more efficient
         # to use resolve_references as it will minimize the number of database requests
-        if store is None and cache is None and error_on_missing:
+        if store is None and cache is None and on_missing == ReferenceFallback.ERROR:
             raise ValueError("At least one of store and cache must be set.")
 
         if cache is None:
@@ -40,7 +41,7 @@ class Reference(MSONable):
             if output is not None:
                 cache[self.uuid] = output["output"]
 
-        if error_on_missing and self.uuid not in cache:
+        if on_missing == ReferenceFallback.ERROR and self.uuid not in cache:
             raise ValueError(
                 f"Could not resolve reference - {self.uuid} not in store or cache"
             )
@@ -48,9 +49,12 @@ class Reference(MSONable):
         try:
             data = cache[self.uuid]
         except KeyError:
-            # if we get to here, that means the reference cannot be resolved but
-            # error_on_missing is False
-            return self
+            # if we get to here, that means the reference cannot be resolved
+            if on_missing == ReferenceFallback.NONE:
+                return None
+            else:
+                # only other option is ReferenceFallback.PASS
+                return self
 
         for attribute in self.attributes:
             data = getattr(data, attribute)
@@ -119,7 +123,7 @@ class Reference(MSONable):
 def resolve_references(
     references: Sequence[Reference],
     store: Store,
-    error_on_missing: bool = True,
+    on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Dict[Reference, Any]:
     from itertools import groupby
 
@@ -134,9 +138,7 @@ def resolve_references(
             cache[uuid] = output["output"]
 
         for ref in ref_group:
-            resolved_references[ref] = ref.resolve(
-                cache=cache, error_on_missing=error_on_missing
-            )
+            resolved_references[ref] = ref.resolve(cache=cache, on_missing=on_missing)
 
     return resolved_references
 
@@ -168,7 +170,7 @@ def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
 def find_and_resolve_references(
     arg: Any,
     store: Store,
-    error_on_missing: bool = True,
+    on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Any:
     from pydash import get, set_
 
@@ -176,7 +178,7 @@ def find_and_resolve_references(
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
-        return arg.resolve(store=store, error_on_missing=error_on_missing)
+        return arg.resolve(store=store, on_missing=on_missing)
 
     elif isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
@@ -196,7 +198,7 @@ def find_and_resolve_references(
     resolved_references = resolve_references(
         references,
         store,
-        error_on_missing=error_on_missing,
+        on_missing=on_missing,
     )
 
     # replace the references in the arg dict

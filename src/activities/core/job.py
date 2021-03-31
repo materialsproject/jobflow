@@ -12,6 +12,7 @@ from monty.json import MSONable, jsanitize
 
 from activities.core.base import HasInputOutput
 from activities.core.reference import Reference
+from activities.core.config import JobConfig, ReferenceFallback
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Type, Union, List
@@ -255,8 +256,9 @@ class Job(HasInputOutput, MSONable):
     uuid: UUID = field(default_factory=uuid4)
     index: int = 1
     name: Optional[str] = None
-    output: Reference = field(init=False)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    config: JobConfig = field(default_factory=JobConfig)
+    output: Reference = field(init=False)
 
     def __post_init__(self):
         self.output = Reference(self.uuid, schema=self.output_schema)
@@ -386,7 +388,7 @@ class Job(HasInputOutput, MSONable):
     def resolve_args(
         self,
         store: Store,
-        error_on_missing: bool = True,
+        on_missing: ReferenceFallback = ReferenceFallback.ERROR,
         inplace: bool = True,
     ) -> "Job":
         """
@@ -398,7 +400,9 @@ class Job(HasInputOutput, MSONable):
         ----------
         store
             A maggma store to use for resolving references.
-        error_on_missing
+        on_missing
+            What to do if the reference cannot be resolved. See the docstring
+            for :obj:`.Reference.resolve` for the available options.
             Whether to raise an error if a reference cannot be resolved.
         inplace
             Update the arguments of the current job or return a new job object.
@@ -415,12 +419,12 @@ class Job(HasInputOutput, MSONable):
         resolved_args = find_and_resolve_references(
             self.function_args,
             store=store,
-            error_on_missing=error_on_missing,
+            on_missing=on_missing,
         )
         resolved_kwargs = find_and_resolve_references(
             self.function_kwargs,
             store=store,
-            error_on_missing=error_on_missing,
+            on_missing=on_missing,
         )
         resolved_args = tuple(resolved_args)
 

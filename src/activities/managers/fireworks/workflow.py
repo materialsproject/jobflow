@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import typing
 
-from activities import Job
-
 if typing.TYPE_CHECKING:
     from typing import Union, List, Optional, Dict, Sequence
     from uuid import UUID
@@ -21,15 +19,12 @@ def activity_to_workflow(
     from fireworks.core.firework import Workflow
     from activities.core.activity import Activity
 
-    # TODO: handle activity config and metadata
-
     parent_mapping = {}
     fireworks = []
 
     if not isinstance(activity, Activity):
         # a list of jobs has been provided; make dummy activity to contain them
         activity = Activity(jobs=activity)
-        print(activity)
 
     for job, parents in activity.iteractivity():
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
@@ -46,19 +41,30 @@ def job_to_firework(
 ):
     from activities.managers.fireworks.firetask import JobFiretask
     from fireworks.core.firework import Firework
+    from activities.core.config import ReferenceFallback
 
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
 
     job_firetask = JobFiretask(job=job, store=store)
-    print("FIRETASK",job_firetask.as_dict())
 
+    job_parents = None
     if parents is not None:
         job_parents = [parent_mapping[parent] for parent in parents] if parents else None
-        fw = Firework(tasks=[job_firetask], parents=job_parents, name=job.name)
+
+    spec = {"_add_launchpad_and_fw_id": True}  # this allows the job to know the fw_id
+    if job.config.on_missing_references != ReferenceFallback.ERROR:
+        spec["_allow_fizzled_parents"] = True
+    spec.update(job.config.manager_config)
+
+    fw = Firework(
+        tasks=[job_firetask],
+        name=job.name,
+        parents=job_parents,
+        spec=spec
+    )
+
+    if parent_mapping is not None:
         parent_mapping[job.uuid] = fw
-    else:
-        fw = Firework(tasks=[job_firetask], name=job.name)
-        print("FW", fw.as_dict())
 
     return fw

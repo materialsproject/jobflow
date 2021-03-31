@@ -1,5 +1,22 @@
+from enum import Enum
+
 import logging
 from typing import Any, Dict, Hashable, List, Tuple, Union
+
+
+class ValueEnum(Enum):
+    """
+    Enum that serializes to string as the value and can be compared against a string.
+    """
+
+    def __str__(self):
+        return str(self.value)
+
+    def __eq__(self, other):
+        if type(self) == type(other) and self.value == other.value:
+            return True
+        else:
+            return str(self.value) == str(other)
 
 
 def find_key_value(

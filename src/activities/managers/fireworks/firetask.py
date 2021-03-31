@@ -10,11 +10,14 @@ class JobFiretask(FiretaskBase):
     def run_task(self, fw_spec):
         from activities.core.job import Job
         from activities.core.util import initialize_logger
-        from activities.managers.fireworks.workflow import activity_to_workflow, job_to_firework
+        from activities.managers.fireworks.workflow import activity_to_workflow
 
         job: Job = self.get("job")
         store = self.get("store")
         store.connect()
+
+        if "fw_id" in fw_spec:
+            job.metadata.update({"fw_id": fw_spec["fw_id"]})
 
         initialize_logger()
         response = job.run(store=store)

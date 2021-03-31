@@ -1,6 +1,8 @@
 """Define base Activity object."""
 from __future__ import annotations
 
+from enum import Enum
+
 import logging
 import typing
 from dataclasses import dataclass, field
@@ -9,6 +11,7 @@ from uuid import uuid4
 from monty.json import MSONable
 
 from activities.core.base import HasInputOutput
+from activities.core.config import JobConfig, JobOrder
 
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union
@@ -133,17 +136,19 @@ class Activity(HasInputOutput, MSONable):
     jobs: Union[Sequence[Union[Activity, activities.Job]], activities.Job] = field(default_factory=list)
     output_source: Optional[Any] = field(default=None)
     output_schema: Optional[Type[BaseModel]] = None
-    config: Dict = field(default_factory=dict)
     uuid: UUID = field(default_factory=uuid4)
     index: int = 1
     metadata: Dict[str, Any] = field(default_factory=dict)
+    to_store_job_config: JobConfig = field(default_factory=JobConfig)
+    job_order: JobOrder = JobOrder.AUTO
     output: activities.Reference = field(init=False)
 
     def __post_init__(self):
         from activities import Job
         from activities.core.reference import Reference
 
-        self.output = Reference(self.uuid, schema=self.output_schema)
+        if self.output_source is not None:
+            self.output = Reference(self.uuid, schema=self.output_schema)
 
         if isinstance(self.jobs, Job):
             self.jobs = [self.jobs]
@@ -182,7 +187,7 @@ class Activity(HasInputOutput, MSONable):
                 properties = properties if len(properties) > 0 else ""
                 edges.append((uuid, self.uuid, {"properties": properties}))
 
-            store_output_job = self.to_job()
+            store_output_job = self.to_store_job
             graph = nx.DiGraph()
             graph.add_node(
                 self.uuid,
@@ -216,7 +221,8 @@ class Activity(HasInputOutput, MSONable):
 
         return draw_graph(self.graph)
 
-    def to_job(self):
+    @property
+    def to_store_job(self):
         from activities.core.job import store_output
 
         store_output_job = store_output(self.output_source)
@@ -226,6 +232,8 @@ class Activity(HasInputOutput, MSONable):
         store_output_job.metadata.update(self.metadata)
         store_output_job.index = self.index
         store_output_job.output_schema = self.output_schema
+        store_output_job.config = self.to_store_job_config
+
         return store_output_job
 
 
