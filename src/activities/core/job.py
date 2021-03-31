@@ -373,7 +373,9 @@ class Job(HasInputOutput, MSONable):
         if response.restart is not None:
             # generate a new uuid to the current job under
             new_uuid = uuid4()
+            logger.info(f"Remapping {self.uuid} -> {new_uuid}")
             response.restart = prepare_restart(response.restart, self, new_uuid)
+            self.set_uuid(new_uuid)
             data["original_uuid"] = str(self.uuid)
             data["uuid"] = new_uuid
 
@@ -557,5 +559,6 @@ def prepare_restart(
     metadata = deepcopy(current_job.metadata)
     metadata.update(restart.metadata)
     restart.metadata = metadata
+    restart.previous_uuids.extend(current_job.previous_uuids)
     restart.previous_uuids.append(new_uuid)
     return restart

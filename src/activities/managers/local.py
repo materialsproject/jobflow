@@ -46,6 +46,7 @@ def run_locally(
             return True
 
         response = job.run(store=store)
+        responses[job.uuid] = response
 
         if response.stop_children:
             stopped_parents.add(job.uuid)
@@ -54,19 +55,19 @@ def run_locally(
             return False
 
         if response.restart is not None:
-            return _run_iter(response.restart)
+            if isinstance(response.restart, Job):
+                return _run_job(response.restart, [])
+            else:
+                return _run_iter(response.restart)
 
         return response
 
     def _run_iter(root_activity):
         job: activities.Job
-        response = None
         for job, parents in root_activity.iteractivity():
             response = _run_job(job, parents)
             if response is False:
                 return
-            responses[job.uuid] = response
-        return response
 
     logger.info(f"Started executing activities locally")
     _run_iter(activity)
