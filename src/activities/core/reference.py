@@ -58,6 +58,9 @@ class Reference(MSONable):
                 # only other option is ReferenceFallback.PASS
                 return self
 
+        # resolve nested references
+        data = find_and_resolve_references(data, store, on_missing=on_missing)
+
         for attribute in self.attributes:
             data = getattr(data, attribute)
 
@@ -138,7 +141,9 @@ def resolve_references(
             cache[uuid] = output["output"]
 
         for ref in ref_group:
-            resolved_references[ref] = ref.resolve(cache=cache, on_missing=on_missing)
+            resolved_references[ref] = ref.resolve(
+                store=store, cache=cache, on_missing=on_missing
+            )
 
     return resolved_references
 

@@ -4,12 +4,10 @@ from __future__ import annotations
 import logging
 import typing
 from dataclasses import dataclass, field
-from uuid import uuid4
 
 from monty.json import MSONable
 
-from activities.core.base import HasInputOutput
-from activities.core.config import JobConfig, JobOrder
+from activities.core.config import JobOrder
 
 if typing.TYPE_CHECKING:
     from typing import (
@@ -17,8 +15,8 @@ if typing.TYPE_CHECKING:
         Callable,
         Dict,
         Generator,
+        List,
         Optional,
-        Sequence,
         Tuple,
         Type,
         Union,
@@ -26,7 +24,6 @@ if typing.TYPE_CHECKING:
     from uuid import UUID
 
     from networkx import DiGraph
-    from pydantic.main import BaseModel
 
     import activities
 
@@ -35,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Activity(HasInputOutput, MSONable):
+class Activity(MSONable):
     """
     An Activity contains a sequence of Tasks or other Activities to execute.
 
@@ -140,76 +137,23 @@ class Activity(HasInputOutput, MSONable):
     AttributeError: 'Number' object has no attribute 'bad_output'
     """
 
-    name: str = "Activity"
-    jobs: Union[Sequence[Union[Activity, activities.Job]], activities.Job] = field(
+    jobs: Union[List[Union[Activity, activities.Job]], activities.Job] = field(
         default_factory=list
     )
-    output_source: Optional[Any] = field(default=None)
-    output_schema: Optional[Type[BaseModel]] = None
-    uuid: UUID = field(default_factory=uuid4)
-    index: int = 1
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    to_store_job_config: JobConfig = field(default_factory=JobConfig)
+    output: Optional[Any] = None
     order: JobOrder = JobOrder.AUTO
-    output: activities.Reference = field(init=False)
 
     def __post_init__(self):
         from activities import Job
-        from activities.core.reference import Reference
-
-        if self.output_source is not None:
-            self.output = Reference(self.uuid, schema=self.output_schema)
 
         if isinstance(self.jobs, Job):
             self.jobs = [self.jobs]
 
     @property
-    def input_references(self) -> Tuple[activities.Reference, ...]:
-        references = set()
-        task_uuids = set()
-        for job in self.jobs:
-            references.update(job.input_references)
-            task_uuids.add(job.uuid)
-
-        return tuple([ref for ref in references if ref.uuid not in task_uuids])
-
-    @property
-    def output_references(self) -> Tuple[activities.Reference, ...]:
-        from activities.core.reference import find_and_get_references
-
-        if self.output_source is None:
-            return tuple()
-        return find_and_get_references(self.output_source)
-
-    @property
     def graph(self) -> DiGraph:
         import networkx as nx
 
-        graph = []
-        if self.output_source is not None:
-            # only create input-output graph for this activity if it has outputs
-
-            edges = []
-            for uuid, refs in self.output_references_grouped.items():
-                properties = [
-                    ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
-                ]
-                properties = properties if len(properties) > 0 else ""
-                edges.append((uuid, self.uuid, {"properties": properties}))
-
-            store_output_job = self.to_store_job
-            graph = nx.DiGraph()
-            graph.add_node(
-                self.uuid,
-                object=store_output_job,
-                type="activity",
-                label=store_output_job.name,
-            )
-            graph.add_edges_from(edges)
-            graph = [graph]
-
-        job_graphs = [job.graph for job in self.jobs]
-        graph = nx.compose_all(job_graphs + graph)
+        graph = nx.compose_all([job.graph for job in self.jobs])
 
         if self.order == JobOrder.LINEAR:
             # add fake edges between jobs to force linear order
@@ -221,38 +165,19 @@ class Activity(HasInputOutput, MSONable):
 
     def iteractivity(
         self,
-    ) -> Generator[Tuple["activities.Job", Sequence[UUID]], None, None]:
+    ) -> Generator[Tuple["activities.Job", List[UUID]], None, None]:
         from activities.core.graph import itergraph
 
         graph = self.graph
         for node in itergraph(graph):
             parents = [u for u, v in graph.in_edges(node)]
-            activity = graph.nodes[node]["object"]
-            yield activity, parents
-
-    def set_uuid(self, uuid: UUID):
-        self.uuid = uuid
-        self.output = self.output.set_uuid(uuid)
+            job = graph.nodes[node]["job"]
+            yield job, parents
 
     def draw_graph(self):
         from activities.core.graph import draw_graph
 
         return draw_graph(self.graph)
-
-    @property
-    def to_store_job(self):
-        from activities.core.job import store_output
-
-        store_output_job = store_output(self.output_source)
-        store_output_job.name = self.name + " to store"
-        store_output_job.uuid = self.uuid
-        store_output_job.metadata["jobs"] = [j.uuid for j in self.jobs]
-        store_output_job.metadata.update(self.metadata)
-        store_output_job.index = self.index
-        store_output_job.output_schema = self.output_schema
-        store_output_job.config = self.to_store_job_config
-
-        return store_output_job
 
     def update_kwargs(
         self,
@@ -266,7 +191,7 @@ class Activity(HasInputOutput, MSONable):
                 update,
                 name_filter=name_filter,
                 function_filter=function_filter,
-                dict_mod=dict_mod
+                dict_mod=dict_mod,
             )
 
     def update_maker_kwargs(
@@ -283,5 +208,5 @@ class Activity(HasInputOutput, MSONable):
                 name_filter=name_filter,
                 class_filter=class_filter,
                 nested=nested,
-                dict_mod=dict_mod
+                dict_mod=dict_mod,
             )

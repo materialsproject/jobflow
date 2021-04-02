@@ -17,5 +17,7 @@ class ReferenceFallback(ValueEnum):
 @dataclass
 class JobConfig:
 
+    resolve_references: bool = True
     on_missing_references: ReferenceFallback = ReferenceFallback.ERROR
     manager_config: dict = field(default_factory=dict)
+    expose_store: bool = False

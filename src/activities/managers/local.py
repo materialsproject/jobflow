@@ -109,7 +109,7 @@ def run_locally(
                 if response is False:
                     return False
 
-    logger.info(f"Started executing activities locally")
+    logger.info(f"Started executing jobs locally")
     _run(activity)
-    logger.info(f"Finished executing activities locally")
+    logger.info(f"Finished executing jobs locally")
     return responses

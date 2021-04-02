@@ -3,13 +3,11 @@ from __future__ import annotations
 
 import logging
 import typing
-from copy import deepcopy
 from dataclasses import dataclass, field
 from uuid import uuid4
 
 from monty.json import MSONable, jsanitize
 
-from activities.core.base import HasInputOutput
 from activities.core.config import JobConfig, ReferenceFallback
 from activities.core.reference import Reference
 
@@ -27,10 +25,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["job", "Job", "Response", "store_output"]
 
 
-def job(
-    method: Optional[Callable] = None,
-    **job_kwargs
-):
+def job(method: Optional[Callable] = None, **job_kwargs):
     """
     Wraps a function to produce a :obj:`Job`.
 
@@ -149,6 +144,7 @@ def job(
         @wraps(func)
         def get_task(*args, **kwargs) -> Job:
             from activities.core.maker import Maker
+
             if len(args) > 0 and isinstance(args[0], Maker):
                 # this is a maker function
                 func_source = args[0]
@@ -161,7 +157,7 @@ def job(
                 function_name=func.__name__,
                 function_args=args,
                 function_kwargs=kwargs,
-                **job_kwargs
+                **job_kwargs,
             )
 
         return get_task
@@ -176,7 +172,7 @@ def job(
 
 
 @dataclass
-class Job(HasInputOutput, MSONable):
+class Job(MSONable):
     """
     A :obj:`Job` is a delayed function call that can be used in an :obj:`.Activity`.
 
@@ -276,6 +272,7 @@ class Job(HasInputOutput, MSONable):
     @property
     def is_maker_job(self):
         from activities.core.maker import Maker
+
         return isinstance(self.function_source, Maker)
 
     @property
@@ -321,7 +318,7 @@ class Job(HasInputOutput, MSONable):
             edges.append((uuid, self.uuid, {"properties": properties}))
 
         graph = DiGraph()
-        graph.add_node(self.uuid, object=self, type="job", label=self.name)
+        graph.add_node(self.uuid, job=self, label=self.name)
         graph.add_edges_from(edges)
         return graph
 
@@ -353,23 +350,28 @@ class Job(HasInputOutput, MSONable):
         --------
         Response, .Reference
         """
-        from datetime import datetime
         import inspect
+        from datetime import datetime
         from importlib import import_module
 
         from activities import CURRENT_JOB
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
-        CURRENT_JOB.uuid = self.uuid
-        CURRENT_JOB.store = store
+        CURRENT_JOB.job = self
 
-        self.resolve_args(store=store)
+        if self.config.expose_store:
+            CURRENT_JOB.store = store
+
+        if self.config.resolve_references:
+            self.resolve_args(store=store)
 
         if self.is_maker_job:
             function = getattr(self.function_source, self.function_name)
             function = inspect.unwrap(function)
-            response: Response = function(self.function_source, *self.function_args, **self.function_kwargs)
+            response: Response = function(
+                self.function_source, *self.function_args, **self.function_kwargs
+            )
 
         else:
             module = import_module(self.function_source)
@@ -476,7 +478,10 @@ class Job(HasInputOutput, MSONable):
         if name_filter is not None and name_filter not in self.name:
             return
 
-        if function_filter is not None and function_filter != (self.function_source, self.function_name):
+        if function_filter is not None and function_filter != (
+            self.function_source,
+            self.function_name,
+        ):
             return
 
         # if we get to here then we pass all the filters
@@ -499,8 +504,37 @@ class Job(HasInputOutput, MSONable):
                 name_filter=name_filter,
                 class_filter=class_filter,
                 nested=nested,
-                dict_mod=dict_mod
+                dict_mod=dict_mod,
             )
+
+    @property
+    def input_uuids(self) -> Tuple[UUID, ...]:
+        return tuple([ref.uuid for ref in self.input_references])
+
+    @property
+    def input_references_grouped(self) -> Dict[UUID, Tuple[Reference, ...]]:
+        from collections import defaultdict
+
+        groups = defaultdict(set)
+        for ref in self.input_references:
+            groups[ref.uuid].add(ref)
+
+        return {k: tuple(v) for k, v in groups.items()}
+
+    @property
+    def output_uuids(self) -> Tuple[UUID, ...]:
+        return tuple([ref.uuid for ref in self.output_references])
+
+    @property
+    def output_references_grouped(self) -> Dict[UUID, Tuple[Reference, ...]]:
+        from collections import defaultdict
+
+        groups = defaultdict(set)
+        for ref in self.output_references:
+            groups[ref.uuid].add(ref)
+
+        return {k: tuple(v) for k, v in groups.items()}
+
 
 @dataclass
 class Response:
@@ -609,7 +643,11 @@ def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
     return schema(**output)
 
 
-@job
+@job(
+    config=JobConfig(
+        resolve_references=False, on_missing_references=ReferenceFallback.NONE
+    )
+)
 def store_output(outputs: Any):
     return outputs
 
@@ -620,18 +658,31 @@ def prepare_restart(
 ):
     from activities.core.activity import Activity
 
-    # restarts inherit the metadata and output schema of the current job
-    # unless they are already set
     if isinstance(restart, (list, tuple)):
-        restart = Activity(name=restart[0].name, jobs=restart)
+        restart = Activity(jobs=restart)
 
-    restart.set_uuid(current_job.uuid)
+    if isinstance(restart, Activity) and restart.output is not None:
+        # add a job with same uuid as the current job to store the outputs of the
+        # activity; this job will inherit the metadata and output schema of the current
+        # job
+        store_output_job = store_output(restart.output)
+        store_output_job.config.manager_config = current_job.config.manager_config
+        store_output_job.set_uuid(current_job.uuid)
+        store_output_job.index = current_job.index + 1
+        store_output_job.metadata = current_job.metadata
+        store_output_job.output_schema = current_job.output_schema
+        restart.jobs.append(store_output_job)
 
-    if restart.output_schema is not None:
-        restart.output_schema = current_job.output_schema
+    else:
+        # restart is a single Job
+        restart.set_uuid(current_job.uuid)
+        restart.index = current_job.index + 1
 
-    metadata = deepcopy(current_job.metadata)
-    metadata.update(restart.metadata)
-    restart.metadata = metadata
-    restart.index = current_job.index + 1
+        metadata = restart.metadata
+        metadata.update(current_job.metadata)
+        restart.metadata = metadata
+
+        if not restart.output_schema:
+            restart.output_schema = current_job.output_schema
+
     return restart

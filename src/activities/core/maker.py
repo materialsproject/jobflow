@@ -4,7 +4,7 @@ import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from monty.json import MSONable, MontyDecoder
+from monty.json import MontyDecoder, MSONable
 
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Optional, Type, Union
@@ -28,9 +28,10 @@ class Maker(ABC, MSONable):
         nested: bool = True,
         dict_mod: bool = False,
     ):
+        from pydash import get, set_
+
         from activities.core.dict_mods import apply_mod
         from activities.core.util import find_key
-        from pydash import get, set_
 
         d = self.as_dict()
 
@@ -62,7 +63,7 @@ class Maker(ABC, MSONable):
                         name_filter=name_filter,
                         class_filter=class_filter,
                         nested=nested,
-                        dict_mod=dict_mod
+                        dict_mod=dict_mod,
                     )
 
                     # update the serialized maker with the new kwarg

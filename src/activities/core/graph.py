@@ -25,13 +25,11 @@ def draw_graph(graph: nx.DiGraph, path=None, layout_function=nx.spring_layout):
     plt.figure(figsize=(8, 8))
 
     nodes = graph.nodes()
-    node_types = nx.get_node_attributes(graph, "type")
-    colors = ["#5571AB" if node_types[n] == "activity" else "#B65555" for n in nodes]
     labels = nx.get_node_attributes(graph, "label")
 
     nx.draw_networkx_edges(graph, pos)
     nx.draw_networkx_nodes(
-        graph, pos, nodelist=nodes, node_color=colors, linewidths=1, edgecolors="k"
+        graph, pos, nodelist=nodes, node_color="#B65555", linewidths=1, edgecolors="k"
     )
     nx.draw_networkx_labels(graph, pos, labels=labels)
 

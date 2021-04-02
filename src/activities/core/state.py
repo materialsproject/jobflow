@@ -19,7 +19,7 @@ class State:
     store: Optional[Store] = None
 
     def reset(self):
-        self.uuid = None
+        self.job = None
         self.store = None
 
 
