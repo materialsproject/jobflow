@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import typing
 
+from monty.design_patterns import singleton
+
 if typing.TYPE_CHECKING:
     from typing import Optional
     from uuid import UUID
@@ -11,6 +13,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["CURRENT_JOB"]
 
 
+@singleton
 class State:
     uuid: Optional[UUID] = None
     store: Optional[Store] = None

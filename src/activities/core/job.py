@@ -29,8 +29,7 @@ __all__ = ["job", "Job", "Response", "store_output"]
 
 def job(
     method: Optional[Callable] = None,
-    output_schema: Optional[Type[BaseModel]] = None,
-    name: Optional[str] = None,
+    **job_kwargs
 ):
     """
     Wraps a function to produce a :obj:`Job`.
@@ -149,14 +148,20 @@ def job(
 
         @wraps(func)
         def get_task(*args, **kwargs) -> Job:
-            func_module = func.__module__
-            func_name = func.__name__
+            from activities.core.maker import Maker
+            if len(args) > 0 and isinstance(args[0], Maker):
+                # this is a maker function
+                func_source = args[0]
+                args = args[1:]
+            else:
+                func_source = func.__module__
+
             return Job(
-                function=(func_module, func_name),
-                output_schema=output_schema,
+                function_source=func_source,
+                function_name=func.__name__,
                 function_args=args,
                 function_kwargs=kwargs,
-                name=name,
+                **job_kwargs
             )
 
         return get_task
@@ -248,7 +253,8 @@ class Job(HasInputOutput, MSONable):
     job, Response, .Outputs
     """
 
-    function: Tuple[str, str]
+    function_source: Union[str, activities.Maker]
+    function_name: str
     function_args: Tuple[Any, ...] = field(default_factory=tuple)
     function_kwargs: Dict[str, Any] = field(default_factory=dict)
     output_schema: Optional[Type[BaseModel]] = None
@@ -262,7 +268,15 @@ class Job(HasInputOutput, MSONable):
     def __post_init__(self):
         self.output = Reference(self.uuid, schema=self.output_schema)
         if self.name is None:
-            self.name = self.function[1]
+            if self.is_maker_job:
+                self.name = self.function_source.name
+            else:
+                self.name = self.function_name
+
+    @property
+    def is_maker_job(self):
+        from activities.core.maker import Maker
+        return isinstance(self.function_source, Maker)
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
@@ -340,6 +354,7 @@ class Job(HasInputOutput, MSONable):
         Response, .Reference
         """
         from datetime import datetime
+        import inspect
         from importlib import import_module
 
         from activities import CURRENT_JOB
@@ -349,19 +364,22 @@ class Job(HasInputOutput, MSONable):
         CURRENT_JOB.uuid = self.uuid
         CURRENT_JOB.store = store
 
-        module = import_module(self.function[0])
-        function = getattr(module, self.function[1], None)
-
-        if function is None:
-            raise ValueError(f"Could not import {function} from {module}")
-
-        if hasattr(function, "__wrapped__"):
-            # strip the wrapper so we can call the actual function
-            function = function.__wrapped__
-
         self.resolve_args(store=store)
 
-        response: Response = function(*self.function_args, **self.function_kwargs)
+        if self.is_maker_job:
+            function = getattr(self.function_source, self.function_name)
+            function = inspect.unwrap(function)
+            response: Response = function(self.function_source, *self.function_args, **self.function_kwargs)
+
+        else:
+            module = import_module(self.function_source)
+            function = getattr(module, self.function_name, None)
+
+            if function is None:
+                raise ValueError(f"Could not import {self.function_name} from {module}")
+            function = inspect.unwrap(function)
+            response: Response = function(*self.function_args, **self.function_kwargs)
+
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
 
@@ -438,6 +456,51 @@ class Job(HasInputOutput, MSONable):
         new_job.function_kwargs = resolved_kwargs
         return new_job
 
+    def update_kwargs(
+        self,
+        update: Dict[str, Any],
+        name_filter: Optional[str] = None,
+        function_filter: Optional[Callable] = None,
+        dict_mod: bool = False,
+    ):
+        from types import BuiltinFunctionType, FunctionType, MethodType
+
+        from activities.core.dict_mods import apply_mod
+
+        if isinstance(function_filter, (FunctionType, BuiltinFunctionType, MethodType)):
+            function_filter = (function_filter.__module__, function_filter.__name__)
+
+        elif not isinstance(function_filter, (tuple, type(None))):
+            raise ValueError("Unrecognised type of function filter.")
+
+        if name_filter is not None and name_filter not in self.name:
+            return
+
+        if function_filter is not None and function_filter != (self.function_source, self.function_name):
+            return
+
+        # if we get to here then we pass all the filters
+        if dict_mod:
+            apply_mod(update, self.function_kwargs)
+        else:
+            self.function_kwargs.update(update)
+
+    def update_maker_kwargs(
+        self,
+        update: Dict[str, Any],
+        name_filter: Optional[str] = None,
+        class_filter: Optional[Type[activities.Maker]] = None,
+        nested: bool = True,
+        dict_mod: bool = False,
+    ):
+        if self.is_maker_job:
+            self.function_source = self.function_source.update_kwargs(
+                update,
+                name_filter=name_filter,
+                class_filter=class_filter,
+                nested=nested,
+                dict_mod=dict_mod
+            )
 
 @dataclass
 class Response:

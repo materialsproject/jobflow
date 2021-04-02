@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import typing
 from dataclasses import dataclass, field
-from enum import Enum
 from uuid import uuid4
 
 from monty.json import MSONable
@@ -13,7 +12,17 @@ from activities.core.base import HasInputOutput
 from activities.core.config import JobConfig, JobOrder
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type, Union
+    from typing import (
+        Any,
+        Callable,
+        Dict,
+        Generator,
+        Optional,
+        Sequence,
+        Tuple,
+        Type,
+        Union,
+    )
     from uuid import UUID
 
     from networkx import DiGraph
@@ -244,3 +253,35 @@ class Activity(HasInputOutput, MSONable):
         store_output_job.config = self.to_store_job_config
 
         return store_output_job
+
+    def update_kwargs(
+        self,
+        update: Dict[str, Any],
+        name_filter: Optional[str] = None,
+        function_filter: Optional[Callable] = None,
+        dict_mod: bool = False,
+    ):
+        for job in self.jobs:
+            job.update_kwargs(
+                update,
+                name_filter=name_filter,
+                function_filter=function_filter,
+                dict_mod=dict_mod
+            )
+
+    def update_maker_kwargs(
+        self,
+        update: Dict[str, Any],
+        name_filter: Optional[str] = None,
+        class_filter: Optional[Type[activities.Maker]] = None,
+        nested: bool = True,
+        dict_mod: bool = False,
+    ):
+        for job in self.jobs:
+            job.update_maker_kwargs(
+                update,
+                name_filter=name_filter,
+                class_filter=class_filter,
+                nested=nested,
+                dict_mod=dict_mod
+            )
