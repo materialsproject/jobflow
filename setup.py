@@ -26,10 +26,9 @@ setup(
     install_requires=[
         "monty",
         "pydash",
-        "numpy",
-        "fireworks",
         "networkx",
-        "maggma"
+        "maggma",
+        "pydantic"
     ],
     extras_require={
         "docs": [
@@ -39,7 +38,8 @@ setup(
             "sphinx-autodoc-typehints==1.11.1",
             "m2r2==0.2.5",
         ],
-        "test": ["pytest"]
+        "test": ["pytest"],
+        "fireworks": ["fireworks"]
     },
     classifiers=[
         "Programming Language :: Python :: 3",
