@@ -17,12 +17,11 @@ maker = AddMaker(c=10)
 
 add_first = maker.make(1, 2)
 add_second = maker.make(add_first.output, 5)
+act = Activity([add_first, add_second])
 
-my_activity = Activity(jobs=[add_first, add_second])
+act.update_maker_kwargs({"_inc": {"c": 50}}, dict_mod=True)
+act.update_kwargs({"d": 0.2})
 
-my_activity.update_maker_kwargs({"_inc": {"c": 50}}, dict_mod=True)
-my_activity.update_kwargs({"d": 0.2})
-
-# run the activity, "responses" contains the output of all jobs
-responses = run_locally(my_activity)
-print(responses)
+# run the activity, "output" contains the output of all jobs
+output = run_locally(act)
+print(output)

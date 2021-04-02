@@ -17,11 +17,11 @@ def decode_message(message: str):
 
 encode = encode_message("Lo, a shadow of horror is risen")
 decode = decode_message(encode.output)
-my_activity = Activity(jobs=[encode, decode])
+act = Activity([encode, decode])
 
 # draw the activity graph
-my_activity.draw_graph().show()
+act.draw_graph().show()
 
-# run the activity, "responses" contains the output of all jobs
-responses = run_locally(my_activity)
-print(responses)
+# run the activity, "output" contains the output of all jobs
+output = run_locally(act)
+print(output)

@@ -35,7 +35,7 @@ def start_timing_jobs(websites: List[str]):
         jobs.append(time_job)
 
     output = [j.output for j in jobs]
-    return Response(restart=Activity("timings", jobs, output))
+    return Response(restart=Activity(jobs, output))
 
 
 @job
@@ -53,7 +53,7 @@ sum_job = sum_times(timings_job.output)
 my_activity = Activity(jobs=[read_websites_job, timings_job, sum_job])
 
 # draw the activity graph
-my_activity.draw_graph().show()
+# my_activity.draw_graph().show()
 
 # run the activity, "responses" contains the output of all jobs
 responses = run_locally(my_activity)
