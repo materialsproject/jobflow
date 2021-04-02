@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from activities import Maker, job, Activity, run_locally
+from activities import Activity, Maker, job, run_locally
 
 
 @dataclass
