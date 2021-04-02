@@ -1,13 +1,14 @@
-from pydantic import BaseModel, create_model
 import typing
 
+from pydantic import BaseModel, create_model
 
-BaseModelT = typing.TypeVar('BaseModelT', bound=BaseModel)
+BaseModelT = typing.TypeVar("BaseModelT", bound=BaseModel)
 
 
 def allow_references(model: typing.Type[BaseModelT]) -> typing.Type[BaseModelT]:
-    from activities.core.reference import Reference
     from copy import deepcopy
+
+    from activities.core.reference import Reference
 
     field_definitions = {}
     for name, field in model.__fields__.items():
@@ -19,7 +20,6 @@ def allow_references(model: typing.Type[BaseModelT]) -> typing.Type[BaseModelT]:
 
 
 class Schema(BaseModel):
-
     def __new__(cls, **kwargs):
         return allow_references(cls)(**kwargs)
 

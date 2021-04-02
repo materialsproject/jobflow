@@ -8,8 +8,8 @@ from uuid import uuid4
 
 from monty.json import MSONable, jsanitize
 
-from activities.core.config import JobConfig, ReferenceFallback
 from activities.core.reference import Reference
+from activities.core.util import ValueEnum
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
@@ -22,7 +22,22 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["job", "Job", "Response", "store_output"]
+__all__ = ["job", "Job", "Response", "store_output", "ReferenceFallback", "JobConfig"]
+
+
+class ReferenceFallback(ValueEnum):
+    ERROR = "error"
+    NONE = "none"
+    PASS = "pass"
+
+
+@dataclass
+class JobConfig:
+
+    resolve_references: bool = True
+    on_missing_references: ReferenceFallback = ReferenceFallback.ERROR
+    manager_config: dict = field(default_factory=dict)
+    expose_store: bool = False
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):

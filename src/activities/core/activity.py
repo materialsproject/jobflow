@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from monty.json import MSONable
 
-from activities.core.config import JobOrder
+from activities.core.util import ValueEnum
 
 if typing.TYPE_CHECKING:
     from typing import (
@@ -29,6 +29,11 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class JobOrder(ValueEnum):
+    AUTO = "auto"
+    LINEAR = "linear"
 
 
 @dataclass
