@@ -50,11 +50,11 @@ def sum_times(times: List[float]):
 read_websites_job = read_websites()
 timings_job = start_timing_jobs(read_websites_job.output)
 sum_job = sum_times(timings_job.output)
-my_activity = Activity(jobs=[read_websites_job, timings_job, sum_job])
+act = Activity([read_websites_job, timings_job, sum_job])
 
 # draw the activity graph
-# my_activity.draw_graph().show()
+act.draw_graph().show()
 
 # run the activity, "responses" contains the output of all jobs
-responses = run_locally(my_activity)
+responses = run_locally(act)
 print(responses)
