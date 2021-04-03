@@ -23,13 +23,7 @@ setup(
     package_data={"activities": ["py.typed"]},
     zip_safe=False,
     include_package_data=True,
-    install_requires=[
-        "monty",
-        "pydash",
-        "networkx",
-        "maggma",
-        "pydantic"
-    ],
+    install_requires=["monty", "pydash", "networkx", "maggma", "pydantic"],
     extras_require={
         "docs": [
             "sphinx==3.2.1",
@@ -39,7 +33,7 @@ setup(
             "m2r2==0.2.5",
         ],
         "test": ["pytest"],
-        "fireworks": ["fireworks"]
+        "fireworks": ["fireworks"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

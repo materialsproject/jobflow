@@ -14,8 +14,8 @@
 #
 import os
 import sys
-
 import typing
+
 typing.TYPE_CHECKING = True
 
 from activities import __version__
@@ -62,7 +62,7 @@ extensions = [
 # properly resolve types
 set_type_checking_flag = True
 add_module_names = False
-autodoc_member_order = 'bysource'
+autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -111,7 +111,7 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
 html_css_files = ["custom.css"]
-html_favicon = '_static/favicon.ico'
+html_favicon = "_static/favicon.ico"
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

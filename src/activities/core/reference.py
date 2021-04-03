@@ -1,22 +1,18 @@
 from __future__ import annotations
 
 import typing
+from typing import Any, Dict, Optional, Sequence, Tuple, Type
+from uuid import UUID
 
+from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 
-
 from activities.core.util import ValueEnum
-from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
-from uuid import UUID
-from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
 if typing.TYPE_CHECKING:
 
     from maggma.core import Store
-
-
-BaseModelT = typing.TypeVar("BaseModelT", bound=BaseModel)
 
 
 class ReferenceFallback(ValueEnum):
@@ -70,6 +66,9 @@ class Reference(MSONable):
 
         # resolve nested references
         data = find_and_resolve_references(data, store, on_missing=on_missing)
+
+        # decode objects before attribute access
+        data = MontyDecoder().process_decoded(data)
 
         for attribute in self.attributes:
             data = getattr(data, attribute)

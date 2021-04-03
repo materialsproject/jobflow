@@ -20,6 +20,7 @@ def allow_references(model):
     Create a new BaseModel with the exact same fields as `model` but making them all optional
     """
     from copy import deepcopy
+
     field_definitions = {}
 
     for name, field in model.__fields__.items():
