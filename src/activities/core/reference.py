@@ -1,26 +1,36 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
 
+from pydantic import BaseModel
+from pydantic.dataclasses import dataclass
+
+
+from activities.core.util import ValueEnum
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
-
-from activities.core.config import ReferenceFallback
+from uuid import UUID
+from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Optional, Sequence, Tuple, Type
-    from uuid import UUID
 
     from maggma.core import Store
-    from pydantic.main import BaseModel
+
+
+BaseModelT = typing.TypeVar("BaseModelT", bound=BaseModel)
+
+
+class ReferenceFallback(ValueEnum):
+    ERROR = "error"
+    NONE = "none"
+    PASS = "pass"
 
 
 @dataclass
 class Reference(MSONable):
 
     uuid: UUID
-    attributes: Optional[Tuple[Any]] = tuple()
-    schema: Optional[Type[BaseModel]] = None
+    attributes: Optional[Tuple[Any, ...]] = tuple()
+    output_schema: Optional[Any] = None
 
     def resolve(
         self,
@@ -78,19 +88,19 @@ class Reference(MSONable):
             return new_reference
 
     def __getitem__(self, item) -> "Reference":
-        if self.schema is not None:
-            validate_schema_access(self.schema, item)
+        if self.output_schema is not None:
+            validate_schema_access(self.output_schema, item)
 
         return Reference(self.uuid, self.attributes + (item,))
 
     def __getattr__(self, item) -> "Reference":
-        if item in {"kwargs", "args"} or (
+        if item in {"kwargs", "args", "schema"} or (
             isinstance(item, str) and item.startswith("__")
         ):
             raise AttributeError
 
-        if self.schema is not None:
-            validate_schema_access(self.schema, item)
+        if self.output_schema is not None:
+            validate_schema_access(self.output_schema, item)
 
         return Reference(self.uuid, self.attributes + (item,))
 
@@ -149,8 +159,6 @@ def resolve_references(
 
 
 def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
-    import json
-
     from pydash import get
 
     from activities.core.util import find_key_value

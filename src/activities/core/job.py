@@ -8,8 +8,7 @@ from uuid import uuid4
 
 from monty.json import MSONable, jsanitize
 
-from activities.core.reference import Reference
-from activities.core.util import ValueEnum
+from activities.core.reference import Reference, ReferenceFallback
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
@@ -22,13 +21,7 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["job", "Job", "Response", "store_output", "ReferenceFallback", "JobConfig"]
-
-
-class ReferenceFallback(ValueEnum):
-    ERROR = "error"
-    NONE = "none"
-    PASS = "pass"
+__all__ = ["job", "Job", "Response", "store_output", "JobConfig"]
 
 
 @dataclass
@@ -277,7 +270,7 @@ class Job(MSONable):
     output: Reference = field(init=False)
 
     def __post_init__(self):
-        self.output = Reference(self.uuid, schema=self.output_schema)
+        self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
             if self.is_maker_job:
                 self.name = self.function_source.name
