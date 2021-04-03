@@ -9,6 +9,8 @@ if typing.TYPE_CHECKING:
     from pathlib import Path
     from typing import Any, Dict, Hashable, Iterator, List, Optional, Tuple, Type, Union
 
+    from uuid import UUID
+
     from maggma.core import Sort
     from maggma.stores import GridFSStore, MongoStore, MongoURIStore, S3Store
 
@@ -22,17 +24,17 @@ class ActivityStore(Store):
 
     def __init__(
         self,
-        docs_store: MongoStore,
+        docs_store: Store,
         data_store: Store,
         save: Union[Hashable, List[Hashable]] = None,
         load: Union[Hashable, List[Hashable]] = None,
-        docs_collection_name: Optional[str] = None,
+        docs_collection_name: str = None,
     ):
         """
         Initialize an ActivityStore.
 
         Args:
-            docs_store: MongoStore or MongoURIStore store for basic documents.
+            docs_store: Store for basic documents.
             data_store: Maggma store for large data objects.
             save: List of keys to save in the data store when uploading documents.
             load: List of keys to load from the data store when querying.
@@ -326,7 +328,56 @@ class ActivityStore(Store):
     @property
     @deprecated(message="This will be removed in the future")
     def collection(self):
-        return self.docs_store.collection_name
+        return self.docs_collection_name
+
+    @classmethod
+    def from_store(cls, store: Store, **kwargs):
+        """Use the same store for data and documents"""
+        from copy import deepcopy
+
+        return cls(docs_store=store, data_store=deepcopy(store), **kwargs)
+
+    def get_output(
+        self,
+        uuid: UUID,
+        which: str = "last",
+        load_data: bool = True,
+    ):
+        data_keys = None
+        if which in ("last", "first"):
+            sort = -1 if which == "last" else 1
+
+            if load_data:
+                # first work out which data keys are available
+                result = self.query_one(
+                    {"uuid": str(uuid)}, ["data_keys"], {"index": sort}
+                )
+                data_keys = result["data_keys"] if result else None
+
+            # next load they data
+            result = self.query_one(
+                {"uuid": str(uuid)}, ["output"], {"index": sort}, load=data_keys
+            )
+
+            if result is None:
+                raise ValueError(f"{uuid} has not outputs.")
+
+            return result["output"]
+        else:
+            if load_data:
+                # first work out which data keys are available
+                result = self.query_one({"uuid": str(uuid)}, ["data_keys"])
+                data_keys = [r["data_keys"] for r in result]
+
+            result = self.query(
+                {"uuid": str(uuid)}, ["output"], {"index": -1}, load=data_keys
+            )
+            result = list(result)
+
+            if len(result) == 0:
+                raise ValueError(f"{uuid} has not outputs.")
+
+            return [r["output"] for r in result]
 
     @classmethod
     def from_db_file(
@@ -349,8 +400,8 @@ class ActivityStore(Store):
         data_store keys, with the values as the dictionary representation of those
         stores.
 
-        Alternatively, a json or yaml file format is supported. Here the file should
-        contain the keys:
+        Alternatively, a file format specific to mongodb is supported. Here the file
+        should contain the keys:
         - host (str): The hostname of the database.
         - port (int): The port used to access the database.
         - collection (str): The collection in which to store documents.
@@ -385,8 +436,8 @@ class ActivityStore(Store):
 
         Args:
             db_file: Path to the file containing the credentials.
-            admin: Whether to use the admin user (only applicable to old alternative
-                style login information).
+            admin: Whether to use the admin user (only applicable to the mongodb
+                style file format).
             **kwargs: Additional keyword arguments that get passed to the ActivityStore
                 constructor.
 

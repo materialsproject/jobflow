@@ -11,8 +11,7 @@ from pydantic.dataclasses import dataclass
 from activities.core.util import ValueEnum
 
 if typing.TYPE_CHECKING:
-
-    from maggma.core import Store
+    import activities
 
 
 class ReferenceFallback(ValueEnum):
@@ -30,7 +29,7 @@ class Reference(MSONable):
 
     def resolve(
         self,
-        store: Optional[Store] = None,
+        store: Optional[activities.ActivityStore] = None,
         cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
     ):
@@ -43,11 +42,10 @@ class Reference(MSONable):
             cache = {}
 
         if store and self.uuid not in cache:
-            output = store.query_one(
-                {"uuid": str(self.uuid)}, ["output"], {"index": -1}
-            )
-            if output is not None:
-                cache[self.uuid] = output["output"]
+            try:
+                cache[self.uuid] = store.get_output(self.uuid, which="latest")
+            except ValueError:
+                pass
 
         if on_missing == ReferenceFallback.ERROR and self.uuid not in cache:
             raise ValueError(
@@ -136,7 +134,7 @@ class Reference(MSONable):
 
 def resolve_references(
     references: Sequence[Reference],
-    store: Store,
+    store: activities.ActivityStore,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Dict[Reference, Any]:
     from itertools import groupby
@@ -181,7 +179,7 @@ def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
 
 def find_and_resolve_references(
     arg: Any,
-    store: Store,
+    store: activities.ActivityStore,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Any:
     from pydash import get, set_

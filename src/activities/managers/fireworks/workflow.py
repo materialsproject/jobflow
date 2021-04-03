@@ -7,14 +7,13 @@ if typing.TYPE_CHECKING:
     from uuid import UUID
 
     from fireworks.core.firework import Firework, Workflow
-    from maggma.core import Store
 
     import activities
 
 
 def activity_to_workflow(
     activity: Union[activities.Activity, activities.Job, List[activities.Job]],
-    store: Store,
+    store: activities.ActivityStore,
 ) -> Workflow:
     from fireworks.core.firework import Workflow
 
@@ -36,13 +35,12 @@ def activity_to_workflow(
 
 def job_to_firework(
     job: activities.Job,
-    store: Store,
+    store: activities.ActivityStore,
     parents: Optional[Sequence[UUID]] = None,
     parent_mapping: Optional[Dict[UUID, Firework]] = None,
 ):
     from fireworks.core.firework import Firework
-
-    from activities.core.config import ReferenceFallback
+    from activities.core.reference import ReferenceFallback
     from activities.managers.fireworks.firetask import JobFiretask
 
     if (parents is None) is not (parent_mapping is None):

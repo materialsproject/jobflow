@@ -14,7 +14,6 @@ if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
     from uuid import UUID
 
-    from maggma.core import Store
     from pydantic.main import BaseModel
 
     import activities
@@ -330,7 +329,7 @@ class Job(MSONable):
         graph.add_edges_from(edges)
         return graph
 
-    def run(self, store: Store) -> "Response":
+    def run(self, store: activities.ActivityStore) -> "Response":
         """
         Run the job.
 
@@ -415,7 +414,7 @@ class Job(MSONable):
 
     def resolve_args(
         self,
-        store: Store,
+        store: activities.ActivityStore,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
         inplace: bool = True,
     ) -> "Job":

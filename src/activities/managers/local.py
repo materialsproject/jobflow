@@ -7,8 +7,6 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
-    from maggma.stores import Store
-
     import activities
 
 logger = logging.getLogger(__name__)
@@ -17,15 +15,15 @@ logger = logging.getLogger(__name__)
 def run_locally(
     activity: Union[activities.Activity, activities.Job, List[activities.Job]],
     log: bool = True,
-    store: Optional[Store] = None,
+    store: Optional[activities.ActivityStore] = None,
 ):
     from maggma.stores import MemoryStore
 
-    from activities import Activity, Job, initialize_logger
+    from activities import Activity, Job, initialize_logger, ActivityStore
     from activities.core.reference import ReferenceFallback
 
     if store is None:
-        store = MemoryStore()
+        store = ActivityStore.from_store(MemoryStore())
         store.connect()
 
     if log:
