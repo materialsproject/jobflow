@@ -4,8 +4,6 @@ from __future__ import annotations
 import logging
 import typing
 
-from activities.core.config import ReferenceFallback
-
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
@@ -23,6 +21,7 @@ def run_locally(
 ):
     from maggma.stores import MemoryStore
 
+    from activities.core.reference import ReferenceFallback
     from activities import Activity, Job, initialize_logger
 
     if store is None:
