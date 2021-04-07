@@ -18,10 +18,17 @@ def itergraph(graph: nx.DiGraph):
             yield node
 
 
-def draw_graph(graph: nx.DiGraph, path=None, layout_function=nx.spring_layout):
+def draw_graph(graph: nx.DiGraph, path=None, layout_function=None):
     import matplotlib.pyplot as plt
 
-    pos = layout_function(graph)
+    if layout_function is None:
+        try:
+            pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
+        except:
+            pos = nx.planar_layout(graph)
+    else:
+        pos = layout_function(graph)
+
     plt.figure(figsize=(8, 8))
 
     nodes = graph.nodes()

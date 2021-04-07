@@ -157,6 +157,7 @@ class Activity(MSONable):
     @property
     def graph(self) -> DiGraph:
         import networkx as nx
+        from itertools import product
 
         graph = nx.compose_all([job.graph for job in self.jobs])
 
@@ -164,7 +165,18 @@ class Activity(MSONable):
             # add fake edges between jobs to force linear order
             edges = []
             for job_a, job_b in nx.utils.pairwise(self.jobs):
-                edges.append((job_a.uuid, job_b.uuid, {"properties": ""}))
+                if isinstance(job_a, Activity):
+                    leaves = [v for v, d in job_a.graph.out_degree() if d == 0]
+                else:
+                    leaves = [job_a.uuid]
+
+                if isinstance(job_b, Activity):
+                    roots = [v for v, d in job_b.graph.in_degree() if d == 0]
+                else:
+                    roots = [job_b.uuid]
+
+                for leaf, root in product(leaves, roots):
+                    edges.append((leaf, root, {"properties": ""}))
             graph.add_edges_from(edges)
         return graph
 
