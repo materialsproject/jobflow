@@ -1,5 +1,5 @@
 import random
-from activities import job, Activity, run_locally, JobOrder
+from activities import job, Activity, run_locally
 
 
 @job

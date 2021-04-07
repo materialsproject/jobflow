@@ -29,7 +29,7 @@ def draw_graph(graph: nx.DiGraph, path=None, layout_function=None):
     else:
         pos = layout_function(graph)
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(12, 8))
 
     nodes = graph.nodes()
     labels = nx.get_node_attributes(graph, "label")
@@ -55,5 +55,7 @@ def draw_graph(graph: nx.DiGraph, path=None, layout_function=None):
         nx.draw_networkx_edges(
             graph, pos, edgelist=path_edges, edge_color=colors, width=2
         )
+
+    plt.tight_layout()
 
     return plt
