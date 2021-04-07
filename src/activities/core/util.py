@@ -1,6 +1,8 @@
 import logging
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Tuple, Union
+from typing import Any, Dict, Hashable, List, Tuple, Union, Type
+
+from monty.json import MSONable
 
 
 class ValueEnum(Enum):
@@ -19,8 +21,11 @@ class ValueEnum(Enum):
 
 
 def find_key(
-    d: Union[Dict[Hashable, Any], List[Any]], key: Hashable
-) -> Tuple[List[Any], ...]:
+    d: Union[Dict[Hashable, Any], List[Any]],
+    key: Union[Hashable, Type[MSONable]],
+    include_end: bool = False,
+    nested: bool = False,
+) -> List[List[Any]]:
     """
     Find the route to key: value pairs in a dictionary.
 
@@ -31,11 +36,16 @@ def find_key(
     d
         A dict or list of dicts.
     key
-        A dictionary key.
+        A dictionary key or MSONable class to locate.
+    include_end
+        Whether to include the key in the route. This has no effect if the key is an
+        MSONable class.
+    nested:
+        Whether to return nested keys or stop at the first match.
 
     Returns
     -------
-    A tuple of routes to where the matches were found.
+    A list of routes to where the matches were found.
 
     Examples
     --------
@@ -44,27 +54,55 @@ def find_key(
     ...    "c": {"d": {"x": 3}}
     ... }
     >>> find_key(data, "x")
-    (('a', 1), ('c', 'd'))
+    [['a', 1], ['c', 'd']]
+    >>> find_key(data, "x", include_end=True)
+    [['a', 1, 'x'], ['c', 'd', 'x']]
+
+    The ``nested`` argument can be used to control the behaviour of nested keys.
+    >>> data = {"a": {"x": {"x": 1}}, "b": {"x": 0}}
+    >>> find_key(data, "x", nested=False)
+    [['a'], ['b']]
+    >>> find_key(data, "x", nested=True)
+    [['a'], ['a', 'x'], ['b']]
     """
+    import inspect
+
     found_items = set()
 
     def _lookup(obj, path=None):
+        found = False
         if path is None:
             path = ()
 
         if isinstance(obj, dict):
-            if key in obj:
+            if (
+                inspect.isclass(key)
+                and issubclass(key, MSONable)
+                and "@module" in obj
+                and obj["@module"] == key.__module__
+                and "@class" in obj
+                and obj["@class"] == key.__name__
+            ):
                 found_items.add(path)
+                found = True
 
-            for k, v in obj.items():
-                _lookup(v, path + (k,))
+            if key in obj:
+                if include_end:
+                    found_items.add(path + (key,))
+                else:
+                    found_items.add(path)
+                found = True
+
+            if not found or nested:
+                for k, v in obj.items():
+                    _lookup(v, path + (k,))
 
         elif isinstance(obj, (list, tuple)):
             for i, v in enumerate(obj):
                 _lookup(v, path + (i,))
 
     _lookup(d)
-    return tuple([list(path) for path in found_items])
+    return [list(path) for path in found_items]
 
 
 def find_key_value(
@@ -116,59 +154,6 @@ def find_key_value(
 
     _lookup(d)
     return tuple([list(path) for path in found_items])
-
-
-def find_in_dictionary(
-    d: Dict[Hashable, Any], keys: Union[Hashable, List[Hashable]]
-) -> Dict[Tuple, Any]:
-    """
-    Find the route to and values of keys in a dictionary.
-
-    This function works on nested dictionaries and those containing lists or tuples.
-
-    For example:
-
-    ```python
-    d = {
-        "a": [0, {"b": 1, "x": 2}],
-        "c": {
-            "d": {"x": 3}
-        }
-    }
-    find_in_dictionary(d, ["b", "x"])
-
-    # returns: {('a', 1, 'x'): 2, ('a', 1, 'b'): 1, ('c', 'd', 'x'): 3}
-    ```
-
-    Args:
-        d: A dictionary.
-        keys: A key or list of keys to find.
-
-    Returns:
-        A dictionary mapping the route to the keys and the value at that route.
-    """
-    if not isinstance(keys, list):
-        keys = [keys]
-    found_items = {}
-
-    def _lookup(obj, path=None):
-        if path is None:
-            path = ()
-
-        if isinstance(obj, dict):
-            for key in keys:
-                if key in obj:
-                    found_items[path + (key,)] = obj[key]
-
-            for k, v in obj.items():
-                _lookup(v, path + (k,))
-
-        elif isinstance(obj, (list, tuple)):
-            for i, v in enumerate(obj):
-                _lookup(v, path + (i,))
-
-    _lookup(d)
-    return found_items
 
 
 def update_in_dictionary(d: Dict[Hashable, Any], updates: Dict[Tuple, Any]):

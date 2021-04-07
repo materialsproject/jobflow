@@ -43,7 +43,9 @@ class Reference(MSONable):
 
         if store and self.uuid not in cache:
             try:
-                cache[self.uuid] = store.get_output(self.uuid, which="latest")
+                cache[self.uuid] = store.get_output(
+                    self.uuid, which="latest", load=True
+                )
             except ValueError:
                 pass
 
@@ -63,10 +65,15 @@ class Reference(MSONable):
                 return self
 
         # resolve nested references
-        data = find_and_resolve_references(data, store, on_missing=on_missing)
+        data = find_and_resolve_references(
+            data, store, cache=cache, on_missing=on_missing
+        )
 
         # decode objects before attribute access
         data = MontyDecoder().process_decoded(data)
+
+        # re-cache data in case other references need it
+        cache[self.uuid] = data
 
         for attribute in self.attributes:
             data = getattr(data, attribute)
@@ -135,17 +142,21 @@ class Reference(MSONable):
 def resolve_references(
     references: Sequence[Reference],
     store: activities.ActivityStore,
+    cache: Optional[Dict] = None,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Dict[Reference, Any]:
     from itertools import groupby
 
     resolved_references = {}
-    cache = {}
+    if cache is None:
+        cache = {}
 
     for uuid, ref_group in groupby(references, key=lambda x: x.uuid):
-        output = store.query_one({"uuid": str(uuid)}, ["output"], {"index": -1})
-        if output is not None:
-            cache[uuid] = output["output"]
+        if uuid not in cache:
+            try:
+                cache[uuid] = store.get_output(uuid, load=True)
+            except ValueError:
+                pass
 
         for ref in ref_group:
             resolved_references[ref] = ref.resolve(
@@ -180,6 +191,7 @@ def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
 def find_and_resolve_references(
     arg: Any,
     store: activities.ActivityStore,
+    cache: Optional[Dict] = None,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Any:
     from pydash import get, set_
@@ -188,7 +200,7 @@ def find_and_resolve_references(
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
-        return arg.resolve(store=store, on_missing=on_missing)
+        return arg.resolve(store=store, cache=cache, on_missing=on_missing)
 
     elif isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
@@ -208,6 +220,7 @@ def find_and_resolve_references(
     resolved_references = resolve_references(
         references,
         store,
+        cache=cache,
         on_missing=on_missing,
     )
 

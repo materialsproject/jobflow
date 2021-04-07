@@ -4,6 +4,7 @@ import typing
 
 from maggma.core import Store
 from monty.dev import deprecated
+from monty.json import MSONable
 
 if typing.TYPE_CHECKING:
     from pathlib import Path
@@ -26,8 +27,8 @@ class ActivityStore(Store):
         self,
         docs_store: Store,
         data_store: Store,
-        save: Union[Hashable, List[Hashable]] = None,
-        load: Union[Hashable, List[Hashable]] = None,
+        save: Union[str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
+        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
         docs_collection_name: str = None,
     ):
         """
@@ -50,15 +51,15 @@ class ActivityStore(Store):
         self.data_store.key = "blob_id"
         self.docs_store.key = ["uuid", "index"]
 
-        if not save:
+        if save is None or save is False:
             save = []
         elif not isinstance(save, (list, tuple)):
             save = (save,)
         self.save = save
 
         if not load:
-            load = []
-        elif not isinstance(load, (list, tuple)):
+            load = False
+        elif not isinstance(load, (list, tuple, bool)):
             load = (load,)
         self.load = load
 
@@ -103,7 +104,7 @@ class ActivityStore(Store):
         sort: Optional[Dict[str, Union[Sort, int]]] = None,
         skip: int = 0,
         limit: int = 0,
-        load: Optional[Union[Hashable, List[Hashable]]] = None,
+        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
     ) -> Optional[Iterator[Dict]]:
         """
         Queries the ActivityStore for documents.
@@ -120,15 +121,12 @@ class ActivityStore(Store):
         Returns:
             The documents.
         """
-        from enum import Enum
-
-        from activities.core.util import find_in_dictionary, update_in_dictionary
+        from pydash import get
+        from activities.core.util import update_in_dictionary, find_key
 
         if load is None:
             load = self.load
-        elif not isinstance(load, (tuple, list)):
-            load = [load]
-        load = [o.value if isinstance(o, Enum) else o for o in load]
+        load = _prepare_load(load)
 
         if isinstance(properties, (list, tuple)):
             properties += ["uuid", "index"]
@@ -141,16 +139,25 @@ class ActivityStore(Store):
 
         for doc in docs:
             if load:
-                object_info = find_in_dictionary(doc, load)
+                # Process is
+                # 1. Find the locations of all blob identifiers.
+                # 2. Filter the locations based on the load criteria.
+                # 3. Resolve all data blobs using the data store.
+                # 4. Insert the data blobs into the document
+                locations = find_key(doc, "blob_uuid")
+                blobs = [get(doc, list(loc)) for loc in locations]
+                blobs, locations = _filter_blobs(blobs, locations, load)
 
-                data_criteria = {
-                    "blob_id": {"$in": list(object_info.values())},
-                }
+                object_info = {b["blob_uuid"]: loc for b, loc in zip(blobs, locations)}
                 objects = self.data_store.query(
-                    criteria=data_criteria, properties=["blob_id", "data"]
+                    criteria={"blob_uuid": {"$in": list(object_info.keys())}},
+                    properties=["blob_uuid", "data"],
                 )
-                object_map = {o["blob_id"]: o["data"] for o in objects}
-                to_insert = {loc: object_map[oid] for loc, oid in object_info.items()}
+                object_map = {o["blob_uuid"]: o["data"] for o in objects}
+
+                to_insert = {
+                    tuple(loc): object_map[oid] for oid, loc in object_info.items()
+                }
                 update_in_dictionary(doc, to_insert)
 
             yield doc
@@ -160,7 +167,7 @@ class ActivityStore(Store):
         criteria: Optional[Dict] = None,
         properties: Union[Dict, List, None] = None,
         sort: Optional[Dict[str, Union[Sort, int]]] = None,
-        load: Optional[Union[Hashable, List[Hashable]]] = None,
+        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
     ) -> Optional[Dict]:
         """
         Queries the Store for a single document.
@@ -185,7 +192,7 @@ class ActivityStore(Store):
         self,
         docs: Union[List[Dict], Dict],
         key: Union[List, str, None] = None,
-        save: Optional[Union[Hashable, List[Hashable]]] = None,
+        save: Union[str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
     ):
         """
         Update documents into the Store
@@ -201,13 +208,13 @@ class ActivityStore(Store):
             A single or list of task_ids for the documents.
         """
         from enum import Enum
-        from uuid import uuid4
 
+        from pydash import get
         from monty.json import jsanitize
 
-        from activities.core.util import find_in_dictionary, update_in_dictionary
+        from activities.core.util import find_key, update_in_dictionary
 
-        if save is None:
+        if save is None or save is False:
             save = self.save
         elif not isinstance(save, (tuple, list)):
             save = [save]
@@ -223,25 +230,30 @@ class ActivityStore(Store):
             dict_docs.append(doc)
 
             if save:
-                # first extract all objects from the doc and replace them with ObjectIDs
-                object_info = find_in_dictionary(doc, save)
-                object_ids = {k: str(uuid4()) for k in object_info.keys()}
-                update_in_dictionary(doc, object_ids)
+                locations = []
+                for key in save:
+                    locations.extend(find_key(doc, key, include_end=True))
+                objects = [get(doc, list(loc)) for loc in locations]
+                object_map = dict(zip(map(tuple, locations), objects))
+                object_info = {k: _get_blob_info(o) for k, o in object_map.items()}
+                update_in_dictionary(doc, object_info)
 
                 # Now format blob data for saving in the data_store
-                for loc, data in object_info.items():
-                    blob = {
-                        "data": data,
-                        "blob_uuid": object_ids[loc],
-                        "job_uuid": doc["uuid"],
-                        "job_index": doc["index"],
-                    }
+                for loc, data in object_map.items():
+                    blob = object_info[loc]
+                    blob.update(
+                        {
+                            "data": data,
+                            "job_uuid": doc["uuid"],
+                            "job_index": doc["index"],
+                        }
+                    )
                     blob_data.append(blob)
 
         self.docs_store.update(dict_docs, key=key)
 
         if save:
-            self.data_store.update(blob_data, key="blob_id")
+            self.data_store.update(blob_data, key="blob_uuid")
 
     def ensure_index(self, key: str, unique: bool = False) -> bool:
         """
@@ -341,22 +353,13 @@ class ActivityStore(Store):
         self,
         uuid: UUID,
         which: str = "last",
-        load_data: bool = True,
+        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = False,
     ):
-        data_keys = None
         if which in ("last", "first"):
             sort = -1 if which == "last" else 1
 
-            if load_data:
-                # first work out which data keys are available
-                result = self.query_one(
-                    {"uuid": str(uuid)}, ["data_keys"], {"index": sort}
-                )
-                data_keys = result["data_keys"] if result else None
-
-            # next load they data
             result = self.query_one(
-                {"uuid": str(uuid)}, ["output"], {"index": sort}, load=data_keys
+                {"uuid": str(uuid)}, ["output"], {"index": sort}, load=load
             )
 
             if result is None:
@@ -364,13 +367,8 @@ class ActivityStore(Store):
 
             return result["output"]
         else:
-            if load_data:
-                # first work out which data keys are available
-                result = self.query_one({"uuid": str(uuid)}, ["data_keys"])
-                data_keys = [r["data_keys"] for r in result]
-
             result = self.query(
-                {"uuid": str(uuid)}, ["output"], {"index": -1}, load=data_keys
+                {"uuid": str(uuid)}, ["output"], {"index": -1}, load=load
             )
             result = list(result)
 
@@ -551,3 +549,68 @@ def _get_mongo_auth(credentials: Dict[str, Any], admin: bool) -> Dict[str, Any]:
 
     auth["authsource"] = credentials.get("authsource", credentials["database"])
     return auth
+
+
+def _prepare_load(
+    load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]]
+) -> Union[bool, List[Union[str, Tuple[str, str]]]]:
+    """Standardize load types."""
+    from enum import Enum
+
+    if isinstance(load, bool):
+        return load
+
+    if not isinstance(load, (tuple, list)):
+        load = [load]
+
+    new_load = []
+    for load_type in load:
+        if isinstance(load_type, Enum):
+            load_type = load_type.value
+        elif issubclass(load_type, MSONable):
+            load_type = (load_type.__module__, load_type.__name__)
+
+        new_load.append(load_type)
+    return new_load
+
+
+def _filter_blobs(
+    blob_infos: List[Dict],
+    locations: List[List[Any]],
+    load: Union[bool, List[Union[str, Tuple[str, str]]]] = None,
+) -> Tuple[List[Dict], List[List[Any]]]:
+    if load is True:
+        # return all blobs
+        return blob_infos, locations
+
+    new_blobs = []
+    new_locations = []
+    for blob, location in zip(blob_infos, locations):
+        for load_type in load:
+            if (
+                isinstance(load_type, tuple)
+                and blob.get("@class", None) == load_type[1]
+                and blob.get("@module", None) == load_type[0]
+            ):
+                pass
+            elif location[-1] == load_type:
+                pass
+            else:
+                continue
+
+            new_blobs.append(blob)
+            new_locations.append(location)
+
+    return new_blobs, new_locations
+
+
+def _get_blob_info(obj: Any) -> Dict[str, str]:
+    from uuid import uuid4
+
+    class_name = ""
+    module_name = ""
+    if isinstance(obj, MSONable):
+        class_name = obj.__class__.__name__
+        module_name = obj.__class__.__module__
+
+    return {"@class": class_name, "@module": module_name, "blob_uuid": str(uuid4())}

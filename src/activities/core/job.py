@@ -264,6 +264,7 @@ class Job(MSONable):
     uuid: UUID = field(default_factory=uuid4)
     index: int = 1
     name: Optional[str] = None
+    data: Union[bool, str, Type[MSONable], List[Union[str, Type[MSONable]]]] = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     config: JobConfig = field(default_factory=JobConfig)
     output: Reference = field(init=False)
@@ -395,6 +396,7 @@ class Job(MSONable):
         if response.restart is not None:
             response.restart = prepare_restart(response.restart, self)
 
+        save = "output" if self.data is True else self.data
         data = {
             "uuid": str(self.uuid),
             "index": self.index,
@@ -402,7 +404,7 @@ class Job(MSONable):
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
         }
-        store.update(data, key=["uuid", "index"])
+        store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
