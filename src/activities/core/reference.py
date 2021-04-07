@@ -6,7 +6,6 @@ from uuid import UUID
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
-from pydantic.dataclasses import dataclass
 
 from activities.core.util import ValueEnum
 

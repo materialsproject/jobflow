@@ -267,6 +267,7 @@ class Job(MSONable):
     data: Union[bool, str, Type[MSONable], List[Union[str, Type[MSONable]]]] = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     config: JobConfig = field(default_factory=JobConfig)
+    host: Optional[UUID] = None
     output: Reference = field(init=False)
 
     def __post_init__(self):

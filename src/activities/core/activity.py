@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from monty.json import MSONable
 
 from activities.core.util import ValueEnum
+from uuid import uuid4
 
 if typing.TYPE_CHECKING:
     from typing import (
@@ -147,12 +148,23 @@ class Activity(MSONable):
     )
     output: Optional[Any] = None
     order: JobOrder = JobOrder.AUTO
+    name: str = "Activity"
+    uuid: UUID = field(default_factory=uuid4)
+    host: Optional[UUID] = None
 
     def __post_init__(self):
         from activities import Job
 
         if isinstance(self.jobs, Job):
             self.jobs = [self.jobs]
+
+        for job in self.jobs:
+            if job.host is not None:
+                raise ValueError(
+                    f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
+                    f"to another activity."
+                )
+            job.host = self.uuid
 
     @property
     def graph(self) -> DiGraph:

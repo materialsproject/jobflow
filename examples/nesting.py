@@ -26,7 +26,9 @@ def get_name_activity():
     first_name = generate_first_name()
     second_name = generate_second_name()
     full_name = connect_name(first_name.output, second_name.output)
-    return Activity([first_name, second_name, full_name], full_name.output)
+    return Activity(
+        [first_name, second_name, full_name], full_name.output, name="Get Name"
+    )
 
 
 name_activity_a = get_name_activity()
