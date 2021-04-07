@@ -232,7 +232,8 @@ def contains_activity_or_job(arg: Any) -> bool:
     arg = jsanitize(arg, strict=True)
 
     # recursively find any reference classes
-    locations = find_key_value(arg, "@class", "Reference")
+    locations = find_key_value(arg, "@class", "Activity")
+    locations += find_key_value(arg, "@class", "Job")
 
     return len(locations) > 0
 
