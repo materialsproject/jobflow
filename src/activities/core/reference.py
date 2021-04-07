@@ -20,12 +20,20 @@ class ReferenceFallback(ValueEnum):
     PASS = "pass"
 
 
-@dataclass
-class Reference(MSONable):
+class Reference(MSONable, BaseModel):
 
-    uuid: UUID
-    attributes: Optional[Tuple[Any, ...]] = tuple()
-    output_schema: Optional[Any] = None
+    __slots__ = ("uuid", "attributes", "output_schema")
+
+    def __init__(
+        self,
+        uuid: UUID,
+        attributes: Optional[Tuple[Any, ...]] = tuple(),
+        output_schema: Optional[Any] = None,
+    ):
+        super(Reference, self).__init__()
+        self.uuid = uuid
+        self.attributes = attributes
+        self.output_schema = output_schema
 
     def resolve(
         self,
@@ -107,6 +115,15 @@ class Reference(MSONable):
             validate_schema_access(self.output_schema, item)
 
         return Reference(self.uuid, self.attributes + (item,))
+
+    def __setattr__(self, attr, val):
+        if attr in self.__slots__:
+            object.__setattr__(self, attr, val)
+        else:
+            raise TypeError("Reference objects are immutable")
+
+    def __setitem__(self, index, val):
+        raise TypeError("Reference objects are immutable")
 
     def __repr__(self):
         if len(self.attributes) > 0:
