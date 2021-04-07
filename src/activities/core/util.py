@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Tuple, Union, Type
+from typing import Any, Dict, Hashable, List, Tuple, Type, Union
 
 from monty.json import MSONable, jsanitize
 
@@ -239,4 +239,5 @@ def contains_activity_or_job(arg: Any) -> bool:
 
 def suuid() -> str:
     from uuid import uuid4
+
     return str(uuid4())

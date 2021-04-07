@@ -1,10 +1,9 @@
 """This module defines functions and classes for representing Job objects."""
 from __future__ import annotations
 
-import warnings
-
 import logging
 import typing
+import warnings
 from dataclasses import dataclass, field
 
 from monty.json import MSONable, jsanitize

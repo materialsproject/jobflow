@@ -1,4 +1,4 @@
-from activities import job, Activity, run_locally
+from activities import Activity, job, run_locally
 
 
 @job(data=True)
@@ -18,4 +18,3 @@ act = Activity([big_data_job, sum_job])
 
 output = run_locally(act)
 print(output)
-

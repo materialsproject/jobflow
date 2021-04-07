@@ -120,7 +120,8 @@ class ActivityStore(Store):
             The documents.
         """
         from pydash import get
-        from activities.core.util import update_in_dictionary, find_key
+
+        from activities.core.util import find_key, update_in_dictionary
 
         if load is None:
             load = self.load
@@ -207,8 +208,8 @@ class ActivityStore(Store):
         """
         from enum import Enum
 
-        from pydash import get
         from monty.json import jsanitize
+        from pydash import get
 
         from activities.core.util import find_key, update_in_dictionary
 
@@ -365,9 +366,7 @@ class ActivityStore(Store):
 
             return result["output"]
         else:
-            result = self.query(
-                {"uuid": uuid}, ["output"], {"index": -1}, load=load
-            )
+            result = self.query({"uuid": uuid}, ["output"], {"index": -1}, load=load)
             result = list(result)
 
             if len(result) == 0:

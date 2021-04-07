@@ -1,10 +1,9 @@
 """Define base Activity object."""
 from __future__ import annotations
 
-import warnings
-
 import logging
 import typing
+import warnings
 from dataclasses import dataclass, field
 
 from monty.json import MSONable
@@ -177,8 +176,9 @@ class Activity(MSONable):
 
     @property
     def graph(self) -> DiGraph:
-        import networkx as nx
         from itertools import product
+
+        import networkx as nx
 
         graph = nx.compose_all([job.graph for job in self.jobs])
 

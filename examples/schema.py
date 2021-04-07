@@ -1,6 +1,5 @@
-from pydantic import Field
-
 from activities import Schema, job
+from pydantic import Field
 
 
 class ComputeSchema(Schema):

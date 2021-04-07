@@ -39,6 +39,7 @@ def job_to_firework(
     parent_mapping: Optional[Dict[str, Firework]] = None,
 ):
     from fireworks.core.firework import Firework
+
     from activities.core.reference import ReferenceFallback
     from activities.managers.fireworks.firetask import JobFiretask
 
