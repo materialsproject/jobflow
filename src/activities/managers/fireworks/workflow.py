@@ -4,7 +4,6 @@ import typing
 
 if typing.TYPE_CHECKING:
     from typing import Dict, List, Optional, Sequence, Union
-    from uuid import UUID
 
     from fireworks.core.firework import Firework, Workflow
 
@@ -36,8 +35,8 @@ def activity_to_workflow(
 def job_to_firework(
     job: activities.Job,
     store: activities.ActivityStore,
-    parents: Optional[Sequence[UUID]] = None,
-    parent_mapping: Optional[Dict[UUID, Firework]] = None,
+    parents: Optional[Sequence[str]] = None,
+    parent_mapping: Optional[Dict[str, Firework]] = None,
 ):
     from fireworks.core.firework import Firework
     from activities.core.reference import ReferenceFallback

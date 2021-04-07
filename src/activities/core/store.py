@@ -10,8 +10,6 @@ if typing.TYPE_CHECKING:
     from pathlib import Path
     from typing import Any, Dict, Hashable, Iterator, List, Optional, Tuple, Type, Union
 
-    from uuid import UUID
-
     from maggma.core import Sort
     from maggma.stores import GridFSStore, MongoStore, MongoURIStore, S3Store
 
@@ -351,7 +349,7 @@ class ActivityStore(Store):
 
     def get_output(
         self,
-        uuid: UUID,
+        uuid: str,
         which: str = "last",
         load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = False,
     ):
@@ -359,7 +357,7 @@ class ActivityStore(Store):
             sort = -1 if which == "last" else 1
 
             result = self.query_one(
-                {"uuid": str(uuid)}, ["output"], {"index": sort}, load=load
+                {"uuid": uuid}, ["output"], {"index": sort}, load=load
             )
 
             if result is None:
@@ -368,7 +366,7 @@ class ActivityStore(Store):
             return result["output"]
         else:
             result = self.query(
-                {"uuid": str(uuid)}, ["output"], {"index": -1}, load=load
+                {"uuid": uuid}, ["output"], {"index": -1}, load=load
             )
             result = list(result)
 
@@ -605,7 +603,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any) -> Dict[str, str]:
-    from uuid import uuid4
+    from activities.core.util import suuid
 
     class_name = ""
     module_name = ""
@@ -613,4 +611,4 @@ def _get_blob_info(obj: Any) -> Dict[str, str]:
         class_name = obj.__class__.__name__
         module_name = obj.__class__.__module__
 
-    return {"@class": class_name, "@module": module_name, "blob_uuid": str(uuid4())}
+    return {"@class": class_name, "@module": module_name, "blob_uuid": suuid()}

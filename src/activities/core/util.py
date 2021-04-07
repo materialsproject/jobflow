@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Tuple, Union, Type
 
-from monty.json import MSONable
+from monty.json import MSONable, jsanitize
 
 
 class ValueEnum(Enum):
@@ -215,3 +215,28 @@ def initialize_logger(level: int = logging.INFO) -> logging.Logger:
     screen_handler.setFormatter(fmt)
     log.addHandler(screen_handler)
     return log
+
+
+def contains_activity_or_job(arg: Any) -> bool:
+    from activities.core.activity import Activity
+    from activities.core.job import Job
+
+    if isinstance(arg, (Activity, Job)):
+        # if the argument is an activity or job then stop there
+        return True
+
+    elif isinstance(arg, (float, int, str, bool)):
+        # argument is a primitive, we won't find an activity or job here
+        return False
+
+    arg = jsanitize(arg, strict=True)
+
+    # recursively find any reference classes
+    locations = find_key_value(arg, "@class", "Reference")
+
+    return len(locations) > 0
+
+
+def suuid() -> str:
+    from uuid import uuid4
+    return str(uuid4())

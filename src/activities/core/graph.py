@@ -83,11 +83,11 @@ def to_pydot(activity):
         pydot_graph.add_edge(edge)
 
     def add_cluster(nested_activity, outer_graph):
-        cluster = pydot.Cluster(str(nested_activity.uuid))
+        cluster = pydot.Cluster(nested_activity.uuid)
         cluster.set_label(nested_activity.name)
         for job in nested_activity.jobs:
             for sub_node in job.graph.nodes:
-                cluster.add_node(pydot_graph.get_node(f'"{str(sub_node)}"')[0])
+                cluster.add_node(pydot_graph.get_node(f'"{sub_node}"')[0])
             if isinstance(job, Activity):
                 add_cluster(job, cluster)
         outer_graph.add_subgraph(cluster)

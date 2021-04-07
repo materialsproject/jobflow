@@ -1,14 +1,15 @@
 """Define base Activity object."""
 from __future__ import annotations
 
+import warnings
+
 import logging
 import typing
 from dataclasses import dataclass, field
 
 from monty.json import MSONable
 
-from activities.core.util import ValueEnum
-from uuid import uuid4
+from activities.core.util import ValueEnum, contains_activity_or_job, suuid
 
 if typing.TYPE_CHECKING:
     from typing import (
@@ -22,7 +23,6 @@ if typing.TYPE_CHECKING:
         Type,
         Union,
     )
-    from uuid import UUID
 
     from networkx import DiGraph
 
@@ -149,11 +149,11 @@ class Activity(MSONable):
     output: Optional[Any] = None
     order: JobOrder = JobOrder.AUTO
     name: str = "Activity"
-    uuid: UUID = field(default_factory=uuid4)
-    host: Optional[UUID] = None
+    uuid: str = field(default_factory=suuid)
+    host: str = None
 
     def __post_init__(self):
-        from activities import Job
+        from activities.core.job import Job
 
         if isinstance(self.jobs, Job):
             self.jobs = [self.jobs]
@@ -165,6 +165,15 @@ class Activity(MSONable):
                     f"to another activity."
                 )
             job.host = self.uuid
+
+        if self.output is not None:
+            if contains_activity_or_job(self.output):
+                warnings.warn(
+                    f"Activity '{self.name}' contains an Activity or Job as an output. "
+                    f"Usually the Activity output should be the output of a Job or "
+                    f"another Activity (e.g. job.output). If this message is "
+                    f"unexpected then double check the outputs of your Activity."
+                )
 
     @property
     def graph(self) -> DiGraph:
@@ -194,7 +203,7 @@ class Activity(MSONable):
 
     def iteractivity(
         self,
-    ) -> Generator[Tuple["activities.Job", List[UUID]], None, None]:
+    ) -> Generator[Tuple["activities.Job", List[str]], None, None]:
         from activities.core.graph import itergraph
 
         graph = self.graph

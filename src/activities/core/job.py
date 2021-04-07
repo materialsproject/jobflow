@@ -1,18 +1,19 @@
 """This module defines functions and classes for representing Job objects."""
 from __future__ import annotations
 
+import warnings
+
 import logging
 import typing
 from dataclasses import dataclass, field
-from uuid import uuid4
 
 from monty.json import MSONable, jsanitize
 
 from activities.core.reference import Reference, ReferenceFallback
+from activities.core.util import suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
-    from uuid import UUID
 
     from pydantic.main import BaseModel
 
@@ -24,12 +25,17 @@ __all__ = ["job", "Job", "Response", "store_output", "JobConfig"]
 
 
 @dataclass
-class JobConfig:
+class JobConfig(MSONable):
 
     resolve_references: bool = True
     on_missing_references: ReferenceFallback = ReferenceFallback.ERROR
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
+
+    def as_dict(self) -> dict:
+        d = super().as_dict()
+        d["on_missing_references"] = str(self.on_missing_references)
+        return d
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):
@@ -261,22 +267,35 @@ class Job(MSONable):
     function_args: Tuple[Any, ...] = field(default_factory=tuple)
     function_kwargs: Dict[str, Any] = field(default_factory=dict)
     output_schema: Optional[Type[BaseModel]] = None
-    uuid: UUID = field(default_factory=uuid4)
+    uuid: str = field(default_factory=suuid)
     index: int = 1
     name: Optional[str] = None
     data: Union[bool, str, Type[MSONable], List[Union[str, Type[MSONable]]]] = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     config: JobConfig = field(default_factory=JobConfig)
-    host: Optional[UUID] = None
+    host: Optional[str] = None
     output: Reference = field(init=False)
 
     def __post_init__(self):
+        from activities.core.util import contains_activity_or_job
+
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
             if self.is_maker_job:
                 self.name = self.function_source.name
             else:
                 self.name = self.function_name
+
+        # check to see if job or activity is included in the job args
+        # this is a possible situation but likely a mistake
+        all_args = tuple(self.function_args) + tuple(self.function_kwargs.values())
+        if contains_activity_or_job(all_args):
+            warnings.warn(
+                f"Job '{self.name}' contains an Activity or Job as an input. "
+                f"Usually inputs should be the output of a Job or an Activity (e.g. "
+                f"job.output). If this message is unexpected then double check the "
+                f"inputs to your Job."
+            )
 
     @property
     def is_maker_job(self):
@@ -399,7 +418,7 @@ class Job(MSONable):
 
         save = "output" if self.data is True else self.data
         data = {
-            "uuid": str(self.uuid),
+            "uuid": self.uuid,
             "index": self.index,
             "output": jsanitize(response.output, strict=True),
             "completed_at": datetime.now().isoformat(),
@@ -411,7 +430,7 @@ class Job(MSONable):
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
 
-    def set_uuid(self, uuid: UUID):
+    def set_uuid(self, uuid: str):
         self.uuid = uuid
         self.output = self.output.set_uuid(uuid)
 
@@ -518,11 +537,11 @@ class Job(MSONable):
             )
 
     @property
-    def input_uuids(self) -> Tuple[UUID, ...]:
+    def input_uuids(self) -> Tuple[str, ...]:
         return tuple([ref.uuid for ref in self.input_references])
 
     @property
-    def input_references_grouped(self) -> Dict[UUID, Tuple[Reference, ...]]:
+    def input_references_grouped(self) -> Dict[str, Tuple[Reference, ...]]:
         from collections import defaultdict
 
         groups = defaultdict(set)
@@ -532,11 +551,11 @@ class Job(MSONable):
         return {k: tuple(v) for k, v in groups.items()}
 
     @property
-    def output_uuids(self) -> Tuple[UUID, ...]:
+    def output_uuids(self) -> Tuple[str, ...]:
         return tuple([ref.uuid for ref in self.output_references])
 
     @property
-    def output_references_grouped(self) -> Dict[UUID, Tuple[Reference, ...]]:
+    def output_references_grouped(self) -> Dict[str, Tuple[Reference, ...]]:
         from collections import defaultdict
 
         groups = defaultdict(set)

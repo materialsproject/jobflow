@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import typing
 from typing import Any, Dict, Optional, Sequence, Tuple, Type
-from uuid import UUID
 
-from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
+from monty.json import MontyDecoder, MSONable, jsanitize
 from pydantic import BaseModel
 
 from activities.core.util import ValueEnum
@@ -25,7 +24,7 @@ class Reference(MSONable, BaseModel):
 
     def __init__(
         self,
-        uuid: UUID,
+        uuid: str,
         attributes: Optional[Tuple[Any, ...]] = tuple(),
         output_schema: Optional[Any] = None,
     ):
@@ -37,7 +36,7 @@ class Reference(MSONable, BaseModel):
     def resolve(
         self,
         store: Optional[activities.ActivityStore] = None,
-        cache: Optional[Dict[UUID, Dict[str, Any]]] = None,
+        cache: Optional[Dict[str, Dict[str, Any]]] = None,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
     ):
         # when resolving multiple references simultaneously it is more efficient
@@ -87,7 +86,7 @@ class Reference(MSONable, BaseModel):
 
         return data
 
-    def set_uuid(self, uuid: UUID, inplace=True):
+    def set_uuid(self, uuid: str, inplace=True):
         if inplace:
             self.uuid = uuid
             return self
@@ -149,7 +148,7 @@ class Reference(MSONable, BaseModel):
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "@version": None,
-            "uuid": MontyEncoder().default(self.uuid),
+            "uuid": self.uuid,
             "attributes": self.attributes,
         }
         return data

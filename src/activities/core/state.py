@@ -9,7 +9,6 @@ if typing.TYPE_CHECKING:
     from uuid import UUID
 
     import activities
-    from maggma.stores import Store
 
 __all__ = ["CURRENT_JOB"]
 
