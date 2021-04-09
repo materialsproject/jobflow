@@ -23,14 +23,14 @@ setup(
     package_data={"activities": ["py.typed"]},
     zip_safe=False,
     include_package_data=True,
-    install_requires=["monty", "pydash", "networkx", "maggma", "pydantic"],
+    install_requires=["setuptools", "monty", "pydash", "networkx", "maggma", "pydantic"],
     extras_require={
         "docs": [
-            "sphinx==3.2.1",
+            "sphinx==3.5.3",
             "furo==2021.3.20b30",
-            "m2r2==0.2.5",
+            "m2r2==0.2.7",
         ],
-        "test": ["pytest"],
+        "tests": ["pytest"],
         "fireworks": ["fireworks"],
     },
     classifiers=[

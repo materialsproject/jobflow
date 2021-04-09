@@ -10,8 +10,5 @@ and function to be executed.
 
 .. currentmodule:: activities.core.job
 
-.. autosummary::
-   job
-
 .. autofunction:: job
    :noindex:

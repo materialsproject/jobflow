@@ -1,24 +1,15 @@
-# -*- coding: utf-8 -*-
-#
-# Configuration file for the Sphinx documentation builder.
-#
-# This file does only contain a selection of the most common options. For a
-# full list see the documentation:
-# http://www.sphinx-doc.org/en/master/config
-
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+
 import os
 import sys
 
 from activities import __version__
 
 sys.path.insert(0, os.path.abspath("../../"))
-
 
 # -- Project information -----------------------------------------------------
 
@@ -30,7 +21,6 @@ author = "Alex Ganose"
 version = __version__
 # The full version, including alpha/beta/rc tags
 release = __version__
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -57,11 +47,12 @@ exclude_patterns = ["Thumbs.db", ".DS_Store", "test*.py"]
 # use type hints
 autodoc_typehints = "description"
 autoclass_content = "both"
+autodoc_member_order = "bysource"
 
+# better napolean support
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_use_ivar = True
-autodoc_member_order = "bysource"
 
 # The suffix(es) of source filenames.
 source_suffix = [".rst", ".md"]
@@ -72,6 +63,9 @@ source_suffix = [".rst", ".md"]
 # a list of builtin themes.
 #
 html_theme = 'furo'
+
+# hide sphinx footer
+html_show_sphinx = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -89,15 +83,8 @@ html_theme_options = {
         "admonition-title-font-size": "92%"
     }
 }
-html_title = f"Activities v{__version__}"
+html_title = f"Activities"
 
-html_context = {
-    "display_github": True,
-    "github_user": "hackingmaterials",
-    "github_repo": "activities",
-    "github_version": "master",
-    "conf_py_path": "/docs_rst/",
-}
 
 # -- Options for intersphinx extension ---------------------------------------
 

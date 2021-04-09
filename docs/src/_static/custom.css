@@ -17,3 +17,6 @@ font-size: 100%;
 .rst-content.style-external-links a.reference.external:after {
     display: none;
 }
+.sidebar-tree .reference.external:after {
+    display: none;
+}
