@@ -1,7 +1,7 @@
 API
 ===
 
-The main task interface is the, :obj:`task` function.
+The main task interface is the, :obj:`job` function.
 
 :obj:`task` wraps functions for use in activities. It can be used as a decorator, or
 around function calls directly (i.e. ``task(foo)(a, b, c)``). Outputs from functions
@@ -33,10 +33,10 @@ and function to be executed.
     object it wouldn't be).
     Even with this limitation, many workflows can easily be parallelized.
 
-.. currentmodule:: activities.core.task
+.. currentmodule:: activities.core.job
 
 .. autosummary::
-   task
+   job
 
-.. autofunction:: task
+.. autofunction:: job
    :noindex:

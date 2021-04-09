@@ -9,20 +9,19 @@ activities.core.activity module
    :undoc-members:
    :show-inheritance:
 
-activities.core.base module
----------------------------
-
-.. automodule:: activities.core.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 activities.core.graph module
 ----------------------------
 
 .. automodule:: activities.core.graph
    :members:
    :undoc-members:
+   :show-inheritance:
+
+activities.core.job module
+---------------------------
+
+.. automodule:: activities.core.job
+   :members:
    :show-inheritance:
 
 activities.core.maker module
@@ -33,13 +32,6 @@ activities.core.maker module
    :undoc-members:
    :show-inheritance:
 
-activities.core.outputs module
-------------------------------
-
-.. automodule:: activities.core.outputs
-   :members:
-   :show-inheritance:
-
 activities.core.reference module
 --------------------------------
 
@@ -48,12 +40,6 @@ activities.core.reference module
    :undoc-members:
    :show-inheritance:
 
-activities.core.task module
----------------------------
-
-.. automodule:: activities.core.task
-   :members:
-   :show-inheritance:
 
 activities.core.util module
 ---------------------------

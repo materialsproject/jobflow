@@ -1,9 +1,9 @@
-/* Hide nbsphinx prompt numbers */
-.prompt {
-    display: none;
+html {
+font-size: 100 % !important;
 }
 
-/* Hide link icons in external links*/
-.rst-content.style-external-links a.reference.external:after {
-    display: none;
+@media (min-width: 97em){
+html {
+font-size: 100%;
+}
 }

@@ -33,6 +33,13 @@ logger = logging.getLogger(__name__)
 
 
 class JobOrder(ValueEnum):
+    """
+    Options to control the order of job execution.
+
+    - ``AUTO``: Automatically determine the job order based on input and output
+      references.
+    - ``LINEAR``: Run the jobs in the order they appear in the jobs array.
+    """
     AUTO = "auto"
     LINEAR = "linear"
 
@@ -41,7 +48,7 @@ class Activity(MSONable):
     """
     An Activity contains a collection of Jobs or other Activities to execute.
 
-    The :obj:`Activity: object is the main tool for constructing workflows. Activities
+    The :obj:`Activity` object is the main tool for constructing workflows. Activities
     can either contain jobs or other activities. Like :obj:`Job` objects, activities
     can also have outputs, however, these are not explicitly stored in the database.
     Instead, the outputs of an Activity act to structure the outputs of the jobs
@@ -65,36 +72,21 @@ class Activity(MSONable):
         The identifier of the host activity. This is set automatically when an activity
         is included in the jobs array of another activity.
 
-    Attributes
-    ----------
-    jobs
-        The jobs to be run.
-    output
-        The output of the activity.
-    name
-        The activity name.
-    order
-        The order in which the jobs should be exectuted.
-    uuid
-        The identifier of the activity.
-    host
-        The identifier of the host activity.
-
     Raises
     ------
     ValueError
-        If a job in the `jobs` array is already part of another activity.
+        If a job in the ``jobs`` array is already part of another activity.
     ValueError
-        If any jobs needed to resolve the inputs of all jobs in the `jobs` array are
+        If any jobs needed to resolve the inputs of all jobs in the ``jobs`` array are
         missing.
     ValueError
-        If any jobs needed to resolve the activity `output` are missing.
+        If any jobs needed to resolve the activity ``output`` are missing.
 
     Warns
     -----
     UserWarning
-        If a `Job` or `Activity` object is used as the Activity `output` rather than
-        an `OutputReference`.
+        If a ``Job`` or ``Activity`` object is used as the Activity ``output`` rather
+        than an ``OutputReference``.
 
     See Also
     --------
@@ -194,6 +186,24 @@ class Activity(MSONable):
                 )
 
     @property
+    def job_uuids(self) -> List[str]:
+        """
+        The uuids of every job contained in the activity (including nested activities).
+
+        Returns
+        -------
+        list[str]
+            The uuids of all jobs in the activity (including nested activities).
+        """
+        uuids = []
+        for job in self.jobs:
+            if isinstance(job, Activity):
+                uuids.extend(job.job_uuids)
+            else:
+                uuids.append(job.uuid)
+        return uuids
+
+    @property
     def graph(self) -> DiGraph:
         """
         Get a graph indicating the connectivity of jobs in the activity.
@@ -228,29 +238,6 @@ class Activity(MSONable):
             graph.add_edges_from(edges)
         return graph
 
-    def iteractivity(
-        self,
-    ) -> Generator[Tuple["activities.Job", List[str]], None, None]:
-        """
-        Iterate through the jobs of the activity.
-
-        The jobs are yielded such that the job output references can always be
-        resolved. I.e., root nodes of the activity graph are always returned first.
-
-        Yields
-        -------
-        (Job, list(str))
-            The Job and the uuids of any parent jobs (not to be confused with the host
-            activity).
-        """
-        from activities.core.graph import itergraph
-
-        graph = self.graph
-        for node in itergraph(graph):
-            parents = [u for u, v in graph.in_edges(node)]
-            job = graph.nodes[node]["job"]
-            yield job, parents
-
     def draw_graph(self):
         """
         Draw the activity graph using matplotlib.
@@ -265,6 +252,29 @@ class Activity(MSONable):
         from activities.core.graph import draw_graph
 
         return draw_graph(self.graph)
+
+    def iteractivity(
+        self,
+    ) -> Generator[Tuple["activities.Job", List[str]], None, None]:
+        """
+        Iterate through the jobs of the activity.
+
+        The jobs are yielded such that the job output references can always be
+        resolved. I.e., root nodes of the activity graph are always returned first.
+
+        Yields
+        -------
+        Job, list[str]
+            The Job and the uuids of any parent jobs (not to be confused with the host
+            activity).
+        """
+        from activities.core.graph import itergraph
+
+        graph = self.graph
+        for node in itergraph(graph):
+            parents = [u for u, v in graph.in_edges(node)]
+            job = graph.nodes[node]["job"]
+            yield job, parents
 
     def update_kwargs(
         self,
@@ -292,7 +302,7 @@ class Activity(MSONable):
 
         Examples
         --------
-        Consider an activity containing a simple job with a `number` keyword argument.
+        Consider an activity containing a simple job with a ``number`` keyword argument.
 
         >>> from activities import job, Activity
         >>> @job
@@ -301,7 +311,7 @@ class Activity(MSONable):
         >>> add_job = add(1)
         >>> activity = Activity([add_job])
 
-        The `number` argument could be updated in the following ways.
+        The ``number`` argument could be updated in the following ways.
 
         >>> activity.update_kwargs({"number": 10})
 
@@ -367,7 +377,7 @@ class Activity(MSONable):
         >>> add_job = maker.make(1)
         >>> activity = Activity([add_job])
 
-        The `number` argument could be updated in the following ways.
+        The ``number`` argument could be updated in the following ways.
 
         >>> activity.update_maker_kwargs({"number": 10})
 
@@ -396,12 +406,12 @@ class Activity(MSONable):
         >>> maker = RestartMaker()
         >>> activity = maker.make(1)
 
-        The following update will apply to the nested `AddMaker` in the kwargs of the
-        `RestartMaker`:
+        The following update will apply to the nested ``AddMaker`` in the kwargs of the
+        ``RestartMaker``:
 
         >>> activity.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
 
-        However, if `nested=False`, then the update will not be applied to the nested
+        However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
         >>> activity.update_maker_kwargs(
@@ -417,20 +427,3 @@ class Activity(MSONable):
                 dict_mod=dict_mod,
             )
 
-    @property
-    def job_uuids(self) -> List[str]:
-        """
-        The uuids of every job contained in the activity (including nested activities).
-
-        Returns
-        -------
-        list[str]
-            The uuids of all jobs in the activity (including nested activities).
-        """
-        uuids = []
-        for job in self.jobs:
-            if isinstance(job, Activity):
-                uuids.extend(job.job_uuids)
-            else:
-                uuids.append(job.uuid)
-        return uuids

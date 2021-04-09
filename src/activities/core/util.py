@@ -22,6 +22,13 @@ class ValueEnum(Enum):
     def as_dict(self):
         return str(self.value)
 
+    def __new__(cls, value, doc=None):
+        self = object.__new__(cls)
+        self._value_ = value
+        if doc is not None:
+            self.__doc__ = doc
+        return self
+
 
 def find_key(
     d: Union[Dict[Hashable, Any], List[Any]],

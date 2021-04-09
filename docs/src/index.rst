@@ -8,7 +8,7 @@
    :caption: User Interface
    :hidden:
 
-   Task <task>
+   Job <job>
 
 .. toctree::
    :caption: Information
