@@ -240,7 +240,7 @@ class Activity(MSONable):
         pyplot
             The matplotlib pyplot state.
         """
-        from activities.core.graph import draw_graph
+        from activities.utils.graph import draw_graph
 
         return draw_graph(self.graph)
 
@@ -257,7 +257,7 @@ class Activity(MSONable):
             The Job and the uuids of any parent jobs (not to be confused with the host
             activity).
         """
-        from activities.core.graph import itergraph
+        from activities.utils.graph import itergraph
 
         graph = self.graph
         for node in itergraph(graph):

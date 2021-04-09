@@ -22,6 +22,13 @@ activities.utils.find
    :members:
    :show-inheritance:
 
+activities.utils.graph
+----------------------
+
+.. automodule:: activities.utils.graph
+   :members:
+   :show-inheritance:
+
 activities.utils.log
 --------------------
 
@@ -29,8 +36,8 @@ activities.utils.log
    :members:
    :show-inheritance:
 
-activities.utils.log
---------------------
+activities.utils.uuid
+---------------------
 
 .. automodule:: activities.utils.uuid
    :members:

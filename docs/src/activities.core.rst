@@ -9,14 +9,6 @@ activities.core.activity
    :undoc-members:
    :show-inheritance:
 
-activities.core.graph
----------------------
-
-.. automodule:: activities.core.graph
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 activities.core.job
 -------------------
 
