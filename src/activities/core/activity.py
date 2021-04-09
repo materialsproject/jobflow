@@ -1,10 +1,10 @@
 """Define base Activity object."""
+
 from __future__ import annotations
 
 import logging
 import typing
 import warnings
-from dataclasses import dataclass, field
 
 from monty.json import MSONable
 
@@ -27,6 +27,7 @@ if typing.TYPE_CHECKING:
 
     import activities
 
+__all__ = ["JobOrder", "Activity"]
 
 logger = logging.getLogger(__name__)
 
@@ -36,126 +37,135 @@ class JobOrder(ValueEnum):
     LINEAR = "linear"
 
 
-@dataclass
 class Activity(MSONable):
     """
-    An Activity contains a sequence of Tasks or other Activities to execute.
+    An Activity contains a collection of Jobs or other Activities to execute.
 
     The :obj:`Activity: object is the main tool for constructing workflows. Activities
-    can either contain tasks or other activities but not a mixture of both.
-    Like :obj:`Job` objects, activities can also have outputs. The outputs
-    of an activity will likely be stored in a database (depending on the manager used
-    to run the activity), whereas the outputs of tasks are only available while the
-    activity is running.
-
-    .. Note::
-        There is one important difference between activities containing :obj:`Job`
-        objects and those containing other :obj:`Activity` objects: Activities
-        containing :obj:`Job` objects will execute the tasks in the order they are
-        given in the ``tasks`` list, whereas activities containing :obj:`Activity`
-        objects sorted to determine the optimal execution order.
-
-        This may be changed in a future release.
+    can either contain jobs or other activities. Like :obj:`Job` objects, activities
+    can also have outputs, however, these are not explicitly stored in the database.
+    Instead, the outputs of an Activity act to structure the outputs of the jobs
+    contained within the activity.
 
     Parameters
     ----------
+    jobs
+        The jobs to be run as a list of :obj:`Job` or :obj:`Activity` objects.
+    output
+        The output of the activity. These should come from the output of one or more
+        of the jobs.
     name
         The activity name.
-    tasks
-        The tasks to be run. Can either be a list of :obj:`Job` objects or a list of
-        :obj:`Activity` objects.
-    outputs
-        The outputs of the activity. These should come from the outputs of one or more
-        of the tasks contained in the activity.
-    config
-        A config dictionary for controlling the execution of the activity.
+    order
+        The order in which the jobs should be exectuted. The default is to determine
+        the order automatically based on the connections between jobs.
+    uuid
+        The identifier of the activity. This is genenrated automatically.
     host
         The identifier of the host activity. This is set automatically when an activity
-        is included in the tasks of another activity.
+        is included in the jobs array of another activity.
+
+    Attributes
+    ----------
+    jobs
+        The jobs to be run.
+    output
+        The output of the activity.
+    name
+        The activity name.
+    order
+        The order in which the jobs should be exectuted.
     uuid
-        A unique identifier for the activity. Generated automatically.
-    output_source
-        The sources of the output of the activity. Set automatically.
+        The identifier of the activity.
+    host
+        The identifier of the host activity.
+
+    Raises
+    ------
+    ValueError
+        If a job in the `jobs` array is already part of another activity.
+    ValueError
+        If any jobs needed to resolve the inputs of all jobs in the `jobs` array are
+        missing.
+    ValueError
+        If any jobs needed to resolve the activity `output` are missing.
+
+    Warns
+    -----
+    UserWarning
+        If a `Job` or `Activity` object is used as the Activity `output` rather than
+        an `OutputReference`.
+
+    See Also
+    --------
+    .job, .Job, JobOrder
 
     Examples
     --------
-
     Below we define a simple job to add two numbers, and create an activity containing
-    that job.
+    two connected add jobs.
 
     >>> from activities import job, Activity
-    ...
     >>> @job
     ... def add(a, b):
     ...     return a + b
-    ...
-    >>> add_task = add(1, 2)
-    >>> activity = Activity(tasks=[add_task])
+    >>> add_first = add(1, 2)
+    >>> add_second = add(add_first.output, 2)
+    >>> activity = Activity(jobs=[add_first, add_second])
 
-    If we were to run this activity, what would happen to the output of the job? It
-    would be lost as the outputs of the activity was not defined. To remedy that, we
-    can set the outputs of the activity to be the outputs of the ``add_task`` job.
+    This activity does not expose any of the outputs of the jobs contained within it.
+    We could instead "register" the output of the second add as the output of the
+    activity.
 
-    >>> activity = Activity(tasks=[add_task], outputs=add_task.outputs)
+    >>> activity = Activity(jobs=[add_first, add_second], output=add_second.output)
 
-    If we run the activity, we get an :obj:`ActivityResponse` object, that contains the
-    outputs among other things.
+    This will the activity to be used in another activity. In this way, activities
+    can be infinitely nested. For example:
 
-    >>> response = activity.run()
-    >>> response.outputs
-    Value(value=3)
+    >>> add_third = add(activity.output, 5)
+    >>> outer_activity = Activity(jobs=[activity, add_third])
 
-    It is not recommended to run the activity directly as we have done above. Instead,
-    we provide several activity managers for running activities locally or remotely.
+    Activities can be run using an activity manager. These enable running activities
+    locally or on compute clusters (using the FireWorks manager).
 
     >>> from activities.managers.local import run_locally
     >>> response = run_locally(activity)
-
-    The outputs of activities can be used by other activities. Note also that
-    activities can contain activities.
-
-    >>> task1 = add(1, 2)
-    >>> activity1 = Activity(tasks=[task1], outputs=task1.outputs)
-    ...
-    ... # use the outputs of the activity in another activity
-    >>> task2 = add(activity1.outputs.value, 5)
-    >>> activity2 = Activity(tasks=[task2], outputs=task2.outputs)
-    ...
-    ... # now create an activity containing other activities
-    >>> activity = Activity(tasks=[activity1, activity2], outputs=activity2.outputs)
-
-    An activity cannot contain both tasks and activities simulatenously.
-
-    >>> activity = Activity(tasks=[task1, activity2])
-    ValueError("Cannot mix Activity objects and Job objects in the same Activity")
-
-    By defining the job output class, activities can make use of static
-    parameter checking to ensure that connections between tasks are valid.
-
-    >>> from activities.core.outputs import Number
-    >>> @job(outputs=Number)
-    ... def add(a, b):
-    ...     return Number(a + b)
-    ...
-    ... task1 = add(1, 2)
-    ... task2 = add(task1.outputs.bad_output, 5)
-    AttributeError: 'Number' object has no attribute 'bad_output'
     """
 
-    jobs: Union[List[Union[Activity, activities.Job]], activities.Job] = field(
-        default_factory=list
-    )
-    output: Optional[Any] = None
-    order: JobOrder = JobOrder.AUTO
-    name: str = "Activity"
-    uuid: str = field(default_factory=suuid)
-    host: str = None
-
-    def __post_init__(self):
+    def __init__(
+        self,
+        jobs: Union[List[Union[Activity, activities.Job]], activities.Job, Activity],
+        output: Optional[Any] = None,
+        name: str = "Activity",
+        order: JobOrder = JobOrder.AUTO,
+        uuid: str = None,
+        host: str = None,
+    ):
         from activities.core.job import Job
+        from activities.core.reference import find_and_get_references
 
-        if isinstance(self.jobs, Job):
-            self.jobs = [self.jobs]
+        if isinstance(jobs, (Job, Activity)):
+            jobs = [jobs]
+
+        if uuid is None:
+            self.uuid = suuid()
+
+        self.jobs = jobs
+        self.output = output
+        self.name = name
+        self.order = order
+        self.uuid = uuid
+        self.host = host
+
+        # ensure that we have all the jobs needed to resolve the reference connections
+        job_references = find_and_get_references(self.jobs)
+        job_reference_uuids = set([ref.uuid for ref in job_references])
+        missing_jobs = job_reference_uuids.difference(set(self.job_uuids))
+        if len(missing_jobs) > 0:
+            raise ValueError(
+                "The following jobs were not found in the jobs array and are needed to "
+                f"resolve output references:\n{list(missing_jobs)}"
+            )
 
         for job in self.jobs:
             if job.host is not None:
@@ -174,8 +184,25 @@ class Activity(MSONable):
                     f"unexpected then double check the outputs of your Activity."
                 )
 
+            # check if the jobs array contains all jobs needed for the references
+            references = find_and_get_references(self.output)
+            reference_uuids = set([ref.uuid for ref in references])
+
+            if not reference_uuids.issubset(set(self.job_uuids)):
+                raise ValueError(
+                    "jobs array does not contain all jobs needed for activity output"
+                )
+
     @property
     def graph(self) -> DiGraph:
+        """
+        Get a graph indicating the connectivity of jobs in the activity.
+
+        Returns
+        -------
+        DiGraph
+            The graph showing the connectivity of the jobs.
+        """
         from itertools import product
 
         import networkx as nx
@@ -204,6 +231,18 @@ class Activity(MSONable):
     def iteractivity(
         self,
     ) -> Generator[Tuple["activities.Job", List[str]], None, None]:
+        """
+        Iterate through the jobs of the activity.
+
+        The jobs are yielded such that the job output references can always be
+        resolved. I.e., root nodes of the activity graph are always returned first.
+
+        Yields
+        -------
+        (Job, list(str))
+            The Job and the uuids of any parent jobs (not to be confused with the host
+            activity).
+        """
         from activities.core.graph import itergraph
 
         graph = self.graph
@@ -213,6 +252,16 @@ class Activity(MSONable):
             yield job, parents
 
     def draw_graph(self):
+        """
+        Draw the activity graph using matplotlib.
+
+        Requires matplotlib to be installed.
+
+        Returns
+        -------
+        pyplot
+            The matplotlib pyplot state.
+        """
         from activities.core.graph import draw_graph
 
         return draw_graph(self.graph)
@@ -224,6 +273,45 @@ class Activity(MSONable):
         function_filter: Optional[Callable] = None,
         dict_mod: bool = False,
     ):
+        """
+        Update the kwargs of all jobs in the activity .
+
+        Note that updates will be applied to jobs in nested activities.
+
+        Parameters
+        ----------
+        update
+            The updates to apply.
+        name_filter
+            A filter for the job name.
+        function_filter
+            Only filter matching functions.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
+
+        Examples
+        --------
+        Consider an activity containing a simple job with a `number` keyword argument.
+
+        >>> from activities import job, Activity
+        >>> @job
+        ... def add(a, number=5):
+        ...     return a + number
+        >>> add_job = add(1)
+        >>> activity = Activity([add_job])
+
+        The `number` argument could be updated in the following ways.
+
+        >>> activity.update_kwargs({"number": 10})
+
+        This will work if all jobs in the activity have a kwarg called number. However,
+        when this is not the case this will result in the bad input kwargs for some
+        jobs. To only apply the update to the correct jobs, filters can be used.
+
+        >>> activity.update_kwargs({"number": 10}, name_filter="add")
+        >>> activity.update_kwargs({"number": 10}, function_filter=add)
+        """
         for job in self.jobs:
             job.update_kwargs(
                 update,
@@ -240,6 +328,86 @@ class Activity(MSONable):
         nested: bool = True,
         dict_mod: bool = False,
     ):
+        """
+        Update the keyword arguments of any :obj:`.Maker` objects in the jobs.
+
+        Note that updates will be applied to jobs in any inner activities.
+
+        Parameters
+        ----------
+        update
+            The updates to apply.
+        name_filter
+            A filter for the Maker name.
+        class_filter
+            A filter for the maker class. Note the class filter will match any
+            subclasses.
+        nested
+            Whether to apply the updates to Maker objects that are themselves kwargs
+            of a Maker object. See examples for more details.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
+
+        Examples
+        --------
+        Consider the following activity containing jobs from a Maker:
+
+        >>> from dataclasses import dataclass
+        >>> from activities import job, Maker, Activity
+        >>> @dataclass
+        ... class AddMaker(Maker):
+        ...     name: str = "add"
+        ...     number: float = 10
+        ...
+        ...     @job
+        ...     def make(self, a):
+        ...         return a + self.number
+        >>> maker = AddMaker()
+        >>> add_job = maker.make(1)
+        >>> activity = Activity([add_job])
+
+        The `number` argument could be updated in the following ways.
+
+        >>> activity.update_maker_kwargs({"number": 10})
+
+        This will work if all Makers in the activity have a kwarg called number.
+        However, when this is not the case this will result in the bad input kwargs
+        for some Makers. To only apply the update to the correct Makers, filters can be
+        used.
+
+        >>> activity.update_maker_kwargs({"number": 10}, name_filder="add")
+        >>> activity.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+
+        By default, the updates are applied to nested Makers. These are Makers
+        which are present in the kwargs of another Maker. Consider the following case
+        for a Maker that produces a job that restarts.
+
+        >>> from activities import Response
+        >>> @dataclass
+        ... class RestartMaker(Maker):
+        ...     name: str = "restart"
+        ...     add_maker: Maker = AddMaker()
+        ...
+        ...     @job
+        ...     def make(self, a):
+        ...         restart_job = self.add_maker.make(a)
+        ...         return Response(restart=restart_job)
+        >>> maker = RestartMaker()
+        >>> activity = maker.make(1)
+
+        The following update will apply to the nested `AddMaker` in the kwargs of the
+        `RestartMaker`:
+
+        >>> activity.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+
+        However, if `nested=False`, then the update will not be applied to the nested
+        Maker:
+
+        >>> activity.update_maker_kwargs(
+        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ... )
+        """
         for job in self.jobs:
             job.update_maker_kwargs(
                 update,
@@ -248,3 +416,21 @@ class Activity(MSONable):
                 nested=nested,
                 dict_mod=dict_mod,
             )
+
+    @property
+    def job_uuids(self) -> List[str]:
+        """
+        The uuids of every job contained in the activity (including nested activities).
+
+        Returns
+        -------
+        list[str]
+            The uuids of all jobs in the activity (including nested activities).
+        """
+        uuids = []
+        for job in self.jobs:
+            if isinstance(job, Activity):
+                uuids.extend(job.job_uuids)
+            else:
+                uuids.append(job.uuid)
+        return uuids
