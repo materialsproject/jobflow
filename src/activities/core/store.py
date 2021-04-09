@@ -121,7 +121,8 @@ class ActivityStore(Store):
         """
         from pydash import get
 
-        from activities.core.util import find_key, update_in_dictionary
+        from activities.utils.find import update_in_dictionary
+        from activities.utils.find import find_key
 
         if load is None:
             load = self.load
@@ -211,7 +212,8 @@ class ActivityStore(Store):
         from monty.json import jsanitize
         from pydash import get
 
-        from activities.core.util import find_key, update_in_dictionary
+        from activities.utils.find import update_in_dictionary
+        from activities.utils.find import find_key
 
         if save is None or save is False:
             save = self.save
@@ -602,7 +604,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any) -> Dict[str, str]:
-    from activities.core.util import suuid
+    from activities.utils.uuid import suuid
 
     class_name = ""
     module_name = ""

@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Type
 from monty.json import MontyDecoder, MSONable, jsanitize
 from pydantic import BaseModel
 
-from activities.core.util import ValueEnum
+from activities.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
     import activities
@@ -184,7 +184,7 @@ def resolve_references(
 def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
     from pydash import get
 
-    from activities.core.util import find_key_value
+    from activities.utils.find import find_key_value
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
@@ -211,7 +211,7 @@ def find_and_resolve_references(
 ) -> Any:
     from pydash import get, set_
 
-    from activities.core.util import find_key_value
+    from activities.utils.find import find_key_value
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there

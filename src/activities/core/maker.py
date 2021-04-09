@@ -30,8 +30,8 @@ class Maker(ABC, MSONable):
     ):
         from pydash import get, set_
 
-        from activities.core.dict_mods import apply_mod
-        from activities.core.util import find_key
+        from activities.utils.dict_mods import apply_mod
+        from activities.utils.find import find_key
 
         d = self.as_dict()
 

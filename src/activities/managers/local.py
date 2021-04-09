@@ -19,7 +19,8 @@ def run_locally(
 ):
     from maggma.stores import MemoryStore
 
-    from activities import Activity, ActivityStore, Job, initialize_logger
+    from activities import Activity, ActivityStore, Job
+    from activities import initialize_logger
     from activities.core.reference import ReferenceFallback
 
     if store is None:

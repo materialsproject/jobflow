@@ -1,33 +1,17 @@
-import logging
-from enum import Enum
-from typing import Any, Dict, Hashable, List, Tuple, Type, Union
+"""Tools for finding and replacing in dictionaries and other objects."""
 
-from monty.json import MSONable, jsanitize
+from __future__ import annotations
 
+import typing
 
-class ValueEnum(Enum):
-    """
-    Enum that serializes to string as the value and can be compared against a string.
-    """
+if typing.TYPE_CHECKING:
+    from typing import Union, Dict, Hashable, Any, List, Type, Tuple
 
-    def __str__(self):
-        return str(self.value)
+    from monty.json import MSONable
 
-    def __eq__(self, other):
-        if type(self) == type(other) and self.value == other.value:
-            return True
-        else:
-            return str(self.value) == str(other)
-
-    def as_dict(self):
-        return str(self.value)
-
-    def __new__(cls, value, doc=None):
-        self = object.__new__(cls)
-        self._value_ = value
-        if doc is not None:
-            self.__doc__ = doc
-        return self
+__all__ = [
+    "find_key", "find_key_value", "update_in_dictionary", "contains_activity_or_job"
+]
 
 
 def find_key(
@@ -69,6 +53,7 @@ def find_key(
     [['a', 1, 'x'], ['c', 'd', 'x']]
 
     The ``nested`` argument can be used to control the behaviour of nested keys.
+
     >>> data = {"a": {"x": {"x": 1}}, "b": {"x": 0}}
     >>> find_key(data, "x", nested=False)
     [['a'], ['b']]
@@ -166,89 +151,66 @@ def find_key_value(
     return tuple([list(path) for path in found_items])
 
 
-def update_in_dictionary(d: Dict[Hashable, Any], updates: Dict[Tuple, Any]):
+def update_in_dictionary(obj: Dict[Hashable, Any], updates: Dict[Tuple, Any]):
     """
-    Update a dictionary (in place) at specific locations with a new values.
+    Update a dictionary in place at specific locations with a new values.
 
     This function works on nested dictionaries and those containing lists or tuples.
 
-    For example:
+    Parameters
+    ----------
+    obj
+        A dictionary to update.
+    updates
+        The updates to perform, as a dictionary of ``{location: update}``.
 
-    ```python
-    d = {
-        "a": [0, {"b": 1, "x": 2}],
-        "c": {
-            "d": {"x": 3}
-        }
-    }
-    update_in_dictionary(d, {('a', 1, 'x'): 100, ('c', 'd', 'x'): 100})
-
-    # d = {
-    #     "a": [0, {"b": 1, "x": 100}],
-    #     "c": {
-    #         "d": {"x": 100}
-    #     }
-    # }
-    ```
-
-    Args:
-        d: A dictionary to update.
-        updates: The updates to perform, as a dictionary of {location: update}.
+    Examples
+    --------
+    >>> data = {
+    ...    "a": [0, {"b": 1, "x": 3}],
+    ...    "c": {"d": {"x": 3}}
+    ... }
+    >>> update_in_dictionary(data, {('a', 1, 'x'): 100, ('c', 'd', 'x'): 100})
+    >>> data
+    {'a': [0, {'b': 1, 'x': 100}], 'c': {'d': {'x': 100}}}
     """
     for loc, update in updates.items():
-        pos = d
+        pos = obj
         for idx in loc[:-1]:
             pos = pos[idx]
         pos[loc[-1]] = update
 
 
-def initialize_logger(level: int = logging.INFO) -> logging.Logger:
-    """Initialize the default logger.
+def contains_activity_or_job(obj: Any) -> bool:
+    """
+    Find whether an object contains any :obj:`Activity` or :obj:`Job` objects.
 
     Parameters
     ----------
-    level
-        The log level.
+    obj
+        An object.
 
     Returns
     -------
-    A logging instance with customized formatter and handlers.
+    bool
+        Whether the object contains any activities or jobs.
     """
-    import sys
-
-    log = logging.getLogger("activities")
-    log.setLevel(level)
-    log.handlers = []  # reset logging handlers if they already exist
-
-    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    screen_handler = logging.StreamHandler(stream=sys.stdout)
-    screen_handler.setFormatter(fmt)
-    log.addHandler(screen_handler)
-    return log
-
-
-def contains_activity_or_job(arg: Any) -> bool:
     from activities.core.activity import Activity
     from activities.core.job import Job
+    from monty.json import jsanitize
 
-    if isinstance(arg, (Activity, Job)):
+    if isinstance(obj, (Activity, Job)):
         # if the argument is an activity or job then stop there
         return True
 
-    elif isinstance(arg, (float, int, str, bool)):
+    elif isinstance(obj, (float, int, str, bool)):
         # argument is a primitive, we won't find an activity or job here
         return False
 
-    arg = jsanitize(arg, strict=True)
+    obj = jsanitize(obj, strict=True)
 
     # recursively find any reference classes
-    locations = find_key_value(arg, "@class", "Activity")
-    locations += find_key_value(arg, "@class", "Job")
+    locations = find_key_value(obj, "@class", "Activity")
+    locations += find_key_value(obj, "@class", "Job")
 
     return len(locations) > 0
-
-
-def suuid() -> str:
-    from uuid import uuid4
-
-    return str(uuid4())

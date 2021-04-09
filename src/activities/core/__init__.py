@@ -7,5 +7,4 @@ from activities.core import (
     schema,
     state,
     store,
-    util,
 )

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from activities.core.reference import Reference, ReferenceFallback
-from activities.core.util import suuid
+from activities.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
@@ -273,7 +273,7 @@ class Job(MSONable):
     output: Reference = field(init=False)
 
     def __post_init__(self):
-        from activities.core.util import contains_activity_or_job
+        from activities.utils.find import contains_activity_or_job
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
@@ -492,7 +492,7 @@ class Job(MSONable):
     ):
         from types import BuiltinFunctionType, FunctionType, MethodType
 
-        from activities.core.dict_mods import apply_mod
+        from activities.utils.dict_mods import apply_mod
 
         if isinstance(function_filter, (FunctionType, BuiltinFunctionType, MethodType)):
             function_filter = (function_filter.__module__, function_filter.__name__)

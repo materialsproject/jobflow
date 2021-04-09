@@ -1,57 +1,41 @@
-activities.core package
-=======================
+activities.core
+===============
 
-activities.core.activity module
--------------------------------
+activities.core.activity
+------------------------
 
 .. automodule:: activities.core.activity
    :members:
    :undoc-members:
    :show-inheritance:
 
-activities.core.dict_mods module
---------------------------------
-
-.. automodule:: activities.core.dict_mods
-   :members:
-   :show-inheritance:
-
-activities.core.graph module
-----------------------------
+activities.core.graph
+---------------------
 
 .. automodule:: activities.core.graph
    :members:
    :undoc-members:
    :show-inheritance:
 
-activities.core.job module
----------------------------
+activities.core.job
+-------------------
 
 .. automodule:: activities.core.job
    :members:
    :show-inheritance:
 
-activities.core.maker module
-----------------------------
+activities.core.maker
+---------------------
 
 .. automodule:: activities.core.maker
    :members:
    :undoc-members:
    :show-inheritance:
 
-activities.core.reference module
---------------------------------
+activities.core.reference
+-------------------------
 
 .. automodule:: activities.core.reference
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-activities.core.util module
----------------------------
-
-.. automodule:: activities.core.util
    :members:
    :undoc-members:
    :show-inheritance:

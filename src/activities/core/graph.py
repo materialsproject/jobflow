@@ -1,4 +1,7 @@
 """Tools for constructing Job and Activity graphs."""
+
+from __future__ import annotations
+
 import warnings
 
 import networkx as nx
@@ -9,8 +12,36 @@ try:
 except ImportError:
     matplotlib = None
 
+import typing
+
+if typing.TYPE_CHECKING:
+    from pydot import Dot
+
+    import activities
+
 
 def itergraph(graph: nx.DiGraph):
+    """
+    Iterate through a graph using a topological sort order.
+
+    This means the nodes are yielded such that for every directed edge (u v)
+    node u comes before v in the ordering.
+
+    Parameters
+    ----------
+    graph
+        A networkx graph.
+
+    Raises
+    ------
+    ValueError
+        If the graph contains cycles.
+
+    Yields
+    ------
+    str
+        The node uuid.
+    """
     if not nx.is_directed_acyclic_graph(graph):
         raise ValueError("Graph is not acyclic, cannot determine dependency order.")
 
@@ -25,14 +56,27 @@ def itergraph(graph: nx.DiGraph):
 
 
 @requires(matplotlib, "matplotlib must be installed to plot activity graphs.")
-def draw_graph(graph: nx.DiGraph, layout_function=None):
+def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
+    """
+    Draw a networkx graph.
+
+    Parameters
+    ----------
+    graph
+        A graph object.
+    layout_function
+        A networkx layout function to use as the graph layout. For example,
+        :obj:`.planar_layout`.
+
+    Returns
+    -------
+    matplotlib.pyplot
+        The matplotlib pyplot object.
+    """
     import matplotlib.pyplot as plt
 
     if layout_function is None:
-        try:
-            pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
-        except:
-            pos = nx.planar_layout(graph)
+        pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
     else:
         pos = layout_function(graph)
 
@@ -53,17 +97,44 @@ def draw_graph(graph: nx.DiGraph, layout_function=None):
     return plt
 
 
-def to_pydot(activity):
-    try:
-        import pydot
+def to_pydot(activity: activities.Activity) -> Dot:
+    """
+    Convert an activity to a pydot graph.
 
-    except ImportError:
-        raise ImportError("pydot must be installed to use to_pydot.")
+    Pydot graphs can be visualised using graphviz and support more advanced features
+    than networkx graphs. For example, the pydot graph also includes the activity
+    containers.
+
+    Parameters
+    ----------
+    activity
+        An activity.
+
+    Returns
+    -------
+    pydot.Dot
+        The pydot graph.
+
+    Examples
+    --------
+    The pydot graph can be generated from an activity using:
+
+    >>> from activities import job, Activity
+    >>> @job
+    ... def add(a, b):
+    ...     return a + b
+    >>> add_first = add(1, 2)
+    >>> add_second = add(add_first.output, 2)
+    >>> my_activity = Activity(jobs=[add_first, add_second])
+    >>> graph = to_pydot(my_activity)
+
+    If graphviz is installed, the pydot graph can be rendered to a file using:
+
+    >>> graph.write("output.png", format="png")
+    """
+    import pydot
 
     from activities import Activity
-
-    # pyplot import is quite heavy so do this inside the function to avoid making
-    # the graph module slow to load.
 
     nx_graph = activity.graph
     pydot_graph = pydot.Dot(f'"{activity.name}"', graph_type="digraph")

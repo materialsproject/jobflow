@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import typing
+from fireworks import explicit_serialize, FiretaskBase, FWAction, Workflow, Firework
 
 if typing.TYPE_CHECKING:
-    from typing import Dict, List, Optional, Sequence, Union
-
-    from fireworks.core.firework import Firework, Workflow
+    from typing import Union, List, Optional, Sequence, Dict
 
     import activities
+
+__all__ = ["activity_to_workflow", "job_to_firework", "JobFiretask"]
 
 
 def activity_to_workflow(
@@ -41,7 +42,6 @@ def job_to_firework(
     from fireworks.core.firework import Firework
 
     from activities.core.reference import ReferenceFallback
-    from activities.managers.fireworks.firetask import JobFiretask
 
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
@@ -65,3 +65,47 @@ def job_to_firework(
         parent_mapping[job.uuid] = fw
 
     return fw
+
+
+@explicit_serialize
+class JobFiretask(FiretaskBase):
+
+    required_params = ["job", "store"]
+
+    def run_task(self, fw_spec):
+        from activities.core.job import Job
+        from activities import initialize_logger
+
+        job: Job = self.get("job")
+        store = self.get("store")
+        store.connect()
+
+        if "fw_id" in fw_spec:
+            job.metadata.update({"fw_id": fw_spec["fw_id"]})
+
+        initialize_logger()
+        response = job.run(store=store)
+
+        detours = None
+        additions = None
+        if response.restart is not None:
+            # create a workflow from the new additions
+            detours = [activity_to_workflow(response.restart, store)]
+
+        if response.addition is not None:
+            additions = [activity_to_workflow(response.addition, store)]
+
+        if response.detour is not None:
+            detour_wf = activity_to_workflow(response.detour, store)
+            if detours is not None:
+                detours.append(detour_wf)
+            else:
+                detours = [detour_wf]
+
+        return FWAction(
+            stored_data=response.stored_data,
+            detours=detours,
+            additions=additions,
+            defuse_workflow=response.stop_activities,
+            defuse_children=response.stop_children,
+        )

@@ -8,20 +8,10 @@ import warnings
 
 from monty.json import MSONable
 
-from activities.core.util import ValueEnum, contains_activity_or_job, suuid
+from activities.utils import suuid, ValueEnum, contains_activity_or_job
 
 if typing.TYPE_CHECKING:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Generator,
-        List,
-        Optional,
-        Tuple,
-        Type,
-        Union,
-    )
+    from typing import Any, Callable, Dict, List, Optional, Type, Union
 
     from networkx import DiGraph
 
@@ -40,6 +30,7 @@ class JobOrder(ValueEnum):
       references.
     - ``LINEAR``: Run the jobs in the order they appear in the jobs array.
     """
+
     AUTO = "auto"
     LINEAR = "linear"
 
@@ -49,7 +40,7 @@ class Activity(MSONable):
     An Activity contains a collection of Jobs or other Activities to execute.
 
     The :obj:`Activity` object is the main tool for constructing workflows. Activities
-    can either contain jobs or other activities. Like :obj:`Job` objects, activities
+    can either contain jobs or other activities. Like :obj:`.Job` objects, activities
     can also have outputs, however, these are not explicitly stored in the database.
     Instead, the outputs of an Activity act to structure the outputs of the jobs
     contained within the activity.
@@ -57,7 +48,7 @@ class Activity(MSONable):
     Parameters
     ----------
     jobs
-        The jobs to be run as a list of :obj:`Job` or :obj:`Activity` objects.
+        The jobs to be run as a list of :obj:`.Job` or :obj:`Activity` objects.
     output
         The output of the activity. These should come from the output of one or more
         of the jobs.
@@ -85,7 +76,7 @@ class Activity(MSONable):
     Warns
     -----
     UserWarning
-        If a ``Job`` or ``Activity`` object is used as the Activity ``output`` rather
+        If a ``.Job`` or ``Activity`` object is used as the Activity ``output`` rather
         than an ``OutputReference``.
 
     See Also
@@ -253,9 +244,7 @@ class Activity(MSONable):
 
         return draw_graph(self.graph)
 
-    def iteractivity(
-        self,
-    ) -> Generator[Tuple["activities.Job", List[str]], None, None]:
+    def iteractivity(self):
         """
         Iterate through the jobs of the activity.
 
@@ -426,4 +415,3 @@ class Activity(MSONable):
                 nested=nested,
                 dict_mod=dict_mod,
             )
-

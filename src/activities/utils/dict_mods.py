@@ -9,13 +9,11 @@ limited use cases required by activities.
 
 from __future__ import annotations
 
-import typing
 import re
-
-from monty.design_patterns import singleton
+import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Dict, Any, Tuple
+    from typing import Any, Dict, Tuple
 
 
 __author__ = "Shyue Ping Ong"

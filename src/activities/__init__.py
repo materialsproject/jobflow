@@ -6,5 +6,5 @@ from activities.core.reference import Reference
 from activities.core.schema import Schema
 from activities.core.state import CURRENT_JOB
 from activities.core.store import ActivityStore
-from activities.core.util import initialize_logger
+from activities.utils.log import initialize_logger
 from activities.managers.local import run_locally

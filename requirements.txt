@@ -3,3 +3,4 @@ networkx==2.5.1
 pydash==5.0.0
 maggma==0.26.0
 pydantic==1.8.1
+pydot==1.4.2

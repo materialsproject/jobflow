@@ -9,11 +9,8 @@ of jobs within them.
 
 .. currentmodule:: activities.core.activity
 
-.. autosummary::
-   activity
-
 .. autoclass:: Activity
+   :noindex:
    :members:
-   :undoc-members:
    :show-inheritance:
 
