@@ -31,3 +31,27 @@ activities.core.reference
    :members:
    :undoc-members:
    :show-inheritance:
+
+activities.core.schema
+----------------------
+
+.. automodule:: activities.core.schema
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+activities.core.state
+---------------------
+
+.. automodule:: activities.core.state
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+activities.core.store
+---------------------
+
+.. automodule:: activities.core.store
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -7,6 +7,8 @@
 import os
 import sys
 
+# import typing
+# typing.TYPE_CHECKING = True
 from activities import __version__
 
 sys.path.insert(0, os.path.abspath("../../"))
@@ -93,4 +95,5 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3.8", None),
     "matplotlib": ("http://matplotlib.org", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
+    "monty": ("https://guide.materialsvirtuallab.org/monty/", None),
 }

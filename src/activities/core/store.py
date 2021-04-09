@@ -17,9 +17,6 @@ T = typing.TypeVar("T", bound="ActivityStore")
 
 
 class ActivityStore(Store):
-    """
-    Special store intended to allow pushing and pulling documents into multiple stores.
-    """
 
     def __init__(
         self,
@@ -27,23 +24,23 @@ class ActivityStore(Store):
         data_store: Store,
         save: Union[str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
         load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
-        docs_collection_name: str = None,
     ):
         """
-        Initialize an ActivityStore.
+        Store intended to allow pushing and pulling documents into multiple stores.
 
-        Args:
-            docs_store: Store for basic documents.
-            data_store: Maggma store for large data objects.
-            save: List of keys to save in the data store when uploading documents.
-            load: List of keys to load from the data store when querying.
-            docs_collection_name: Override the collection name of the docs_store.
+        Parameters
+        ----------
+        docs_store
+            Store for basic documents.
+        data_store
+            Maggma store for large data objects.
+        save
+            List of keys to save in the data store when uploading documents.
+        load
+            List of keys to load from the data store when querying.
         """
         self.docs_store = docs_store
         self.data_store = data_store
-        if docs_collection_name:
-            self.docs_store.collection_name = docs_collection_name
-        self.docs_collection_name = self.docs_store.collection_name
 
         # enforce uuid key
         self.data_store.key = "blob_id"
@@ -68,15 +65,23 @@ class ActivityStore(Store):
         super(ActivityStore, self).__init__(**kwargs)
 
     def name(self) -> str:
-        """Return a string representing this data source."""
+        """Get the name of the data source.
+
+        Returns
+        -------
+        str
+            A string representing this data source.
+        """
         return f"ActivityStore-{self.docs_store.name}"
 
     def connect(self, force_reset: bool = False):
         """
         Connect to the source data.
 
-        Args:
-            force_reset: Whether to reset the connection or not.
+        Parameters
+        ----------
+        force_reset
+            Whether to reset the connection or not.
         """
         self.docs_store.connect(force_reset=force_reset)
         self.data_store.connect(force_reset=force_reset)
@@ -90,8 +95,15 @@ class ActivityStore(Store):
         """
         Counts the number of documents matching the query criteria.
 
-        Args:
-            criteria: PyMongo filter for documents to count in.
+        Parameters
+        ----------
+        criteria
+            PyMongo filter for documents to count in.
+
+        Returns
+        -------
+        int
+            The number of documents matching the query.
         """
         return self.docs_store.count(criteria=criteria)
 
@@ -107,16 +119,25 @@ class ActivityStore(Store):
         """
         Queries the ActivityStore for documents.
 
-        Args:
-            criteria: PyMongo filter for documents to search in.
-            properties: Properties to return in grouped documents.
-            sort: Dictionary of sort order for fields. Keys are field names and values
-                are 1 for ascending or -1 for descending.
-            skip: Number documents to skip.
-            limit: Limit on total number of documents returned.
-            load: List of keys to load from the data store.
+        Parameters
+        ----------
+        criteria
+            PyMongo filter for documents to search in.
+        properties
+            Properties to return in grouped documents.
+        sort
+            Dictionary of sort order for fields. Keys are field names and values are 1
+            for ascending or -1 for descending.
+        skip
+            Number of documents to skip.
+        limit
+            Limit on the total number of documents returned.
+        load
+            List of keys to load from the data store.
 
-        Returns:
+        Yields
+        ------
+        Dict
             The documents.
         """
         from pydash import get
@@ -172,14 +193,21 @@ class ActivityStore(Store):
         """
         Queries the Store for a single document.
 
-        Args:
-            criteria: PyMongo filter for documents to search.
-            properties: Properties to return in the document.
-            sort: Dictionary of sort order for fields. Keys are field names and values
-                are 1 for ascending or -1 for descending.
-            load: List of keys to load from the data store.
+        Parameters
+        ----------
+        criteria
+            PyMongo filter for documents to search.
+        properties
+            Properties to return in the document.
+        sort
+            Dictionary of sort order for fields. Keys are field names and values are 1
+            for ascending or -1 for descending.
+        load
+            List of keys to load from the data store.
 
-        Returns:
+        Returns
+        -------
+        dict or None
             The document.
         """
         docs = self.query(
@@ -195,17 +223,18 @@ class ActivityStore(Store):
         save: Union[str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
     ):
         """
-        Update documents into the Store
+        Update or insert documents into the Store
 
-        Args:
-            docs: The document or list of documents to update.
-            key: Field name(s) to determine uniqueness for a document, can be a list of
-                multiple fields, a single field, or None if the Store's key field is to
-                be used.
-            save: List of keys to save in the data store when uploading documents.
-
-        Returns:
-            A single or list of task_ids for the documents.
+        Parameters
+        ----------
+        docs
+            The document or list of documents to update.
+        key
+            Field name(s) to determine uniqueness for a document, can be a list of
+            multiple fields, a single field, or None if the Store's key field is to
+            be used.
+        save
+            List of keys to save in the data store when uploading documents.
         """
         from enum import Enum
 
@@ -260,11 +289,16 @@ class ActivityStore(Store):
         """
         Tries to create an index on document store and return true if it succeeded.
 
-        Args:
-            key: Single key to index.
-            unique: Whether or not this index contains only unique keys.
+        Parameters
+        ----------
+        key
+            Single key to index.
+        unique
+            Whether or not this index contains only unique keys.
 
-        Returns:
+        Returns
+        -------
+        bool
             Whether the index exists/was created correctly.
         """
         return self.docs_store.ensure_index(key, unique=unique)
@@ -282,18 +316,28 @@ class ActivityStore(Store):
         """
         Simple grouping function that will group documents by keys.
 
-        Args:
-            keys: Fields to group documents.
-            criteria: PyMongo filter for documents to search in.
-            properties: Properties to return in grouped documents
-            sort: Dictionary of sort order for fields. Keys are field names and values
-                are 1 for ascending or -1 for descending.
-            skip: Number documents to skip.
-            limit: Limit on total number of documents returned.
-            load: List of keys to load from the data store.
+        Parameters
+        ----------
+        keys
+            Fields to group documents.
+        criteria
+            PyMongo filter for documents to search in.
+        properties
+            Properties to return in grouped documents
+        sort
+            Dictionary of sort order for fields. Keys are field names and values are 1
+            for ascending or -1 for descending.
+        skip
+            Number of documents to skip.
+        limit
+            Limit on the total number of documents returned.
+        load
+            List of keys to load from the data store.
 
-        Returns:
-            Generator returning tuples of (dict, list of docs).
+        Yields
+        ------
+        dict, list[dict]
+            The documents as (key, documents) grouped by their keys.
         """
         from itertools import groupby
 
@@ -328,8 +372,10 @@ class ActivityStore(Store):
         """
         Remove docs matching the criteria.
 
-        Args:
-            criteria: Criteria for documents to remove.
+        Parameters
+        ----------
+        criteria
+            Criteria for documents to remove.
         """
         docs = self.query(criteria, properties=["uuid", "index"])
         for doc in docs:
@@ -341,11 +387,26 @@ class ActivityStore(Store):
     @property
     @deprecated(message="This will be removed in the future")
     def collection(self):
-        return self.docs_collection_name
+        """Get the collection name."""
+        return self.docs_store.collection
 
     @classmethod
     def from_store(cls, store: Store, **kwargs):
-        """Use the same store for data and documents"""
+        """
+        Create a new activity store that uses the same store for documents and data.
+
+        Parameters
+        ----------
+        store
+            A maggma store.
+        **kwargs
+            Keyword arguments that will be passed to the ActivityStore init method.
+
+        Returns
+        -------
+        ActivityStore
+            An :obj:`ActivityStore`.
+        """
         from copy import deepcopy
 
         return cls(docs_store=store, data_store=deepcopy(store), **kwargs)
@@ -388,10 +449,8 @@ class ActivityStore(Store):
 
         The simplest format is a monty dumped version of the store, generated using:
 
-        ```python
-        from monty.serialization import dumpfn
-        dumpfn("activity_store.json", activity_store)
-        ```
+        >>> from monty.serialization import dumpfn
+        >>> dumpfn("activity_store.json", activity_store)
 
         Alternatively, the format can be a dictionary containing the docs_store and
         data_store keys, with the values as the dictionary representation of those
@@ -399,6 +458,7 @@ class ActivityStore(Store):
 
         Alternatively, a file format specific to mongodb is supported. Here the file
         should contain the keys:
+
         - host (str): The hostname of the database.
         - port (int): The port used to access the database.
         - collection (str): The collection in which to store documents.
@@ -422,6 +482,7 @@ class ActivityStore(Store):
           MongoStore (and, optionally, GridFSStore if no data_store_kwargs are given).
 
           **S3 Store kwargs**
+
           - bucket (str): The S3 bucket where the data is stored.
           - s3_profile (str): The S3 profile that contains the login information
             typically found at ~/.aws/credentials.
@@ -431,14 +492,20 @@ class ActivityStore(Store):
         - data_store_prefix (str, optional): The prefix for the collection used
           for the datastore.
 
-        Args:
-            db_file: Path to the file containing the credentials.
-            admin: Whether to use the admin user (only applicable to the mongodb
-                style file format).
-            **kwargs: Additional keyword arguments that get passed to the ActivityStore
-                constructor.
+        Parameters
+        ----------
+        db_file
+            Path to the file containing the credentials.
+        admin
+            Whether to use the admin user (only applicable to the mongodb style file
+            format).
+        **kwargs
+            Additional keyword arguments that get passed to the ActivityStore
+            constructor.
 
-        Returns:
+        Returns
+        -------
+        ActivityStore
             An ActivityStore.
         """
         from monty.serialization import loadfn

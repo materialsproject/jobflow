@@ -21,11 +21,33 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["job", "Job", "Response", "store_output", "JobConfig"]
+__all__ = ["job", "Job", "Response", "JobConfig", "store_output"]
 
 
 @dataclass
 class JobConfig(MSONable):
+    """
+    The configuration parameters for a job.
+
+    Parameters
+    ----------
+    resolve_references
+        Whether to resolve any references before the job function is executed.
+        If ``False`` the unresolved reference objects will be passed into the function
+        call.
+    on_missing_references
+        What to do if the references cannot be resolved. The default is to throw an
+        error.
+    manager_config
+        The configuration settings to control the manager execution.
+    expose_store
+        Whether to expose the store in :obj:`.CURRENT_JOB`` when the job is running.
+
+    Returns
+    -------
+    JobConfig
+        A :obj:`JobConfig` object.
+    """
 
     resolve_references: bool = True
     on_missing_references: ReferenceFallback = ReferenceFallback.ERROR
@@ -38,8 +60,8 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     Wraps a function to produce a :obj:`Job`.
 
     :obj:`Job` objects are delayed function calls that can be used in an
-    :obj:`Activity`. A job is a composed of the function name, the arguments for the
-    function, and the outputs of the function. This decorator makes it simple to create
+    :obj:`Activity`. A job is a composed of the function name and source and any
+    arguments for the function. This decorator makes it simple to create
     job objects directly from a function definition. See the examples for more details.
 
     Parameters
@@ -47,11 +69,8 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     method
         A function to wrap. This should not be specified directly and is implied
         by the decorator.
-    outputs
-        If the function returns an :obj:`Outputs` object, the outputs option should be
-        specified to enable static parameter checking. If the function returns a
-        :obj:`Detour` object, then the outputs should be set os the class of the
-        detour activity outputs.
+    **job_kwargs
+        Other keyword arguments that will get passed to the :obj:`Job` init method.
 
     Examples
     --------
@@ -61,15 +80,16 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     >>> print_job = print_message()
     >>> type(print_job)
     <class 'activities.core.job.Job'>
-    >>> print_job.function
-    ('__main__', 'print_message')
+    >>> print_job.function_source
+    '__main__'
+    >>> print_job.function_name
+    'print_message'
 
     Jobs can have required and optional parameters.
 
     >>> @job
     ... def print_sum(a, b=0):
     ...     return print(a + b)
-    ...
     >>> print_sum_job = print_sum(1, 2)
     >>> print_sum_job.function_args
     (1, )
@@ -82,7 +102,6 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     >>> @job
     ... def add(a, b):
     ...     return a + b
-    ...
     >>> add_task = add(1, 2)
     >>> add_task.output
     Reference('abeb6f48-9b34-4698-ab69-e4dc2127ebe9')
@@ -92,59 +111,32 @@ def job(method: Optional[Callable] = None, **job_kwargs):
         object. References are automatically converted to their computed values
         (resolved) when the task runs.
 
-    If a dictionary of values is returned, the values can be referenced in the usual
-    manner
+    If a dictionary of values is returned, the values can be indexed in the usual
+    way.
 
-    >>> from activities.core.outputs import Number
-    ...
     >>> @job
     ... def compute(a, b):
     ...     return {"sum": a + b, "product": a * b}
-    ...
     >>> compute_task = compute(1, 2)
     >>> compute_task.output["sum"]
     Reference('abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'sum')
 
-    A better approach is to use :obj:`Outputs` classes. These have several benefits
-    including the ability to make use of static parameter checking to ensure that
-    the task outputs are valid. To use an outputs class, it should be specified
-    in the :obj:`task` decorator options.
+    .. Warning::
+        If an output is indexed incorrectly, for example by trying to access a key that
+        doesn't exist, this error will only be raised when the Job is executed.
 
-    >>> from activities.core.outputs import Number
-    ...
-    >>> @job(outputs=Number)
-    ... def add(a, b):
-    ...     return Number(a + b)
-    ...
-    >>> add_task = add(1, 2)
-    >>> add_task.outputs.number
-    Number(number=Reference(abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'number'))
-    >>> add_task.outputs.bad_output
-    AttributeError: 'Number' object has no attribute 'bad_output'
+    Jobs can return :obj:`.Response` objects that control the activity execution flow.
+    For example, to replace the current jub with another job, ``replace`` can be used.
 
-    To indicate that a task has no outputs, the ``outputs`` parameter should be set to
-    ``None``.
-
-    >>> @job(outputs=None)
-    ... def print_message(message):
-    ...     print(message)
-
-    Tasks can return :obj:`Detour` objects that cause new activities to be added to the
-    Activity graph. In this case, the outputs class of the Detour activity should be
-    specified in the task ``outputs`` option.
-
-    >>> from activities import Activity
-    >>> from activities.core.outputs import Number
-    ...
-    >>> @job(outputs=Number)
-    ... def detour_add(a, b):
-    ...     add_task = add(a, b)
-    ...     activity = Activity("My detour", [add_task], add_task.outputs)
-    ...     return Detour(activity)
+    >>> from activities import Response
+    >>> @job
+    ... def replace(a, b):
+    ...     new_job = compute(a, b)
+    ...     return Response(restart=new_job)
 
     See Also
     --------
-    Job, .Activity, .Outputs
+    Job, .Activity, .Response
     """
 
     def decorator(func):
@@ -152,10 +144,8 @@ def job(method: Optional[Callable] = None, **job_kwargs):
 
         @wraps(func)
         def get_task(*args, **kwargs) -> Job:
-            from activities.core.maker import Maker
-
-            if len(args) > 0 and isinstance(args[0], Maker):
-                # this is a maker function
+            if len(args) > 0 and isinstance(args[0], MSONable):
+                # this is an MSONable class (likely a maker function)
                 func_source = args[0]
                 args = args[1:]
             else:
@@ -191,21 +181,41 @@ class Job(MSONable):
 
     Parameters
     ----------
-    function
-        The delayed function to run specified as a tuple of (module, function_name).
-    args
+    function_source
+        The source of the function. Can be ``"builtins"`` for builtin functions,
+        a module name, or an :obj:`.MSONable` class instance.
+    function_name
+        The function name.
+    function_args
         The positional arguments to the function call.
-    kwargs
+    function_kwargs
         The keyword arguments to the function call.
-    output
-        The output of the activity. Note that until the activity is run this will be
-        a reference.
     output_schema
-        A pydantic model that defines the schema of the output.
+        A :obj:`Schema` object that defines the schema of the output.
     uuid
-        A unique identifier for the job.
+        A unique identifier for the job. Generated automatically.
+    index
+        The index of the job (number of times the job has been replaced).
+    name
+        The name of the job. If not set it will be determined from ``function_source``
+        and ``function_name``.
     metadata
-        A dictionary of information that will get stored alongside the
+        A dictionary of information that will get stored alongside the job output.
+    config
+        The config setting for the job.
+    host
+        The UUID of the host activity.
+
+    Attributes
+    ----------
+    output
+        The output of the job. This is a reference to the future job output and
+        can be used as the input to other jobs or activities.
+
+    Returns
+    -------
+    Job
+        A job.
 
     Examples
     --------
@@ -224,41 +234,16 @@ class Job(MSONable):
 
     >>> def add(a, b):
     ...     return a + b
-    ...
     >>> add_job = Job(function=("my_package", "add"), args=(1, 2))
-
-    :obj:`Job` objects can be executed using the :obj:`run()` method. The output is
-    always a :obj:`Response` object that contains the outputs and other options that
-    control the activity execution.
-
-    >>> response = add_task.run()
-    >>> response.outputs
-    Value(value=3)
-
-    The default output type of a job is a :obj:`Value` object that has a single
-    field `value`. If the function returns more than one outputs then
-    the output must be specified as dictionary or a custom :obj:`Outputs` class.
-
-    Using an :obj:`.Outputs` object also enables static parameter checking.
-
-    >>> from activities.core.outputs import Number
-    ...
-    >>> def add(a, b):
-    ...     return Number(a + b)
-    ...
-    >>> add_task = Job(function=("my_package", "add"), args=(1, 2), outputs=Number)
-    >>> response = add_task.run()
-    >>> response.outputs
-    Number(number=3)
 
     More details are given in the :obj:`job` decorator docstring.
 
     See Also
     --------
-    job, Response, .Outputs
+    job, Response, .Activity
     """
 
-    function_source: Union[str, activities.Maker]
+    function_source: Union[str, MSONable]
     function_name: str
     function_args: Tuple[Any, ...] = field(default_factory=tuple)
     function_kwargs: Dict[str, Any] = field(default_factory=dict)
@@ -277,7 +262,7 @@ class Job(MSONable):
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
-            if self.is_maker_job:
+            if self.is_msonable_job and hasattr(self.function_source, "name"):
                 self.name = self.function_source.name
             else:
                 self.name = self.function_name
@@ -294,10 +279,16 @@ class Job(MSONable):
             )
 
     @property
-    def is_maker_job(self):
-        from activities.core.maker import Maker
+    def is_msonable_job(self) -> bool:
+        """
+        Whether the job belongs to a :obj:`.MSONable` class.
 
-        return isinstance(self.function_source, Maker)
+        Returns
+        -------
+        bool
+            Whether the job function is on an ``MSONable`` class.
+        """
+        return isinstance(self.function_source, MSONable)
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
@@ -318,23 +309,12 @@ class Job(MSONable):
         return tuple(references)
 
     @property
-    def output_references(self) -> Tuple[activities.Reference, ...]:
-        """
-        Find :obj:`.Reference` objects in the job outputs.
-
-        Returns
-        -------
-        tuple(Reference, ...)
-            The references belonging to the job outputs.
-        """
-        return tuple([self.output])
-
-    @property
     def graph(self):
         from networkx import DiGraph
 
         edges = []
         for uuid, refs in self.input_references_grouped.items():
+            print(refs)
             properties = [
                 ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
             ]
@@ -390,7 +370,7 @@ class Job(MSONable):
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
-        if self.is_maker_job:
+        if self.is_msonable_job:
             function = getattr(self.function_source, self.function_name)
             function = inspect.unwrap(function)
             response: Response = function(
@@ -523,7 +503,7 @@ class Job(MSONable):
         nested: bool = True,
         dict_mod: bool = False,
     ):
-        if self.is_maker_job:
+        if self.is_msonable_job:
             self.function_source = self.function_source.update_kwargs(
                 update,
                 name_filter=name_filter,
@@ -542,20 +522,6 @@ class Job(MSONable):
 
         groups = defaultdict(set)
         for ref in self.input_references:
-            groups[ref.uuid].add(ref)
-
-        return {k: tuple(v) for k, v in groups.items()}
-
-    @property
-    def output_uuids(self) -> Tuple[str, ...]:
-        return tuple([ref.uuid for ref in self.output_references])
-
-    @property
-    def output_references_grouped(self) -> Dict[str, Tuple[Reference, ...]]:
-        from collections import defaultdict
-
-        groups = defaultdict(set)
-        for ref in self.output_references:
             groups[ref.uuid].add(ref)
 
         return {k: tuple(v) for k, v in groups.items()}
