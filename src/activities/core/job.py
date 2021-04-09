@@ -1,4 +1,5 @@
 """This module defines functions and classes for representing Job objects."""
+
 from __future__ import annotations
 
 import logging
@@ -30,11 +31,6 @@ class JobConfig(MSONable):
     on_missing_references: ReferenceFallback = ReferenceFallback.ERROR
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
-
-    def as_dict(self) -> dict:
-        d = super().as_dict()
-        d["on_missing_references"] = str(self.on_missing_references)
-        return d
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):
@@ -341,7 +337,7 @@ class Job(MSONable):
             properties = [
                 ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
             ]
-            properties = properties if len(properties) > 0 else ""
+            properties = properties if len(properties) > 0 else "output"
             edges.append((uuid, self.uuid, {"properties": properties}))
 
         graph = DiGraph()

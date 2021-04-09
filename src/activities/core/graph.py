@@ -2,6 +2,12 @@
 import warnings
 
 import networkx as nx
+from monty.dev import requires
+
+try:
+    import matplotlib
+except ImportError:
+    matplotlib = None
 
 
 def itergraph(graph: nx.DiGraph):
@@ -18,7 +24,8 @@ def itergraph(graph: nx.DiGraph):
             yield node
 
 
-def draw_graph(graph: nx.DiGraph, path=None, layout_function=None):
+@requires(matplotlib, "matplotlib must be installed to plot activity graphs.")
+def draw_graph(graph: nx.DiGraph, layout_function=None):
     import matplotlib.pyplot as plt
 
     if layout_function is None:
@@ -43,31 +50,20 @@ def draw_graph(graph: nx.DiGraph, path=None, layout_function=None):
     edge_labels = nx.get_edge_attributes(graph, "properties")
     nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, rotate=False)
 
-    if path:
-        import numpy as np
-        from matplotlib import cm
-
-        path_edges = list(zip(path, path[1:]))
-        cmap = cm.get_cmap("viridis")
-        colors = cmap(np.linspace(0, 1, len(path)))
-
-        nx.draw_networkx_nodes(graph, pos, nodelist=path, node_color=colors)
-        nx.draw_networkx_edges(
-            graph, pos, edgelist=path_edges, edge_color=colors, width=2
-        )
-
-    plt.tight_layout()
-
     return plt
 
 
 def to_pydot(activity):
     try:
         import pydot
+
     except ImportError:
         raise ImportError("pydot must be installed to use to_pydot.")
 
     from activities import Activity
+
+    # pyplot import is quite heavy so do this inside the function to avoid making
+    # the graph module slow to load.
 
     nx_graph = activity.graph
     pydot_graph = pydot.Dot(f'"{activity.name}"', graph_type="digraph")
@@ -79,7 +75,7 @@ def to_pydot(activity):
 
     for u, v, edgedata in nx_graph.edges(data=True):
         str_edgedata = {k: str(v) for k, v in edgedata.items()}
-        edge = pydot.Edge(str(u), str(v), **str_edgedata)
+        edge = pydot.Edge(str(u), str(v), label=str_edgedata["properties"])
         pydot_graph.add_edge(edge)
 
     def add_cluster(nested_activity, outer_graph):
