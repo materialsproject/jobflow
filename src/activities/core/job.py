@@ -93,7 +93,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
         (resolved) when the task runs.
 
     If a dictionary of values is returned, the values can be referenced in the usual
-    manner.
+    manner
 
     >>> from activities.core.outputs import Number
     ...
@@ -124,6 +124,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
 
     To indicate that a task has no outputs, the ``outputs`` parameter should be set to
     ``None``.
+
     >>> @job(outputs=None)
     ... def print_message(message):
     ...     print(message)

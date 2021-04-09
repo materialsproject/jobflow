@@ -9,6 +9,13 @@ activities.core.activity module
    :undoc-members:
    :show-inheritance:
 
+activities.core.dict_mods module
+--------------------------------
+
+.. automodule:: activities.core.dict_mods
+   :members:
+   :show-inheritance:
+
 activities.core.graph module
 ----------------------------
 

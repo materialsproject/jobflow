@@ -27,9 +27,7 @@ setup(
     extras_require={
         "docs": [
             "sphinx==3.2.1",
-            "sphinx-click==2.5.0",
-            "sphinx_rtd_theme==0.5.0",
-            "sphinx-autodoc-typehints==1.11.1",
+            "furo==2021.3.20b30",
             "m2r2==0.2.5",
         ],
         "test": ["pytest"],

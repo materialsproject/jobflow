@@ -9,6 +9,7 @@
    :hidden:
 
    Job <job>
+   Activity <activity>
 
 .. toctree::
    :caption: Information
