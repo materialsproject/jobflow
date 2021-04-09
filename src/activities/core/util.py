@@ -19,6 +19,9 @@ class ValueEnum(Enum):
         else:
             return str(self.value) == str(other)
 
+    def as_dict(self):
+        return str(self.value)
+
 
 def find_key(
     d: Union[Dict[Hashable, Any], List[Any]],
