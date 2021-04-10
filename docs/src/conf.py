@@ -89,6 +89,11 @@ html_theme_options = {
     "dark_css_variables": {
         "admonition-font-size": "92%",
         "admonition-title-font-size": "92%",
+        "font-stack": "Lato, -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji",
+        "font-size--small": "92%",
+        "font-size--small--2": "87.5%",
+        "font-size--small--3": "87.5%",
+        "font-size--small--4": "87.5%",
     },
 }
 html_title = f"Activities"
