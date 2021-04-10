@@ -140,16 +140,44 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     """
 
     def decorator(func):
+        import inspect
         from functools import wraps
 
+        # unwrap staticmethod or classmethod decorators
+        desc = next((desc for desc in (staticmethod, classmethod)
+                     if isinstance(func, desc)), None)
+
+        if desc:
+            func = func.__func__
+
+        # there are 4 possible scenarios.
+        # 1. job is decorating a standalone function.
+        # 2. job is decorating a method of a class instance.
+        # 3. job is decorating a classmethod.
+        # 4. job is decorating a staticmethod.
+        # each of these will be handled differently
+        involves_class = "." in func.__qualname__
+
         @wraps(func)
-        def get_task(*args, **kwargs) -> Job:
-            if len(args) > 0 and isinstance(args[0], MSONable):
-                # this is an MSONable class (likely a maker function)
-                func_source = args[0]
-                args = args[1:]
-            else:
+        def get_job(*args, **kwargs) -> Job:
+            cls_instance, cls, args = _declassify(func, args)
+            if not involves_class:
+                # standalone function, (scenario 1)
                 func_source = func.__module__
+            elif involves_class and cls_instance is not None:
+                # method, likely a Maker instance (scenario 2)
+                if not isinstance(cls_instance, MSONable):
+                    raise ValueError(
+                        "job cannot be used on class method for classes that are not "
+                        "MSONable"
+                    )
+                func_source = cls_instance
+            elif involves_class and cls is not None:
+                # classmethod (scenario 3)
+                func_source = (func.__module__, func.__qualname__.split(".")[0], True)
+            else:
+                # staticmethod (scenario 4)
+                func_source = (func.__module__, func.__qualname__.split(".")[0], False)
 
             return Job(
                 function_source=func_source,
@@ -159,7 +187,13 @@ def job(method: Optional[Callable] = None, **job_kwargs):
                 **job_kwargs,
             )
 
-        return get_task
+        get_job.original = func
+
+        if desc:
+            # rewrap staticmethod or classmethod decorators
+            get_job = desc(get_job)
+
+        return get_job
 
     # See if we're being called as @job or @job().
     if method is None:
@@ -262,7 +296,8 @@ class Job(MSONable):
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
-            if self.is_msonable_job and hasattr(self.function_source, "name"):
+            if self.function_type == "method" and hasattr(self.function_source, "name"):
+                # Probably a Maker instance
                 self.name = self.function_source.name
             else:
                 self.name = self.function_name
@@ -279,16 +314,25 @@ class Job(MSONable):
             )
 
     @property
-    def is_msonable_job(self) -> bool:
+    def function_type(self) -> str:
         """
-        Whether the job belongs to a :obj:`.MSONable` class.
+        The type of the function (standalone function, method, or class/staticmethod).
 
         Returns
         -------
-        bool
-            Whether the job function is on an ``MSONable`` class.
+        str
+            The function type.
         """
-        return isinstance(self.function_source, MSONable)
+        if isinstance(self.function_source, str):
+            return "function"
+        elif isinstance(self.function_source, tuple) and self.function_source[2]:
+            return "classmethod"
+        elif isinstance(self.function_source, tuple):
+            return "staticmethod"
+        elif isinstance(self.function_source, MSONable):
+            return "method"
+        else:
+            raise ValueError("Unrecognised function type.")
 
     @property
     def input_references(self) -> Tuple[activities.Reference, ...]:
@@ -314,7 +358,6 @@ class Job(MSONable):
 
         edges = []
         for uuid, refs in self.input_references_grouped.items():
-            print(refs)
             properties = [
                 ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
             ]
@@ -370,21 +413,38 @@ class Job(MSONable):
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
-        if self.is_msonable_job:
-            function = getattr(self.function_source, self.function_name)
-            function = inspect.unwrap(function)
-            response: Response = function(
-                self.function_source, *self.function_args, **self.function_kwargs
-            )
-
+        args = self.function_args
+        if self.function_type == "method":
+            function = getattr(self.function_source, self.function_name).original
+            # the first argument must be the class instance
+            args = (self.function_source, ) + args
+        elif self.function_type == "staticmethod":
+            module = import_module(self.function_source[0])
+            cls = getattr(module, self.function_source[1], None)
+            if cls is None:
+                raise ValueError(
+                    f"Could not import {self.function_source[1]} from {module}"
+                )
+            function = getattr(cls, self.function_name).original
+        elif self.function_type == "classmethod":
+            module = import_module(self.function_source[0])
+            cls = getattr(module, self.function_source[1], None)
+            if cls is None:
+                raise ValueError(
+                    f"Could not import {self.function_source[1]} from {module}"
+                )
+            function = getattr(cls, self.function_name).original
+            # the first argument must be the class
+            args = (cls, ) + args
         else:
             module = import_module(self.function_source)
             function = getattr(module, self.function_name, None)
 
             if function is None:
                 raise ValueError(f"Could not import {self.function_name} from {module}")
-            function = inspect.unwrap(function)
-            response: Response = function(*self.function_args, **self.function_kwargs)
+            function = function.original
+
+        response: Response = function(*args, **self.function_kwargs)
 
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
@@ -677,3 +737,24 @@ def prepare_restart(
             restart.output_schema = current_job.output_schema
 
     return restart
+
+
+def _declassify(fun, args):
+    """Extract class information.
+
+    Adapted from https://stackoverflow.com/questions/19314405/how-to-detect-is-decorator-has-been-applied-to-method-or-function
+    """
+    import inspect
+    if len(args):
+        met = getattr(args[0], fun.__name__, None)
+        if met:
+            wrap = getattr(met, '__func__', None)
+            if getattr(wrap, 'original', None) is fun:
+                class_instance = args[0]
+                if inspect.isclass(class_instance):
+                    cls = class_instance
+                    class_instance = None
+                else:
+                    cls = class_instance.__class__
+                return class_instance, cls, args[1:]
+    return None, None, args
