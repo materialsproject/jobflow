@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Type, Tuple
+    from typing import Tuple, Type
 
 
 def serialize_class(cls: Type) -> Tuple[str, str]:
@@ -20,6 +20,3 @@ def deserialize_class(cls_spec: Tuple[str, str]):
 
     module = import_module(cls_spec[0])
     return getattr(module, cls_spec[1])
-
-
-

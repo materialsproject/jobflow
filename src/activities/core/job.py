@@ -297,8 +297,9 @@ class Job(MSONable):
     output: Reference = field(init=False)
 
     def __post_init__(self):
-        from activities.utils.find import contains_activity_or_job
         import inspect
+
+        from activities.utils.find import contains_activity_or_job
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
@@ -486,7 +487,6 @@ class Job(MSONable):
         CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
-
 
     def resolve_args(
         self,
@@ -715,18 +715,26 @@ class Job(MSONable):
             )
 
     def as_dict(self):
-        from activities.utils.serialization import serialize_class, deserialize_class
+        from activities.utils.serialization import deserialize_class, serialize_class
 
+        # the output schema is a class which isn't serializable using monty.
+        # this is a little hack to get around it.
         if self.output_schema is not None:
             self.output_schema = serialize_class(self.output_schema)
+
         d = super().as_dict()
-        self.output_schema = deserialize_class(self.output_schema)
+
+        # need to deserialize schema and put it back
+        if self.output_schema is not None:
+            self.output_schema = deserialize_class(self.output_schema)
         return d
 
     @classmethod
     def from_dict(cls, d):
-        from activities.utils.serialization import deserialize_class
         import inspect
+
+        from activities.utils.serialization import deserialize_class
+
         if d["output_schema"] is not None and not inspect.isclass(d["output_schema"]):
             d["output_schema"] = deserialize_class(d["output_schema"])
         return super().from_dict(d)
@@ -827,7 +835,11 @@ def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
     from pydantic import BaseModel
 
     # comparing schema instance is surprisingly fickle.
-    if schema is None or (isinstance(output, BaseModel) and output.__class__.__name__ == schema.__name__ and output.__module__ == schema.__module__):
+    if schema is None or (
+        isinstance(output, BaseModel)
+        and output.__class__.__name__ == schema.__name__
+        and output.__module__ == schema.__module__
+    ):
         return output
 
     if output is None:

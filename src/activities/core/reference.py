@@ -29,6 +29,7 @@ class Reference(MSONable):
         output_schema: Optional[Any] = None,
     ):
         import inspect
+
         from activities.utils.serialization import deserialize_class
 
         super(Reference, self).__init__()
@@ -154,6 +155,7 @@ class Reference(MSONable):
 
     def as_dict(self):
         from activities.utils.serialization import serialize_class
+
         schema = self.output_schema
         data = {
             "@module": self.__class__.__module__,
@@ -161,7 +163,7 @@ class Reference(MSONable):
             "@version": None,
             "uuid": self.uuid,
             "attributes": self.attributes,
-            "output_schema": serialize_class(schema) if schema is not None else None
+            "output_schema": serialize_class(schema) if schema is not None else None,
         }
         return data
 

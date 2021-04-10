@@ -1,9 +1,8 @@
 import typing
 
+from monty.json import MSONable
 from pydantic import BaseModel, create_model
 from pydantic.typing import get_args
-
-from monty.json import MSONable
 
 
 def with_reference(atype):
