@@ -1,10 +1,9 @@
 License
 =======
 
-activities is developed under an MIT License (an open-source license), reproduced
-below::
+``activities`` is developed under a modified BSD license, reproduced below:
 
-.. code-block::
+.. code-block:: raw
 
     activities Copyright (c) 2021, The Regents of the University of
     California, through Lawrence Berkeley National Laboratory (subject

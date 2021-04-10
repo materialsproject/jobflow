@@ -298,6 +298,7 @@ class Job(MSONable):
 
     def __post_init__(self):
         from activities.utils.find import contains_activity_or_job
+        import inspect
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
@@ -365,6 +366,26 @@ class Job(MSONable):
         return tuple(references)
 
     @property
+    def input_uuids(self) -> Tuple[str, ...]:
+        """
+
+        Returns
+        -------
+
+        """
+        return tuple([ref.uuid for ref in self.input_references])
+
+    @property
+    def input_references_grouped(self) -> Dict[str, Tuple[Reference, ...]]:
+        from collections import defaultdict
+
+        groups = defaultdict(set)
+        for ref in self.input_references:
+            groups[ref.uuid].add(ref)
+
+        return {k: tuple(v) for k, v in groups.items()}
+
+    @property
     def graph(self) -> DiGraph:
         """
         Get a graph of the job indicating the inputs to the job.
@@ -388,6 +409,18 @@ class Job(MSONable):
         graph.add_node(self.uuid, job=self, label=self.name)
         graph.add_edges_from(edges)
         return graph
+
+    def set_uuid(self, uuid: str):
+        """
+        Set the UUID of the job.
+
+        Parameters
+        ----------
+        uuid
+            A UUID.
+        """
+        self.uuid = uuid
+        self.output = self.output.set_uuid(uuid)
 
     def run(self, store: activities.ActivityStore) -> Response:
         """
@@ -454,17 +487,6 @@ class Job(MSONable):
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
 
-    def set_uuid(self, uuid: str):
-        """
-        Set the UUID of the job.
-
-        Parameters
-        ----------
-        uuid
-            A UUID.
-        """
-        self.uuid = uuid
-        self.output = self.output.set_uuid(uuid)
 
     def resolve_args(
         self,
@@ -525,7 +547,7 @@ class Job(MSONable):
         Returns
         -------
         bool
-            Whether the job is to call the function.
+            Whether the job is a call to the function provided.
         """
         import inspect
 
@@ -612,6 +634,75 @@ class Job(MSONable):
         nested: bool = True,
         dict_mod: bool = False,
     ):
+        """
+        Update the keyword arguments of any :obj:`.Maker` objects in the job source.
+
+        Parameters
+        ----------
+        update
+            The updates to apply.
+        name_filter
+            A filter for the Maker name.
+        class_filter
+            A filter for the maker class. Note the class filter will match any
+            subclasses.
+        nested
+            Whether to apply the updates to Maker objects that are themselves kwargs
+            of a Maker object. See examples for more details.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
+
+        Examples
+        --------
+        Consider the following job from a Maker:
+
+        >>> from dataclasses import dataclass
+        >>> from activities import job, Maker, Activity
+        >>> @dataclass
+        ... class AddMaker(Maker):
+        ...     name: str = "add"
+        ...     number: float = 10
+        ...
+        ...     @job
+        ...     def make(self, a):
+        ...         return a + self.number
+        >>> maker = AddMaker()
+        >>> add_job = maker.make(1)
+
+        The ``number`` argument could be updated in the following ways.
+
+        >>> add_job.update_maker_kwargs({"number": 10})
+
+        By default, the updates are applied to nested Makers. These are Makers
+        which are present in the kwargs of another Maker. Consider the following case
+        for a Maker that produces a job that restarts.
+
+        >>> from activities import Response
+        >>> @dataclass
+        ... class RestartMaker(Maker):
+        ...     name: str = "restart"
+        ...     add_maker: Maker = AddMaker()
+        ...
+        ...     @job
+        ...     def make(self, a):
+        ...         restart_job = self.add_maker.make(a)
+        ...         return Response(restart=restart_job)
+        >>> maker = RestartMaker()
+        >>> my_job = maker.make(1)
+
+        The following update will apply to the nested ``AddMaker`` in the kwargs of the
+        ``RestartMaker``:
+
+        >>> my_job.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+
+        However, if ``nested=False``, then the update will not be applied to the nested
+        Maker:
+
+        >>> my_job.update_maker_kwargs(
+        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ... )
+        """
         from activities import Maker
 
         if self.function_type == "method" and isinstance(self.function_source, Maker):
@@ -623,19 +714,22 @@ class Job(MSONable):
                 dict_mod=dict_mod,
             )
 
-    @property
-    def input_uuids(self) -> Tuple[str, ...]:
-        return tuple([ref.uuid for ref in self.input_references])
+    def as_dict(self):
+        from activities.utils.serialization import serialize_class, deserialize_class
 
-    @property
-    def input_references_grouped(self) -> Dict[str, Tuple[Reference, ...]]:
-        from collections import defaultdict
+        if self.output_schema is not None:
+            self.output_schema = serialize_class(self.output_schema)
+        d = super().as_dict()
+        self.output_schema = deserialize_class(self.output_schema)
+        return d
 
-        groups = defaultdict(set)
-        for ref in self.input_references:
-            groups[ref.uuid].add(ref)
-
-        return {k: tuple(v) for k, v in groups.items()}
+    @classmethod
+    def from_dict(cls, d):
+        from activities.utils.serialization import deserialize_class
+        import inspect
+        if d["output_schema"] is not None and not inspect.isclass(d["output_schema"]):
+            d["output_schema"] = deserialize_class(d["output_schema"])
+        return super().from_dict(d)
 
 
 @dataclass
@@ -730,13 +824,16 @@ class Response:
 
 
 def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
-    if schema is None or isinstance(output, schema):
+    from pydantic import BaseModel
+
+    # comparing schema instance is surprisingly fickle.
+    if schema is None or (isinstance(output, BaseModel) and output.__class__.__name__ == schema.__name__ and output.__module__ == schema.__module__):
         return output
 
     if output is None:
         raise ValueError(f"Expected output of type {schema.__name__} but got no output")
 
-    if not isinstance(output, Dict):
+    if not isinstance(output, dict):
         raise ValueError(
             f"Expected output to be {schema.__name__} or dict but got output type "
             f"of {type(output).__name__}."

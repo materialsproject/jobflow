@@ -3,6 +3,8 @@ import typing
 from pydantic import BaseModel, create_model
 from pydantic.typing import get_args
 
+from monty.json import MSONable
+
 
 def with_reference(atype):
     from activities import Reference
@@ -36,13 +38,24 @@ def allow_references(model):
 
         field_definitions[name] = (field_type, optional_field_info)
 
-    return create_model(model.__name__, **field_definitions, __config__=model.Config)
+    return create_model(
+        model.__name__,
+        **field_definitions,
+        __base__=_BaseSchema,
+        __module__=model.__module__
+    )
 
 
-class Schema(BaseModel):
-    def __new__(cls, **kwargs):
-        return allow_references(cls)(**kwargs)
-
+class _BaseSchema(MSONable, BaseModel):
     class Config:
         arbitrary_types_allowed = True
         extra = "allow"
+
+    def as_dict(self):
+        return self.dict()
+
+
+class Schema(_BaseSchema):
+    def __new__(cls, **kwargs):
+        t = allow_references(cls)(**kwargs)
+        return t

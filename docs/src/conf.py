@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath("../../"))
 # -- Project information -----------------------------------------------------
 
 project = "activities"
-copyright = "2021, hackingmaterials"
+copyright = r"2021, hackingmaterials"
 author = "Alex Ganose"
 
 # The short X.Y version
@@ -97,7 +97,6 @@ html_theme_options = {
     },
 }
 html_title = f"Activities"
-
 
 # -- Options for intersphinx extension ---------------------------------------
 

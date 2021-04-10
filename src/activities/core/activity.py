@@ -393,7 +393,8 @@ class Activity(MSONable):
         ...         restart_job = self.add_maker.make(a)
         ...         return Response(restart=restart_job)
         >>> maker = RestartMaker()
-        >>> activity = maker.make(1)
+        >>> my_job = maker.make(1)
+        >>> activity = Activity([my_job]
 
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``RestartMaker``:

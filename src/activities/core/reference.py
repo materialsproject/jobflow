@@ -18,7 +18,7 @@ class ReferenceFallback(ValueEnum):
     PASS = "pass"
 
 
-class Reference(MSONable, BaseModel):
+class Reference(MSONable):
 
     __slots__ = ("uuid", "attributes", "output_schema")
 
@@ -28,10 +28,16 @@ class Reference(MSONable, BaseModel):
         attributes: Optional[Tuple[Any, ...]] = tuple(),
         output_schema: Optional[Any] = None,
     ):
+        import inspect
+        from activities.utils.serialization import deserialize_class
+
         super(Reference, self).__init__()
         self.uuid = uuid
         self.attributes = attributes
         self.output_schema = output_schema
+
+        if self.output_schema is not None and not inspect.isclass(self.output_schema):
+            self.output_schema = deserialize_class(self.output_schema)
 
     def resolve(
         self,
@@ -82,7 +88,10 @@ class Reference(MSONable, BaseModel):
         cache[self.uuid] = data
 
         for attribute in self.attributes:
-            data = getattr(data, attribute)
+            try:
+                data = data[attribute]
+            except KeyError:
+                data = getattr(data, attribute)
 
         return data
 
@@ -144,12 +153,15 @@ class Reference(MSONable, BaseModel):
         return False
 
     def as_dict(self):
+        from activities.utils.serialization import serialize_class
+        schema = self.output_schema
         data = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "@version": None,
             "uuid": self.uuid,
             "attributes": self.attributes,
+            "output_schema": serialize_class(schema) if schema is not None else None
         }
         return data
 
