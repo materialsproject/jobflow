@@ -8,7 +8,7 @@ import warnings
 
 from monty.json import MSONable
 
-from activities.utils import suuid, ValueEnum, contains_activity_or_job
+from activities.utils import ValueEnum, contains_activity_or_job, suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, List, Optional, Type, Union

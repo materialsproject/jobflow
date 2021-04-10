@@ -68,6 +68,7 @@ html_theme = "furo"
 
 # hide sphinx footer
 html_show_sphinx = False
+html_show_sourcelink = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -79,6 +80,11 @@ html_theme_options = {
     "light_css_variables": {
         "admonition-font-size": "92%",
         "admonition-title-font-size": "92%",
+        "font-stack": "Lato, -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji",
+        "font-size--small": "92%",
+        "font-size--small--2": "87.5%",
+        "font-size--small--3": "87.5%",
+        "font-size--small--4": "87.5%",
     },
     "dark_css_variables": {
         "admonition-font-size": "92%",

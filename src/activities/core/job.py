@@ -15,6 +15,7 @@ from activities.utils.uuid import suuid
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
 
+    from networkx import DiGraph
     from pydantic.main import BaseModel
 
     import activities
@@ -140,12 +141,13 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     """
 
     def decorator(func):
-        import inspect
         from functools import wraps
 
         # unwrap staticmethod or classmethod decorators
-        desc = next((desc for desc in (staticmethod, classmethod)
-                     if isinstance(func, desc)), None)
+        desc = next(
+            (desc for desc in (staticmethod, classmethod) if isinstance(func, desc)),
+            None,
+        )
 
         if desc:
             func = func.__func__
@@ -217,7 +219,10 @@ class Job(MSONable):
     ----------
     function_source
         The source of the function. Can be ``"builtins"`` for builtin functions,
-        a module name, or an :obj:`.MSONable` class instance.
+        a module name, or an :obj:`.MSONable` class instance. Additionally,
+        static and class methods can be specified using a tuple of
+        ``(module_name, class_name, bool)`` where the bool is set to ``True`` for class
+        methods and ``False`` for static methods.
     function_name
         The function name.
     function_args
@@ -277,7 +282,7 @@ class Job(MSONable):
     job, Response, .Activity
     """
 
-    function_source: Union[str, MSONable]
+    function_source: Union[str, MSONable, Tuple[str, str, bool]]
     function_name: str
     function_args: Tuple[Any, ...] = field(default_factory=tuple)
     function_kwargs: Dict[str, Any] = field(default_factory=dict)
@@ -316,7 +321,14 @@ class Job(MSONable):
     @property
     def function_type(self) -> str:
         """
-        The type of the function (standalone function, method, or class/staticmethod).
+        The type of the function.
+
+        The potential options are:
+
+        - ``function``: A standalone function.
+        - ``method``: An instance method of a class.
+        - ``classmethod``: A classmethod of a class.
+        - ``staticmethod``: A staticmethod of class.
 
         Returns
         -------
@@ -353,7 +365,15 @@ class Job(MSONable):
         return tuple(references)
 
     @property
-    def graph(self):
+    def graph(self) -> DiGraph:
+        """
+        Get a graph of the job indicating the inputs to the job.
+
+        Returns
+        -------
+        DiGraph
+            The graph showing the connectivity of the jobs.
+        """
         from networkx import DiGraph
 
         edges = []
@@ -369,7 +389,7 @@ class Job(MSONable):
         graph.add_edges_from(edges)
         return graph
 
-    def run(self, store: activities.ActivityStore) -> "Response":
+    def run(self, store: activities.ActivityStore) -> Response:
         """
         Run the job.
 
@@ -397,9 +417,7 @@ class Job(MSONable):
         --------
         Response, .Reference
         """
-        import inspect
         from datetime import datetime
-        from importlib import import_module
 
         from activities import CURRENT_JOB
 
@@ -413,37 +431,7 @@ class Job(MSONable):
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
-        args = self.function_args
-        if self.function_type == "method":
-            function = getattr(self.function_source, self.function_name).original
-            # the first argument must be the class instance
-            args = (self.function_source, ) + args
-        elif self.function_type == "staticmethod":
-            module = import_module(self.function_source[0])
-            cls = getattr(module, self.function_source[1], None)
-            if cls is None:
-                raise ValueError(
-                    f"Could not import {self.function_source[1]} from {module}"
-                )
-            function = getattr(cls, self.function_name).original
-        elif self.function_type == "classmethod":
-            module = import_module(self.function_source[0])
-            cls = getattr(module, self.function_source[1], None)
-            if cls is None:
-                raise ValueError(
-                    f"Could not import {self.function_source[1]} from {module}"
-                )
-            function = getattr(cls, self.function_name).original
-            # the first argument must be the class
-            args = (cls, ) + args
-        else:
-            module = import_module(self.function_source)
-            function = getattr(module, self.function_name, None)
-
-            if function is None:
-                raise ValueError(f"Could not import {self.function_name} from {module}")
-            function = function.original
-
+        args, function = _get_function(self)
         response: Response = function(*args, **self.function_kwargs)
 
         if not isinstance(response, Response):
@@ -467,6 +455,14 @@ class Job(MSONable):
         return response
 
     def set_uuid(self, uuid: str):
+        """
+        Set the UUID of the job.
+
+        Parameters
+        ----------
+        uuid
+            A UUID.
+        """
         self.uuid = uuid
         self.output = self.output.set_uuid(uuid)
 
@@ -475,7 +471,7 @@ class Job(MSONable):
         store: activities.ActivityStore,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
         inplace: bool = True,
-    ) -> "Job":
+    ) -> Job:
         """
         Resolve any :obj:`.Reference` objects in the input arguments.
 
@@ -488,7 +484,6 @@ class Job(MSONable):
         on_missing
             What to do if the reference cannot be resolved. See the docstring
             for :obj:`.Reference.resolve` for the available options.
-            Whether to raise an error if a reference cannot be resolved.
         inplace
             Update the arguments of the current job or return a new job object.
 
@@ -523,6 +518,42 @@ class Job(MSONable):
         new_job.function_kwargs = resolved_kwargs
         return new_job
 
+    def matches_function(self, func: Callable) -> bool:
+        """
+        Find whether the job corresponds to a function.
+
+        Returns
+        -------
+        bool
+            Whether the job is to call the function.
+        """
+        import inspect
+
+        func = inspect.unwrap(func)
+
+        if "." not in func.__qualname__:
+            # standalone function
+            return (
+                self.function_type == "functioon"
+                and self.function_source == func.__module__
+                and self.function_name == func.__name__
+            )
+
+        cls_name = func.__qualname__.split(".")[0]
+
+        if self.function_type == "method":
+            return (
+                self.function_source.__class__ == cls_name
+                and self.function_source.__module__ == func.__module__
+                and self.function_name == func.__name__
+            )
+        else:
+            return (
+                self.function_source[1] == cls_name
+                and self.function_source[0] == func.__module__
+                and self.function_name == func.__name__
+            )
+
     def update_kwargs(
         self,
         update: Dict[str, Any],
@@ -530,23 +561,41 @@ class Job(MSONable):
         function_filter: Optional[Callable] = None,
         dict_mod: bool = False,
     ):
-        from types import BuiltinFunctionType, FunctionType, MethodType
+        """
+        Update the kwargs of the jobs.
 
+        Parameters
+        ----------
+        update
+            The updates to apply.
+        name_filter
+            A filter for the job name.
+        function_filter
+            Only filter matching functions.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
+
+        Examples
+        --------
+        Consider an activity containing a simple job with a ``number`` keyword argument.
+
+        >>> from activities import job, Activity
+        >>> @job
+        ... def add(a, number=5):
+        ...     return a + number
+        >>> add_job = add(1)
+
+        The ``number`` argument can be updated using.
+
+        >>> add_job.update_kwargs({"number": 10})
+        """
         from activities.utils.dict_mods import apply_mod
 
-        if isinstance(function_filter, (FunctionType, BuiltinFunctionType, MethodType)):
-            function_filter = (function_filter.__module__, function_filter.__name__)
-
-        elif not isinstance(function_filter, (tuple, type(None))):
-            raise ValueError("Unrecognised type of function filter.")
-
-        if name_filter is not None and name_filter not in self.name:
+        if function_filter is not None and not self.matches_function(function_filter):
             return
 
-        if function_filter is not None and function_filter != (
-            self.function_source,
-            self.function_name,
-        ):
+        if name_filter is not None and name_filter not in self.name:
             return
 
         # if we get to here then we pass all the filters
@@ -563,7 +612,9 @@ class Job(MSONable):
         nested: bool = True,
         dict_mod: bool = False,
     ):
-        if self.is_msonable_job:
+        from activities import Maker
+
+        if self.function_type == "method" and isinstance(self.function_source, Maker):
             self.function_source = self.function_source.update_kwargs(
                 update,
                 name_filter=name_filter,
@@ -739,17 +790,55 @@ def prepare_restart(
     return restart
 
 
+def _get_function(ojob: Job) -> Tuple[Tuple[Any, ...], Callable]:
+    """Get the arguments and function of a job."""
+    from importlib import import_module
+
+    args = ojob.function_args
+    if ojob.function_type == "method":
+        function = getattr(ojob.function_source, ojob.function_name).original
+        # the first argument must be the class instance
+        args = (ojob.function_source,) + args
+    elif ojob.function_type == "staticmethod":
+        module = import_module(ojob.function_source[0])
+        cls = getattr(module, ojob.function_source[1], None)
+        if cls is None:
+            raise ValueError(
+                f"Could not import {ojob.function_source[1]} from {module}"
+            )
+        function = getattr(cls, ojob.function_name).original
+    elif ojob.function_type == "classmethod":
+        module = import_module(ojob.function_source[0])
+        cls = getattr(module, ojob.function_source[1], None)
+        if cls is None:
+            raise ValueError(
+                f"Could not import {ojob.function_source[1]} from {module}"
+            )
+        function = getattr(cls, ojob.function_name).original
+        # the first argument must be the class
+        args = (cls,) + args
+    else:
+        module = import_module(ojob.function_source)
+        function = getattr(module, ojob.function_name, None)
+
+        if function is None:
+            raise ValueError(f"Could not import {ojob.function_name} from {module}")
+        function = function.original
+    return args, function
+
+
 def _declassify(fun, args):
     """Extract class information.
 
     Adapted from https://stackoverflow.com/questions/19314405/how-to-detect-is-decorator-has-been-applied-to-method-or-function
     """
     import inspect
+
     if len(args):
         met = getattr(args[0], fun.__name__, None)
         if met:
-            wrap = getattr(met, '__func__', None)
-            if getattr(wrap, 'original', None) is fun:
+            wrap = getattr(met, "__func__", None)
+            if getattr(wrap, "original", None) is fun:
                 class_instance = args[0]
                 if inspect.isclass(class_instance):
                     cls = class_instance

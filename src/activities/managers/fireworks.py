@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import typing
-from fireworks import explicit_serialize, FiretaskBase, FWAction, Workflow, Firework
+
+from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_serialize
 
 if typing.TYPE_CHECKING:
-    from typing import Union, List, Optional, Sequence, Dict
+    from typing import Dict, List, Optional, Sequence, Union
 
     import activities
 
@@ -73,8 +74,8 @@ class JobFiretask(FiretaskBase):
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
-        from activities.core.job import Job
         from activities import initialize_logger
+        from activities.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")

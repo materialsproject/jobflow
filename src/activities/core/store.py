@@ -17,7 +17,6 @@ T = typing.TypeVar("T", bound="ActivityStore")
 
 
 class ActivityStore(Store):
-
     def __init__(
         self,
         docs_store: Store,
@@ -142,8 +141,7 @@ class ActivityStore(Store):
         """
         from pydash import get
 
-        from activities.utils.find import update_in_dictionary
-        from activities.utils.find import find_key
+        from activities.utils.find import find_key, update_in_dictionary
 
         if load is None:
             load = self.load
@@ -241,8 +239,7 @@ class ActivityStore(Store):
         from monty.json import jsanitize
         from pydash import get
 
-        from activities.utils.find import update_in_dictionary
-        from activities.utils.find import find_key
+        from activities.utils.find import find_key, update_in_dictionary
 
         if save is None or save is False:
             save = self.save

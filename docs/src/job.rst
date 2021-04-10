@@ -1,7 +1,7 @@
 API
 ===
 
-The main interface for constructing jobs is the, :obj:`job` function.
+The main interface for constructing jobs is the :obj:`job` function.
 
 :obj:`job` wraps functions for use in activities. It can be used as a decorator, or
 around function calls directly (i.e. ``job(foo)(a, b, c)``). Outputs from functions

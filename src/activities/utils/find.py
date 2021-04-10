@@ -5,12 +5,15 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Union, Dict, Hashable, Any, List, Type, Tuple
+    from typing import Any, Dict, Hashable, List, Tuple, Type, Union
 
     from monty.json import MSONable
 
 __all__ = [
-    "find_key", "find_key_value", "update_in_dictionary", "contains_activity_or_job"
+    "find_key",
+    "find_key_value",
+    "update_in_dictionary",
+    "contains_activity_or_job",
 ]
 
 
@@ -195,9 +198,10 @@ def contains_activity_or_job(obj: Any) -> bool:
     bool
         Whether the object contains any activities or jobs.
     """
+    from monty.json import jsanitize
+
     from activities.core.activity import Activity
     from activities.core.job import Job
-    from monty.json import jsanitize
 
     if isinstance(obj, (Activity, Job)):
         # if the argument is an activity or job then stop there
