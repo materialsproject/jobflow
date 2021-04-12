@@ -196,7 +196,7 @@ def contains_flow_or_job(obj: Any) -> bool:
     Returns
     -------
     bool
-        Whether the object contains any jobflow or jobs.
+        Whether the object contains any Flows or jobs.
     """
     from monty.json import jsanitize
 

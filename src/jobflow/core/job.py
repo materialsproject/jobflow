@@ -249,7 +249,7 @@ class Job(MSONable):
     ----------
     output
         The output of the job. This is a reference to the future job output and
-        can be used as the input to other jobs or jobflow.
+        can be used as the input to other Jobs or Flows.
 
     Returns
     -------

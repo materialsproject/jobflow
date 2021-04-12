@@ -40,7 +40,7 @@ class Flow(MSONable):
     A Flow contains a collection of Jobs or other Flows to execute.
 
     The :obj:`Flow` object is the main tool for constructing workflows. Flows
-    can either contain jobs or other jobflow. Like :obj:`.Job` objects, Flow objects
+    can either contain Jobs or other Flows. Like :obj:`.Job` objects, Flow objects
     can also have outputs, however, these are not explicitly stored in the database.
     Instead, the outputs of a Flow act to structure the outputs of the jobs
     contained within the Flow.
@@ -102,13 +102,13 @@ class Flow(MSONable):
 
     >>> flow = Flow(jobs=[add_first, add_second], output=add_second.output)
 
-    This will allow the flow to be used in another flow. In this way, jobflow
+    This will allow the flow to be used in another flow. In this way, Flows
     can be infinitely nested. For example:
 
     >>> add_third = add(flow.output, 5)
     >>> outer_flow = Flow(jobs=[flow, add_third])
 
-    Flows can be run using an flow manager. These enable running jobflow
+    Flows can be run using an flow manager. These enable running Flows
     locally or on compute clusters (using the FireWorks manager).
 
     >>> from jobflow.managers.local import run_locally
@@ -179,12 +179,12 @@ class Flow(MSONable):
     @property
     def job_uuids(self) -> List[str]:
         """
-        The uuids of every job contained in the flow (including nested jobflow).
+        The uuids of every Job contained in the Flow (including nested Flows).
 
         Returns
         -------
         list[str]
-            The uuids of all jobs in the flow (including nested jobflow).
+            The uuids of all Jobs in the Flow (including nested Flows).
         """
         uuids = []
         for job in self.jobs:
@@ -273,9 +273,9 @@ class Flow(MSONable):
         dict_mod: bool = False,
     ):
         """
-        Update the kwargs of all jobs in the flow.
+        Update the kwargs of all Jobs in the Flow.
 
-        Note that updates will be applied to jobs in nested jobflow.
+        Note that updates will be applied to jobs in nested Flow.
 
         Parameters
         ----------
@@ -330,7 +330,7 @@ class Flow(MSONable):
         """
         Update the keyword arguments of any :obj:`.Maker` objects in the jobs.
 
-        Note that updates will be applied to jobs in any inner jobflow.
+        Note that updates will be applied to Jobs in any inner Flows.
 
         Parameters
         ----------
