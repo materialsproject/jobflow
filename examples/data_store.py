@@ -1,4 +1,4 @@
-from flows import Flow, job, run_locally
+from jobflow import Flow, job, run_locally
 
 
 @job(data=True)

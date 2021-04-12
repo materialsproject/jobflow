@@ -1,4 +1,4 @@
-from flows import Flow, JobOrder, job
+from jobflow import Flow, JobOrder, job
 
 
 @job

@@ -9,13 +9,13 @@ import sys
 
 # import typing
 # typing.TYPE_CHECKING = True
-from flows import __version__
+from jobflow import __version__
 
 sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Project information -----------------------------------------------------
 
-project = "flows"
+project = "jobflow"
 copyright = r"2021, hackingmaterials"
 author = "Alex Ganose"
 
@@ -96,7 +96,7 @@ html_theme_options = {
         "font-size--small--4": "87.5%",
     },
 }
-html_title = f"Flows"
+html_title = f"jobflow"
 
 # -- Options for intersphinx extension ---------------------------------------
 

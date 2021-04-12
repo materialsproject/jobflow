@@ -4,7 +4,7 @@ The main method of interest is :obj:`apply_mod`.
 
 This code is based heavily on the Ansible class of `custodian
 <https://pypi.python.org/pypi/custodian>`_, but simplifies it considerably for the
-limited use cases required by flows.
+limited use cases required by jobflow.
 """
 
 from __future__ import annotations

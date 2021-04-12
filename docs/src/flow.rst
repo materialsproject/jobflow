@@ -7,7 +7,7 @@ The main interface for constructing workflows is the :obj:`Flow` object.
 Flows also contain useful functions for modifying and visualising the connectivity
 of jobs within them.
 
-.. currentmodule:: flows.core.flow
+.. currentmodule:: jobflow.core.flow
 
 .. autoclass:: Flow
    :noindex:

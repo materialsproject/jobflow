@@ -7,15 +7,15 @@ from monty.design_patterns import singleton
 if typing.TYPE_CHECKING:
     from typing import Optional
 
-    import flows
+    import jobflow
 
 __all__ = ["CURRENT_JOB"]
 
 
 @singleton
 class State:
-    job: Optional[flows.Job] = None
-    store: Optional[flows.JobStore] = None
+    job: Optional[jobflow.Job] = None
+    store: Optional[jobflow.JobStore] = None
 
     def reset(self):
         self.job = None

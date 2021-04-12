@@ -19,7 +19,7 @@
    contributors
    contributing
    license
-   flows on GitHub <https://github.com/hackingmaterials/flows>
+   jobflow on GitHub <https://github.com/hackingmaterials/jobflow>
 
 
 .. toctree::
@@ -27,7 +27,7 @@
    :maxdepth: -1
    :hidden:
 
-   API reference <flows>
+   API reference <jobflow>
    genindex
 
 .. include:: introduction.rst

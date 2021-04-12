@@ -17,7 +17,7 @@ import typing
 if typing.TYPE_CHECKING:
     from pydot import Dot
 
-    import flows
+    import jobflow
 
 
 def itergraph(graph: nx.DiGraph):
@@ -48,7 +48,7 @@ def itergraph(graph: nx.DiGraph):
     subgraphs = [graph.subgraph(c) for c in nx.weakly_connected_components(graph)]
 
     if len(subgraphs) > 1:
-        warnings.warn("Some flows are not connected, their ordering may be random")
+        warnings.warn("Some jobflow are not connected, their ordering may be random")
 
     for subgraph in subgraphs:
         for node in nx.topological_sort(subgraph):
@@ -97,7 +97,7 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     return plt
 
 
-def to_pydot(flow: flows.Flow) -> Dot:
+def to_pydot(flow: jobflow.Flow) -> Dot:
     """
     Convert a flow to a pydot graph.
 
@@ -119,7 +119,7 @@ def to_pydot(flow: flows.Flow) -> Dot:
     --------
     The pydot graph can be generated from a flow using:
 
-    >>> from flows import job, Flow
+    >>> from jobflow import job, Flow
     >>> @job
     ... def add(a, b):
     ...     return a + b
@@ -134,7 +134,7 @@ def to_pydot(flow: flows.Flow) -> Dot:
     """
     import pydot
 
-    from flows import Flow
+    from jobflow import Flow
 
     nx_graph = flow.graph
     pydot_graph = pydot.Dot(f'"{flow.name}"', graph_type="digraph")

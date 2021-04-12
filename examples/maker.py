@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from flows import Flow, Maker, job, run_locally
+from jobflow import Flow, Maker, job, run_locally
 
 
 @dataclass

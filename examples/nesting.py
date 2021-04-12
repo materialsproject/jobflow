@@ -1,6 +1,6 @@
 import random
 
-from flows import Flow, job, run_locally
+from jobflow import Flow, job, run_locally
 
 
 @job
@@ -36,7 +36,7 @@ name_flow_a = get_name_flow()
 name_flow_b = get_name_flow()
 print_job = print_inputs([name_flow_a.output, name_flow_b.output])
 
-# create an flow to contain the nested flows
+# create an flow to contain the nested jobflow
 outer_flow = Flow([name_flow_a, name_flow_b, print_job])
 
 # draw the flow graph

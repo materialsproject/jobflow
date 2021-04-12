@@ -1,4 +1,4 @@
-"""Tools for running flows locally."""
+"""Tools for running jobflow locally."""
 from __future__ import annotations
 
 import logging
@@ -7,20 +7,20 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
-    import flows
+    import jobflow
 
 logger = logging.getLogger(__name__)
 
 
 def run_locally(
-    flow: Union[flows.Flow, flows.Job, List[flows.Job]],
+    flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
     log: bool = True,
-    store: Optional[flows.JobStore] = None,
+    store: Optional[jobflow.JobStore] = None,
 ):
     from maggma.stores import MemoryStore
 
-    from flows import Flow, JobStore, Job, initialize_logger
-    from flows.core.reference import ReferenceFallback
+    from jobflow import Flow, JobStore, Job, initialize_logger
+    from jobflow.core.reference import ReferenceFallback
 
     if store is None:
         store = JobStore.from_store(MemoryStore())
@@ -37,7 +37,7 @@ def run_locally(
     responses = {}
     stop_activities = False
 
-    def _run_job(job: flows.Job, parents):
+    def _run_job(job: jobflow.Job, parents):
         nonlocal stop_activities
 
         if stop_activities:
@@ -100,7 +100,7 @@ def run_locally(
                 return False
 
         else:
-            job: flows.Job
+            job: jobflow.Job
             for job, parents in root_flow.iterflow():
                 response = _run_job(job, parents)
                 if response is False:

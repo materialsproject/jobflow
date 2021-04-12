@@ -7,18 +7,18 @@ from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_seria
 if typing.TYPE_CHECKING:
     from typing import Dict, List, Optional, Sequence, Union
 
-    import flows
+    import jobflow
 
 __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 
 def flow_to_workflow(
-    flow: Union[flows.Flow, flows.Job, List[flows.Job]],
-    store: flows.JobStore,
+    flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
+    store: jobflow.JobStore,
 ) -> Workflow:
     from fireworks.core.firework import Workflow
 
-    from flows.core.flow import Flow
+    from jobflow.core.flow import Flow
 
     parent_mapping = {}
     fireworks = []
@@ -35,14 +35,14 @@ def flow_to_workflow(
 
 
 def job_to_firework(
-    job: flows.Job,
-    store: flows.JobStore,
+    job: jobflow.Job,
+    store: jobflow.JobStore,
     parents: Optional[Sequence[str]] = None,
     parent_mapping: Optional[Dict[str, Firework]] = None,
 ):
     from fireworks.core.firework import Firework
 
-    from flows.core.reference import ReferenceFallback
+    from jobflow.core.reference import ReferenceFallback
 
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
@@ -74,8 +74,8 @@ class JobFiretask(FiretaskBase):
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
-        from flows import initialize_logger
-        from flows.core.job import Job
+        from jobflow import initialize_logger
+        from jobflow.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")

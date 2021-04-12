@@ -8,14 +8,14 @@ import warnings
 
 from monty.json import MSONable
 
-from flows.utils import ValueEnum, contains_flow_or_job, suuid
+from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, List, Optional, Type, Union
 
     from networkx import DiGraph
 
-    import flows
+    import jobflow
 
 __all__ = ["JobOrder", "Flow"]
 
@@ -88,7 +88,7 @@ class Flow(MSONable):
     Below we define a simple job to add two numbers, and create an flow containing
     two connected add jobs.
 
-    >>> from flows import job, Flow
+    >>> from jobflow import job, Flow
     >>> @job
     ... def add(a, b):
     ...     return a + b
@@ -111,21 +111,21 @@ class Flow(MSONable):
     Flows can be run using an flow manager. These enable running flows
     locally or on compute clusters (using the FireWorks manager).
 
-    >>> from flows.managers.local import run_locally
+    >>> from jobflow.managers.local import run_locally
     >>> response = run_locally(flow)
     """
 
     def __init__(
         self,
-        jobs: Union[List[Union[Flow, flows.Job]], flows.Job, Flow],
+        jobs: Union[List[Union[Flow, jobflow.Job]], jobflow.Job, Flow],
         output: Optional[Any] = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
         host: str = None,
     ):
-        from flows.core.job import Job
-        from flows.core.reference import find_and_get_references
+        from jobflow.core.job import Job
+        from jobflow.core.reference import find_and_get_references
 
         if isinstance(jobs, (Job, Flow)):
             jobs = [jobs]
@@ -179,12 +179,12 @@ class Flow(MSONable):
     @property
     def job_uuids(self) -> List[str]:
         """
-        The uuids of every job contained in the flow (including nested flows).
+        The uuids of every job contained in the flow (including nested jobflow).
 
         Returns
         -------
         list[str]
-            The uuids of all jobs in the flow (including nested flows).
+            The uuids of all jobs in the flow (including nested jobflow).
         """
         uuids = []
         for job in self.jobs:
@@ -240,7 +240,7 @@ class Flow(MSONable):
         pyplot
             The matplotlib pyplot state.
         """
-        from flows.utils.graph import draw_graph
+        from jobflow.utils.graph import draw_graph
 
         return draw_graph(self.graph)
 
@@ -257,7 +257,7 @@ class Flow(MSONable):
             The Job and the uuids of any parent jobs (not to be confused with the host
             flow).
         """
-        from flows.utils.graph import itergraph
+        from jobflow.utils.graph import itergraph
 
         graph = self.graph
         for node in itergraph(graph):
@@ -293,7 +293,7 @@ class Flow(MSONable):
         --------
         Consider a flow containing a simple job with a ``number`` keyword argument.
 
-        >>> from flows import job, Flow
+        >>> from jobflow import job, Flow
         >>> @job
         ... def add(a, number=5):
         ...     return a + number
@@ -323,7 +323,7 @@ class Flow(MSONable):
         self,
         update: Dict[str, Any],
         name_filter: Optional[str] = None,
-        class_filter: Optional[Type[flows.Maker]] = None,
+        class_filter: Optional[Type[jobflow.Maker]] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -353,7 +353,7 @@ class Flow(MSONable):
         Consider the following flow containing jobs from a Maker:
 
         >>> from dataclasses import dataclass
-        >>> from flows import job, Maker, Flow
+        >>> from jobflow import job, Maker, Flow
         >>> @dataclass
         ... class AddMaker(Maker):
         ...     name: str = "add"
@@ -382,7 +382,7 @@ class Flow(MSONable):
         which are present in the kwargs of another Maker. Consider the following case
         for a Maker that produces a job that restarts.
 
-        >>> from flows import Response
+        >>> from jobflow import Response
         >>> @dataclass
         ... class RestartMaker(Maker):
         ...     name: str = "restart"

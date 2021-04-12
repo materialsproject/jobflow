@@ -20,7 +20,7 @@ def initialize_logger(level: int = logging.INFO) -> logging.Logger:
     """
     import sys
 
-    log = logging.getLogger("flows")
+    log = logging.getLogger("jobflow")
     log.setLevel(level)
     log.handlers = []  # reset logging handlers if they already exist
 

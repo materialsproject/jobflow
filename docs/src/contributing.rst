@@ -1,5 +1,5 @@
-Contributing to flows
-=====================
+Contributing to jobflow
+=======================
 
 We love your input! We want to make contributing to as easy and
 transparent as possible, whether it's:
@@ -13,10 +13,10 @@ transparent as possible, whether it's:
 Reporting bugs, getting help, and discussion
 --------------------------------------------
 
-flows is still in development, so at the moment we
+jobflow is still in development, so at the moment we
 do not have a dedicated help forum. For the time being, please
 submit questions and bugs to the
-`GitHub issues page <https://github.com/hackingmaterials/flows/issues>`__.
+`GitHub issues page <https://github.com/hackingmaterials/jobflow/issues>`__.
 
 If you are making a bug report, incorporate as many elements of the
 following as possible to ensure a timely response and avoid the
@@ -40,7 +40,7 @@ Contributing code modifications or additions through Github
 We use github to host code, to track issues and feature requests,
 as well as accept pull requests. We maintain a list of all
 contributors `here
-<https://hackingmaterials.github.io/flows/contributors.html>`__.
+<https://hackingmaterials.github.io/jobflow/contributors.html>`__.
 
 Pull requests are the best way to propose changes to the codebase.
 Follow the `Github flow

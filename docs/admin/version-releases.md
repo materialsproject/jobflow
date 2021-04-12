@@ -1,4 +1,4 @@
-# Releasing a new flows version
+# Releasing a new jobflow version
 
 Version releases on Pypi and GitHub are handled automatically through GitHub
 actions. The steps to push a new release are:

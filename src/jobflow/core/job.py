@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 
 from monty.json import MSONable, jsanitize
 
-from flows.core.reference import Reference, ReferenceFallback
-from flows.utils.uuid import suuid
+from jobflow.core.reference import Reference, ReferenceFallback
+from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from networkx import DiGraph
     from pydantic.main import BaseModel
 
-    import flows
+    import jobflow
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +129,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     Jobs can return :obj:`.Response` objects that control the flow execution flow.
     For example, to replace the current jub with another job, ``replace`` can be used.
 
-    >>> from flows import Response
+    >>> from jobflow import Response
     >>> @job
     ... def replace(a, b):
     ...     new_job = compute(a, b)
@@ -249,7 +249,7 @@ class Job(MSONable):
     ----------
     output
         The output of the job. This is a reference to the future job output and
-        can be used as the input to other jobs or flows.
+        can be used as the input to other jobs or jobflow.
 
     Returns
     -------
@@ -299,7 +299,7 @@ class Job(MSONable):
     def __post_init__(self):
         import inspect
 
-        from flows.utils.find import contains_flow_or_job
+        from jobflow.utils.find import contains_flow_or_job
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
@@ -349,7 +349,7 @@ class Job(MSONable):
             raise ValueError("Unrecognised function type.")
 
     @property
-    def input_references(self) -> Tuple[flows.Reference, ...]:
+    def input_references(self) -> Tuple[jobflow.Reference, ...]:
         """
         Find :obj:`.Reference` objects in the job inputs.
 
@@ -358,7 +358,7 @@ class Job(MSONable):
         tuple(Reference, ...)
             The references in the inputs to the job.
         """
-        from flows.core.reference import find_and_get_references
+        from jobflow.core.reference import find_and_get_references
 
         references = set()
         for arg in tuple(self.function_args) + tuple(self.function_kwargs.values()):
@@ -423,7 +423,7 @@ class Job(MSONable):
         self.uuid = uuid
         self.output = self.output.set_uuid(uuid)
 
-    def run(self, store: flows.JobStore) -> Response:
+    def run(self, store: jobflow.JobStore) -> Response:
         """
         Run the job.
 
@@ -453,7 +453,7 @@ class Job(MSONable):
         """
         from datetime import datetime
 
-        from flows import CURRENT_JOB
+        from jobflow import CURRENT_JOB
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -490,7 +490,7 @@ class Job(MSONable):
 
     def resolve_args(
         self,
-        store: flows.JobStore,
+        store: jobflow.JobStore,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
         inplace: bool = True,
     ) -> Job:
@@ -516,7 +516,7 @@ class Job(MSONable):
         """
         from copy import deepcopy
 
-        from flows.core.reference import find_and_resolve_references
+        from jobflow.core.reference import find_and_resolve_references
 
         resolved_args = find_and_resolve_references(
             self.function_args,
@@ -602,7 +602,7 @@ class Job(MSONable):
         --------
         Consider a flow containing a simple job with a ``number`` keyword argument.
 
-        >>> from flows import job, Flow
+        >>> from jobflow import job, Flow
         >>> @job
         ... def add(a, number=5):
         ...     return a + number
@@ -612,7 +612,7 @@ class Job(MSONable):
 
         >>> add_job.update_kwargs({"number": 10})
         """
-        from flows.utils.dict_mods import apply_mod
+        from jobflow.utils.dict_mods import apply_mod
 
         if function_filter is not None and not self.matches_function(function_filter):
             return
@@ -630,7 +630,7 @@ class Job(MSONable):
         self,
         update: Dict[str, Any],
         name_filter: Optional[str] = None,
-        class_filter: Optional[Type[flows.Maker]] = None,
+        class_filter: Optional[Type[jobflow.Maker]] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -658,7 +658,7 @@ class Job(MSONable):
         Consider the following job from a Maker:
 
         >>> from dataclasses import dataclass
-        >>> from flows import job, Maker, Flow
+        >>> from jobflow import job, Maker, Flow
         >>> @dataclass
         ... class AddMaker(Maker):
         ...     name: str = "add"
@@ -678,7 +678,7 @@ class Job(MSONable):
         which are present in the kwargs of another Maker. Consider the following case
         for a Maker that produces a job that restarts.
 
-        >>> from flows import Response
+        >>> from jobflow import Response
         >>> @dataclass
         ... class RestartMaker(Maker):
         ...     name: str = "restart"
@@ -703,7 +703,7 @@ class Job(MSONable):
         ...     {"number": 10}, function_filter=AddMaker, nested=False
         ... )
         """
-        from flows import Maker
+        from jobflow import Maker
 
         if self.function_type == "method" and isinstance(self.function_source, Maker):
             self.function_source = self.function_source.update_kwargs(
@@ -715,7 +715,7 @@ class Job(MSONable):
             )
 
     def as_dict(self):
-        from flows.utils.serialization import deserialize_class, serialize_class
+        from jobflow.utils.serialization import deserialize_class, serialize_class
 
         # the output schema is a class which isn't serializable using monty.
         # this is a little hack to get around it.
@@ -733,7 +733,7 @@ class Job(MSONable):
     def from_dict(cls, d):
         import inspect
 
-        from flows.utils.serialization import deserialize_class
+        from jobflow.utils.serialization import deserialize_class
 
         if d["output_schema"] is not None and not inspect.isclass(d["output_schema"]):
             d["output_schema"] = deserialize_class(d["output_schema"])
@@ -762,9 +762,9 @@ class Response:
     """
 
     output: Optional[Any] = None
-    restart: Optional[Union[flows.Flow, Job, List[Job]]] = None
-    detour: Optional[Union[flows.Flow, Job, List[Job]]] = None
-    addition: Optional[Union[flows.Flow, Job, List[Job]]] = None
+    restart: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
+    detour: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
+    addition: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
     stored_data: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
     stop_flows: bool = False
@@ -863,10 +863,10 @@ def store_output(outputs: Any):
 
 
 def prepare_restart(
-    restart: Union[flows.Flow, Job, List[Job]],
+    restart: Union[jobflow.Flow, Job, List[Job]],
     current_job: Job,
 ):
-    from flows.core.flow import Flow
+    from jobflow.core.flow import Flow
 
     if isinstance(restart, (list, tuple)):
         restart = Flow(jobs=restart)

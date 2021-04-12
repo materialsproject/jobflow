@@ -8,19 +8,19 @@ with open(module_dir / "README.md") as f:
     long_desc = f.read()
 
 setup(
-    name="flows",
+    name="jobflow",
     description="",
     long_description=long_desc,
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     long_description_content_type="text/markdown",
-    url="https://github.com/hackingmaterials/flows",
+    url="https://github.com/hackingmaterials/jobflow",
     author="Alex Ganose",
     author_email="alexganose@googlemail.com",
     license="modified BSD",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    package_data={"flows": ["py.typed"]},
+    package_data={"jobflow": ["py.typed"]},
     zip_safe=False,
     include_package_data=True,
     install_requires=[

@@ -141,7 +141,7 @@ class JobStore(Store):
         """
         from pydash import get
 
-        from flows.utils.find import find_key, update_in_dictionary
+        from jobflow.utils.find import find_key, update_in_dictionary
 
         if load is None:
             load = self.load
@@ -239,7 +239,7 @@ class JobStore(Store):
         from monty.json import jsanitize
         from pydash import get
 
-        from flows.utils.find import find_key, update_in_dictionary
+        from jobflow.utils.find import find_key, update_in_dictionary
 
         if save is None or save is False:
             save = self.save
@@ -668,7 +668,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any) -> Dict[str, str]:
-    from flows.utils.uuid import suuid
+    from jobflow.utils.uuid import suuid
 
     class_name = ""
     module_name = ""

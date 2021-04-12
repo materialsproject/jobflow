@@ -1,6 +1,6 @@
 from typing import List
 
-from flows import Flow, job, run_locally
+from jobflow import Flow, job, run_locally
 
 
 @job
@@ -26,7 +26,7 @@ def time_website(website: str):
 
 @job
 def start_timing_jobs(websites: List[str]):
-    from flows.core.job import Response
+    from jobflow.core.job import Response
 
     jobs = []
     for website in websites:

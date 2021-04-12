@@ -1,4 +1,4 @@
-from flows import Response, job, run_locally
+from jobflow import Response, job, run_locally
 
 
 @job
