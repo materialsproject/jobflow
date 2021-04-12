@@ -80,7 +80,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     ...     print("I am a Job")
     >>> print_job = print_message()
     >>> type(print_job)
-    <class 'flows.core.job.Job'>
+    <class 'jobflow.core.job.Job'>
     >>> print_job.function_source
     '__main__'
     >>> print_job.function_name

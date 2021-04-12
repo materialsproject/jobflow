@@ -50,11 +50,11 @@ def sum_times(times: List[float]):
 read_websites_job = read_websites()
 timings_job = start_timing_jobs(read_websites_job.output)
 sum_job = sum_times(timings_job.output)
-act = Flow([read_websites_job, timings_job, sum_job])
+flow = Flow([read_websites_job, timings_job, sum_job])
 
 # draw the flow graph
-act.draw_graph().show()
+flow.draw_graph().show()
 
 # run the flow, "responses" contains the output of all jobs
-responses = run_locally(act)
+responses = run_locally(flow)
 print(responses)

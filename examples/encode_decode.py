@@ -17,11 +17,11 @@ def decode_message(message: str):
 
 encode = encode_message("Lo, a shadow of horror is risen")
 decode = decode_message(encode.output)
-act = Flow([encode, decode])
+flow = Flow([encode, decode])
 
 # draw the flow graph
-act.draw_graph().show()
+flow.draw_graph().show()
 
 # run the flow, "output" contains the output of all jobs
-output = run_locally(act)
+output = run_locally(flow)
 print(output)
