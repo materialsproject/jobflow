@@ -6,7 +6,7 @@ from pydantic.typing import get_args
 
 
 def with_reference(atype):
-    from activities import Reference
+    from flows import Reference
 
     args = tuple([with_reference(a) for a in get_args(atype)])
 

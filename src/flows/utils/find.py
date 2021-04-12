@@ -13,7 +13,7 @@ __all__ = [
     "find_key",
     "find_key_value",
     "update_in_dictionary",
-    "contains_activity_or_job",
+    "contains_flow_or_job",
 ]
 
 
@@ -184,9 +184,9 @@ def update_in_dictionary(obj: Dict[Hashable, Any], updates: Dict[Tuple, Any]):
         pos[loc[-1]] = update
 
 
-def contains_activity_or_job(obj: Any) -> bool:
+def contains_flow_or_job(obj: Any) -> bool:
     """
-    Find whether an object contains any :obj:`Activity` or :obj:`Job` objects.
+    Find whether an object contains any :obj:`Flow` or :obj:`Job` objects.
 
     Parameters
     ----------
@@ -196,25 +196,25 @@ def contains_activity_or_job(obj: Any) -> bool:
     Returns
     -------
     bool
-        Whether the object contains any activities or jobs.
+        Whether the object contains any flows or jobs.
     """
     from monty.json import jsanitize
 
-    from activities.core.activity import Activity
-    from activities.core.job import Job
+    from flows.core.flow import Flow
+    from flows.core.job import Job
 
-    if isinstance(obj, (Activity, Job)):
-        # if the argument is an activity or job then stop there
+    if isinstance(obj, (Flow, Job)):
+        # if the argument is an flow or job then stop there
         return True
 
     elif isinstance(obj, (float, int, str, bool)):
-        # argument is a primitive, we won't find an activity or job here
+        # argument is a primitive, we won't find an flow or job here
         return False
 
     obj = jsanitize(obj, strict=True)
 
     # recursively find any reference classes
-    locations = find_key_value(obj, "@class", "Activity")
+    locations = find_key_value(obj, "@class", "Flow")
     locations += find_key_value(obj, "@class", "Job")
 
     return len(locations) > 0

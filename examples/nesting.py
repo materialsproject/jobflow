@@ -1,6 +1,6 @@
 import random
 
-from activities import Activity, job, run_locally
+from flows import Flow, job, run_locally
 
 
 @job
@@ -23,24 +23,24 @@ def print_inputs(inputs):
     print(inputs)
 
 
-def get_name_activity():
+def get_name_flow():
     first_name = generate_first_name()
     second_name = generate_second_name()
     full_name = connect_name(first_name.output, second_name.output)
-    return Activity(
+    return Flow(
         [first_name, second_name, full_name], full_name.output, name="Get Name"
     )
 
 
-name_activity_a = get_name_activity()
-name_activity_b = get_name_activity()
-print_job = print_inputs([name_activity_a.output, name_activity_b.output])
+name_flow_a = get_name_flow()
+name_flow_b = get_name_flow()
+print_job = print_inputs([name_flow_a.output, name_flow_b.output])
 
-# create an activity to contain the nested activities
-outer_activity = Activity([name_activity_a, name_activity_b, print_job])
+# create an flow to contain the nested flows
+outer_flow = Flow([name_flow_a, name_flow_b, print_job])
 
-# draw the activity graph
-outer_activity.draw_graph().show()
+# draw the flow graph
+outer_flow.draw_graph().show()
 
-# run the activity
-run_locally(outer_activity)
+# run the flow
+run_locally(outer_flow)

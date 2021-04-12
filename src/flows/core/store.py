@@ -13,10 +13,10 @@ if typing.TYPE_CHECKING:
     from maggma.core import Sort
     from maggma.stores import GridFSStore, MongoStore, MongoURIStore, S3Store
 
-T = typing.TypeVar("T", bound="ActivityStore")
+T = typing.TypeVar("T", bound="JobStore")
 
 
-class ActivityStore(Store):
+class JobStore(Store):
     def __init__(
         self,
         docs_store: Store,
@@ -61,7 +61,7 @@ class ActivityStore(Store):
             k: getattr(docs_store, k)
             for k in ("key", "last_updated_field", "last_updated_type")
         }
-        super(ActivityStore, self).__init__(**kwargs)
+        super(JobStore, self).__init__(**kwargs)
 
     def name(self) -> str:
         """Get the name of the data source.
@@ -71,7 +71,7 @@ class ActivityStore(Store):
         str
             A string representing this data source.
         """
-        return f"ActivityStore-{self.docs_store.name}"
+        return f"JobStore-{self.docs_store.name}"
 
     def connect(self, force_reset: bool = False):
         """
@@ -116,7 +116,7 @@ class ActivityStore(Store):
         load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
     ) -> Optional[Iterator[Dict]]:
         """
-        Queries the ActivityStore for documents.
+        Queries the JobStore for documents.
 
         Parameters
         ----------
@@ -141,7 +141,7 @@ class ActivityStore(Store):
         """
         from pydash import get
 
-        from activities.utils.find import find_key, update_in_dictionary
+        from flows.utils.find import find_key, update_in_dictionary
 
         if load is None:
             load = self.load
@@ -239,7 +239,7 @@ class ActivityStore(Store):
         from monty.json import jsanitize
         from pydash import get
 
-        from activities.utils.find import find_key, update_in_dictionary
+        from flows.utils.find import find_key, update_in_dictionary
 
         if save is None or save is False:
             save = self.save
@@ -390,19 +390,19 @@ class ActivityStore(Store):
     @classmethod
     def from_store(cls, store: Store, **kwargs):
         """
-        Create a new activity store that uses the same store for documents and data.
+        Create a new job store that uses the same store for documents and data.
 
         Parameters
         ----------
         store
             A maggma store.
         **kwargs
-            Keyword arguments that will be passed to the ActivityStore init method.
+            Keyword arguments that will be passed to the JobStore init method.
 
         Returns
         -------
-        ActivityStore
-            An :obj:`ActivityStore`.
+        JobStore
+            An :obj:`JobStore`.
         """
         from copy import deepcopy
 
@@ -439,7 +439,7 @@ class ActivityStore(Store):
         cls: Type[T], db_file: Union[str, Path], admin: Optional[bool] = True, **kwargs
     ) -> T:
         """
-        Create an ActivityStore from a database file.
+        Create an JobStore from a database file.
 
         Multiple options are supported for the database file. The file should be in
         json or yaml format.
@@ -447,7 +447,7 @@ class ActivityStore(Store):
         The simplest format is a monty dumped version of the store, generated using:
 
         >>> from monty.serialization import dumpfn
-        >>> dumpfn("activity_store.json", activity_store)
+        >>> dumpfn("job_store.json", job_store)
 
         Alternatively, the format can be a dictionary containing the docs_store and
         data_store keys, with the values as the dictionary representation of those
@@ -497,19 +497,19 @@ class ActivityStore(Store):
             Whether to use the admin user (only applicable to the mongodb style file
             format).
         **kwargs
-            Additional keyword arguments that get passed to the ActivityStore
+            Additional keyword arguments that get passed to the JobStore
             constructor.
 
         Returns
         -------
-        ActivityStore
-            An ActivityStore.
+        JobStore
+            An JobStore.
         """
         from monty.serialization import loadfn
 
         credentials = loadfn(db_file)
 
-        if isinstance(credentials, ActivityStore):
+        if isinstance(credentials, JobStore):
             return credentials
 
         if "docs_store" in credentials and "data_store" in credentials:
@@ -530,7 +530,7 @@ def _get_docs_store(credentials: Dict[str, Any], admin: bool) -> MongoStore:
     """
     Get the docs store from mongodb credentials.
 
-    See ActivityStore.from_db_file for supported mongo connection arguments.
+    See JobStore.from_db_file for supported mongo connection arguments.
     """
 
     collection_name = credentials.get("collection")
@@ -541,9 +541,9 @@ def _get_data_store(credentials: Dict[str, Any], admin: bool) -> Store:
     """
     Get the data store from database credentials.
 
-    See ActivityStore.from_db_file for supported store types and connection arguments.
+    See JobStore.from_db_file for supported store types and connection arguments.
     """
-    data_store_prefix = credentials.get("data_store_prefix", "activity")
+    data_store_prefix = credentials.get("data_store_prefix", "job")
     collection_name = f"{data_store_prefix}_datastore"
 
     if "data_store_kwargs" not in credentials:
@@ -668,7 +668,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any) -> Dict[str, str]:
-    from activities.utils.uuid import suuid
+    from flows.utils.uuid import suuid
 
     class_name = ""
     module_name = ""

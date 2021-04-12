@@ -1,4 +1,4 @@
-# Releasing a new activities version
+# Releasing a new flows version
 
 Version releases on Pypi and GitHub are handled automatically through GitHub
 actions. The steps to push a new release are:

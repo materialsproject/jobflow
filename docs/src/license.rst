@@ -1,11 +1,11 @@
 License
 =======
 
-``activities`` is developed under a modified BSD license, reproduced below:
+``flows`` is developed under a modified BSD license, reproduced below:
 
 .. code-block:: raw
 
-    activities Copyright (c) 2021, The Regents of the University of
+    flows Copyright (c) 2021, The Regents of the University of
     California, through Lawrence Berkeley National Laboratory (subject
     to receipt of any required approvals from the U.S. Dept. of Energy).
     All rights reserved.

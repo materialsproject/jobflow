@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a bug report to help us improve activities
+about: Create a bug report to help us improve flows
 title: "BUG:"
 ---
 

@@ -1,4 +1,4 @@
-"""Define base Activity object."""
+"""Define base Flow object."""
 
 from __future__ import annotations
 
@@ -8,16 +8,16 @@ import warnings
 
 from monty.json import MSONable
 
-from activities.utils import ValueEnum, contains_activity_or_job, suuid
+from flows.utils import ValueEnum, contains_flow_or_job, suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, List, Optional, Type, Union
 
     from networkx import DiGraph
 
-    import activities
+    import flows
 
-__all__ = ["JobOrder", "Activity"]
+__all__ = ["JobOrder", "Flow"]
 
 logger = logging.getLogger(__name__)
 
@@ -35,48 +35,48 @@ class JobOrder(ValueEnum):
     LINEAR = "linear"
 
 
-class Activity(MSONable):
+class Flow(MSONable):
     """
-    An Activity contains a collection of Jobs or other Activities to execute.
+    A Flow contains a collection of Jobs or other Flows to execute.
 
-    The :obj:`Activity` object is the main tool for constructing workflows. Activities
-    can either contain jobs or other activities. Like :obj:`.Job` objects, activities
+    The :obj:`Flow` object is the main tool for constructing workflows. Flows
+    can either contain jobs or other flows. Like :obj:`.Job` objects, Flow objects
     can also have outputs, however, these are not explicitly stored in the database.
-    Instead, the outputs of an Activity act to structure the outputs of the jobs
-    contained within the activity.
+    Instead, the outputs of a Flow act to structure the outputs of the jobs
+    contained within the Flow.
 
     Parameters
     ----------
     jobs
-        The jobs to be run as a list of :obj:`.Job` or :obj:`Activity` objects.
+        The jobs to be run as a list of :obj:`.Job` or :obj:`Flow` objects.
     output
-        The output of the activity. These should come from the output of one or more
+        The output of the flow. These should come from the output of one or more
         of the jobs.
     name
-        The activity name.
+        The flow name.
     order
         The order in which the jobs should be exectuted. The default is to determine
         the order automatically based on the connections between jobs.
     uuid
-        The identifier of the activity. This is genenrated automatically.
+        The identifier of the flow. This is genenrated automatically.
     host
-        The identifier of the host activity. This is set automatically when an activity
-        is included in the jobs array of another activity.
+        The identifier of the host flow. This is set automatically when an flow
+        is included in the jobs array of another flow.
 
     Raises
     ------
     ValueError
-        If a job in the ``jobs`` array is already part of another activity.
+        If a job in the ``jobs`` array is already part of another flow.
     ValueError
         If any jobs needed to resolve the inputs of all jobs in the ``jobs`` array are
         missing.
     ValueError
-        If any jobs needed to resolve the activity ``output`` are missing.
+        If any jobs needed to resolve the flow ``output`` are missing.
 
     Warns
     -----
     UserWarning
-        If a ``.Job`` or ``Activity`` object is used as the Activity ``output`` rather
+        If a ``.Job`` or ``Flow`` object is used as the Flow ``output`` rather
         than an ``OutputReference``.
 
     See Also
@@ -85,49 +85,49 @@ class Activity(MSONable):
 
     Examples
     --------
-    Below we define a simple job to add two numbers, and create an activity containing
+    Below we define a simple job to add two numbers, and create an flow containing
     two connected add jobs.
 
-    >>> from activities import job, Activity
+    >>> from flows import job, Flow
     >>> @job
     ... def add(a, b):
     ...     return a + b
     >>> add_first = add(1, 2)
     >>> add_second = add(add_first.output, 2)
-    >>> activity = Activity(jobs=[add_first, add_second])
+    >>> flow = Flow(jobs=[add_first, add_second])
 
-    This activity does not expose any of the outputs of the jobs contained within it.
+    This flow does not expose any of the outputs of the jobs contained within it.
     We could instead "register" the output of the second add as the output of the
-    activity.
+    flow.
 
-    >>> activity = Activity(jobs=[add_first, add_second], output=add_second.output)
+    >>> flow = Flow(jobs=[add_first, add_second], output=add_second.output)
 
-    This will the activity to be used in another activity. In this way, activities
+    This will allow the flow to be used in another flow. In this way, flows
     can be infinitely nested. For example:
 
-    >>> add_third = add(activity.output, 5)
-    >>> outer_activity = Activity(jobs=[activity, add_third])
+    >>> add_third = add(flow.output, 5)
+    >>> outer_flow = Flow(jobs=[flow, add_third])
 
-    Activities can be run using an activity manager. These enable running activities
+    Flows can be run using an flow manager. These enable running flows
     locally or on compute clusters (using the FireWorks manager).
 
-    >>> from activities.managers.local import run_locally
-    >>> response = run_locally(activity)
+    >>> from flows.managers.local import run_locally
+    >>> response = run_locally(flow)
     """
 
     def __init__(
         self,
-        jobs: Union[List[Union[Activity, activities.Job]], activities.Job, Activity],
+        jobs: Union[List[Union[Flow, flows.Job]], flows.Job, Flow],
         output: Optional[Any] = None,
-        name: str = "Activity",
+        name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
         host: str = None,
     ):
-        from activities.core.job import Job
-        from activities.core.reference import find_and_get_references
+        from flows.core.job import Job
+        from flows.core.reference import find_and_get_references
 
-        if isinstance(jobs, (Job, Activity)):
+        if isinstance(jobs, (Job, Flow)):
             jobs = [jobs]
 
         if uuid is None:
@@ -154,17 +154,17 @@ class Activity(MSONable):
             if job.host is not None:
                 raise ValueError(
                     f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
-                    f"to another activity."
+                    f"to another flow."
                 )
             job.host = self.uuid
 
         if self.output is not None:
-            if contains_activity_or_job(self.output):
+            if contains_flow_or_job(self.output):
                 warnings.warn(
-                    f"Activity '{self.name}' contains an Activity or Job as an output. "
-                    f"Usually the Activity output should be the output of a Job or "
-                    f"another Activity (e.g. job.output). If this message is "
-                    f"unexpected then double check the outputs of your Activity."
+                    f"Flow '{self.name}' contains an Flow or Job as an output. "
+                    f"Usually the Flow output should be the output of a Job or "
+                    f"another Flow (e.g. job.output). If this message is "
+                    f"unexpected then double check the outputs of your Flow."
                 )
 
             # check if the jobs array contains all jobs needed for the references
@@ -173,22 +173,22 @@ class Activity(MSONable):
 
             if not reference_uuids.issubset(set(self.job_uuids)):
                 raise ValueError(
-                    "jobs array does not contain all jobs needed for activity output"
+                    "jobs array does not contain all jobs needed for flow output"
                 )
 
     @property
     def job_uuids(self) -> List[str]:
         """
-        The uuids of every job contained in the activity (including nested activities).
+        The uuids of every job contained in the flow (including nested flows).
 
         Returns
         -------
         list[str]
-            The uuids of all jobs in the activity (including nested activities).
+            The uuids of all jobs in the flow (including nested flows).
         """
         uuids = []
         for job in self.jobs:
-            if isinstance(job, Activity):
+            if isinstance(job, Flow):
                 uuids.extend(job.job_uuids)
             else:
                 uuids.append(job.uuid)
@@ -197,7 +197,7 @@ class Activity(MSONable):
     @property
     def graph(self) -> DiGraph:
         """
-        Get a graph indicating the connectivity of jobs in the activity.
+        Get a graph indicating the connectivity of jobs in the flow.
 
         Returns
         -------
@@ -214,12 +214,12 @@ class Activity(MSONable):
             # add fake edges between jobs to force linear order
             edges = []
             for job_a, job_b in nx.utils.pairwise(self.jobs):
-                if isinstance(job_a, Activity):
+                if isinstance(job_a, Flow):
                     leaves = [v for v, d in job_a.graph.out_degree() if d == 0]
                 else:
                     leaves = [job_a.uuid]
 
-                if isinstance(job_b, Activity):
+                if isinstance(job_b, Flow):
                     roots = [v for v, d in job_b.graph.in_degree() if d == 0]
                 else:
                     roots = [job_b.uuid]
@@ -231,7 +231,7 @@ class Activity(MSONable):
 
     def draw_graph(self):
         """
-        Draw the activity graph using matplotlib.
+        Draw the flow graph using matplotlib.
 
         Requires matplotlib to be installed.
 
@@ -240,24 +240,24 @@ class Activity(MSONable):
         pyplot
             The matplotlib pyplot state.
         """
-        from activities.utils.graph import draw_graph
+        from flows.utils.graph import draw_graph
 
         return draw_graph(self.graph)
 
-    def iteractivity(self):
+    def iterflow(self):
         """
-        Iterate through the jobs of the activity.
+        Iterate through the jobs of the flow.
 
         The jobs are yielded such that the job output references can always be
-        resolved. I.e., root nodes of the activity graph are always returned first.
+        resolved. I.e., root nodes of the flow graph are always returned first.
 
         Yields
         -------
         Job, list[str]
             The Job and the uuids of any parent jobs (not to be confused with the host
-            activity).
+            flow).
         """
-        from activities.utils.graph import itergraph
+        from flows.utils.graph import itergraph
 
         graph = self.graph
         for node in itergraph(graph):
@@ -273,9 +273,9 @@ class Activity(MSONable):
         dict_mod: bool = False,
     ):
         """
-        Update the kwargs of all jobs in the activity .
+        Update the kwargs of all jobs in the flow.
 
-        Note that updates will be applied to jobs in nested activities.
+        Note that updates will be applied to jobs in nested flows.
 
         Parameters
         ----------
@@ -291,25 +291,25 @@ class Activity(MSONable):
 
         Examples
         --------
-        Consider an activity containing a simple job with a ``number`` keyword argument.
+        Consider a flow containing a simple job with a ``number`` keyword argument.
 
-        >>> from activities import job, Activity
+        >>> from flows import job, Flow
         >>> @job
         ... def add(a, number=5):
         ...     return a + number
         >>> add_job = add(1)
-        >>> activity = Activity([add_job])
+        >>> flow = Flow([add_job])
 
         The ``number`` argument could be updated in the following ways.
 
-        >>> activity.update_kwargs({"number": 10})
+        >>> flow.update_kwargs({"number": 10})
 
-        This will work if all jobs in the activity have a kwarg called number. However,
+        This will work if all jobs in the flow have a kwarg called number. However,
         when this is not the case this will result in the bad input kwargs for some
         jobs. To only apply the update to the correct jobs, filters can be used.
 
-        >>> activity.update_kwargs({"number": 10}, name_filter="add")
-        >>> activity.update_kwargs({"number": 10}, function_filter=add)
+        >>> flow.update_kwargs({"number": 10}, name_filter="add")
+        >>> flow.update_kwargs({"number": 10}, function_filter=add)
         """
         for job in self.jobs:
             job.update_kwargs(
@@ -323,14 +323,14 @@ class Activity(MSONable):
         self,
         update: Dict[str, Any],
         name_filter: Optional[str] = None,
-        class_filter: Optional[Type[activities.Maker]] = None,
+        class_filter: Optional[Type[flows.Maker]] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
         """
         Update the keyword arguments of any :obj:`.Maker` objects in the jobs.
 
-        Note that updates will be applied to jobs in any inner activities.
+        Note that updates will be applied to jobs in any inner flows.
 
         Parameters
         ----------
@@ -350,10 +350,10 @@ class Activity(MSONable):
 
         Examples
         --------
-        Consider the following activity containing jobs from a Maker:
+        Consider the following flow containing jobs from a Maker:
 
         >>> from dataclasses import dataclass
-        >>> from activities import job, Maker, Activity
+        >>> from flows import job, Maker, Flow
         >>> @dataclass
         ... class AddMaker(Maker):
         ...     name: str = "add"
@@ -364,25 +364,25 @@ class Activity(MSONable):
         ...         return a + self.number
         >>> maker = AddMaker()
         >>> add_job = maker.make(1)
-        >>> activity = Activity([add_job])
+        >>> flow = Flow([add_job])
 
         The ``number`` argument could be updated in the following ways.
 
-        >>> activity.update_maker_kwargs({"number": 10})
+        >>> flow.update_maker_kwargs({"number": 10})
 
-        This will work if all Makers in the activity have a kwarg called number.
+        This will work if all Makers in the flow have a kwarg called number.
         However, when this is not the case this will result in the bad input kwargs
         for some Makers. To only apply the update to the correct Makers, filters can be
         used.
 
-        >>> activity.update_maker_kwargs({"number": 10}, name_filder="add")
-        >>> activity.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> flow.update_maker_kwargs({"number": 10}, name_filder="add")
+        >>> flow.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
 
         By default, the updates are applied to nested Makers. These are Makers
         which are present in the kwargs of another Maker. Consider the following case
         for a Maker that produces a job that restarts.
 
-        >>> from activities import Response
+        >>> from flows import Response
         >>> @dataclass
         ... class RestartMaker(Maker):
         ...     name: str = "restart"
@@ -394,17 +394,17 @@ class Activity(MSONable):
         ...         return Response(restart=restart_job)
         >>> maker = RestartMaker()
         >>> my_job = maker.make(1)
-        >>> activity = Activity([my_job]
+        >>> flow = Flow([my_job]
 
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``RestartMaker``:
 
-        >>> activity.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> flow.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
-        >>> activity.update_maker_kwargs(
+        >>> flow.update_maker_kwargs(
         ...     {"number": 10}, function_filter=AddMaker, nested=False
         ... )
         """

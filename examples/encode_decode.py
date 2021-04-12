@@ -1,4 +1,4 @@
-from activities import Activity, job, run_locally
+from flows import Flow, job, run_locally
 
 
 @job
@@ -17,11 +17,11 @@ def decode_message(message: str):
 
 encode = encode_message("Lo, a shadow of horror is risen")
 decode = decode_message(encode.output)
-act = Activity([encode, decode])
+act = Flow([encode, decode])
 
-# draw the activity graph
+# draw the flow graph
 act.draw_graph().show()
 
-# run the activity, "output" contains the output of all jobs
+# run the flow, "output" contains the output of all jobs
 output = run_locally(act)
 print(output)

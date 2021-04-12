@@ -1,4 +1,4 @@
-"""Tools for running activities locally."""
+"""Tools for running flows locally."""
 from __future__ import annotations
 
 import logging
@@ -7,37 +7,37 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
-    import activities
+    import flows
 
 logger = logging.getLogger(__name__)
 
 
 def run_locally(
-    activity: Union[activities.Activity, activities.Job, List[activities.Job]],
+    flow: Union[flows.Flow, flows.Job, List[flows.Job]],
     log: bool = True,
-    store: Optional[activities.ActivityStore] = None,
+    store: Optional[flows.JobStore] = None,
 ):
     from maggma.stores import MemoryStore
 
-    from activities import Activity, ActivityStore, Job, initialize_logger
-    from activities.core.reference import ReferenceFallback
+    from flows import Flow, JobStore, Job, initialize_logger
+    from flows.core.reference import ReferenceFallback
 
     if store is None:
-        store = ActivityStore.from_store(MemoryStore())
+        store = JobStore.from_store(MemoryStore())
         store.connect()
 
     if log:
         initialize_logger()
 
-    if not isinstance(activity, Activity):
-        activity = Activity(jobs=activity)
+    if not isinstance(flow, Flow):
+        flow = Flow(jobs=flow)
 
     stopped_parents = set()
     fizzled = set()
     responses = {}
     stop_activities = False
 
-    def _run_job(job: activities.Job, parents):
+    def _run_job(job: flows.Job, parents):
         nonlocal stop_activities
 
         if stop_activities:
@@ -75,7 +75,7 @@ def run_locally(
         if response.stop_children:
             stopped_parents.add(job.uuid)
 
-        if response.stop_activities:
+        if response.stop_flows:
             stop_activities = True
             return False
 
@@ -93,20 +93,20 @@ def run_locally(
 
         return response
 
-    def _run(root_activity):
-        if isinstance(root_activity, Job):
-            response = _run_job(root_activity, [])
+    def _run(root_flow):
+        if isinstance(root_flow, Job):
+            response = _run_job(root_flow, [])
             if response is False:
                 return False
 
         else:
-            job: activities.Job
-            for job, parents in root_activity.iteractivity():
+            job: flows.Job
+            for job, parents in root_flow.iterflow():
                 response = _run_job(job, parents)
                 if response is False:
                     return False
 
     logger.info(f"Started executing jobs locally")
-    _run(activity)
+    _run(flow)
     logger.info(f"Finished executing jobs locally")
     return responses

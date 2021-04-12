@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from activities import Activity, Maker, job, run_locally
+from flows import Flow, Maker, job, run_locally
 
 
 @dataclass
@@ -17,11 +17,11 @@ maker = AddMaker(c=10)
 
 add_first = maker.make(1, 2)
 add_second = maker.make(add_first.output, 5)
-act = Activity([add_first, add_second])
+act = Flow([add_first, add_second])
 
 act.update_maker_kwargs({"_inc": {"c": 50}}, dict_mod=True)
 act.update_kwargs({"d": 0.2})
 
-# run the activity, "output" contains the output of all jobs
+# run the flow, "output" contains the output of all jobs
 output = run_locally(act)
 print(output)

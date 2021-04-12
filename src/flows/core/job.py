@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 
 from monty.json import MSONable, jsanitize
 
-from activities.core.reference import Reference, ReferenceFallback
-from activities.utils.uuid import suuid
+from flows.core.reference import Reference, ReferenceFallback
+from flows.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from networkx import DiGraph
     from pydantic.main import BaseModel
 
-    import activities
+    import flows
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     Wraps a function to produce a :obj:`Job`.
 
     :obj:`Job` objects are delayed function calls that can be used in an
-    :obj:`Activity`. A job is a composed of the function name and source and any
+    :obj:`Flow`. A job is a composed of the function name and source and any
     arguments for the function. This decorator makes it simple to create
     job objects directly from a function definition. See the examples for more details.
 
@@ -80,7 +80,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     ...     print("I am a Job")
     >>> print_job = print_message()
     >>> type(print_job)
-    <class 'activities.core.job.Job'>
+    <class 'flows.core.job.Job'>
     >>> print_job.function_source
     '__main__'
     >>> print_job.function_name
@@ -126,10 +126,10 @@ def job(method: Optional[Callable] = None, **job_kwargs):
         If an output is indexed incorrectly, for example by trying to access a key that
         doesn't exist, this error will only be raised when the Job is executed.
 
-    Jobs can return :obj:`.Response` objects that control the activity execution flow.
+    Jobs can return :obj:`.Response` objects that control the flow execution flow.
     For example, to replace the current jub with another job, ``replace`` can be used.
 
-    >>> from activities import Response
+    >>> from flows import Response
     >>> @job
     ... def replace(a, b):
     ...     new_job = compute(a, b)
@@ -137,7 +137,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
 
     See Also
     --------
-    Job, .Activity, .Response
+    Job, .Flow, .Response
     """
 
     def decorator(func):
@@ -209,7 +209,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
 @dataclass
 class Job(MSONable):
     """
-    A :obj:`Job` is a delayed function call that can be used in an :obj:`.Activity`.
+    A :obj:`Job` is a delayed function call that can be used in an :obj:`.Flow`.
 
     In general, one should not create :obj:`Job` objects directly but instead use
     the :obj:`job` decorator on a function. Any calls to a decorated function will
@@ -243,13 +243,13 @@ class Job(MSONable):
     config
         The config setting for the job.
     host
-        The UUID of the host activity.
+        The UUID of the host flow.
 
     Attributes
     ----------
     output
         The output of the job. This is a reference to the future job output and
-        can be used as the input to other jobs or activities.
+        can be used as the input to other jobs or flows.
 
     Returns
     -------
@@ -279,7 +279,7 @@ class Job(MSONable):
 
     See Also
     --------
-    job, Response, .Activity
+    job, Response, .Flow
     """
 
     function_source: Union[str, MSONable, Tuple[str, str, bool]]
@@ -299,7 +299,7 @@ class Job(MSONable):
     def __post_init__(self):
         import inspect
 
-        from activities.utils.find import contains_activity_or_job
+        from flows.utils.find import contains_flow_or_job
 
         self.output = Reference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
@@ -309,13 +309,13 @@ class Job(MSONable):
             else:
                 self.name = self.function_name
 
-        # check to see if job or activity is included in the job args
+        # check to see if job or flow is included in the job args
         # this is a possible situation but likely a mistake
         all_args = tuple(self.function_args) + tuple(self.function_kwargs.values())
-        if contains_activity_or_job(all_args):
+        if contains_flow_or_job(all_args):
             warnings.warn(
-                f"Job '{self.name}' contains an Activity or Job as an input. "
-                f"Usually inputs should be the output of a Job or an Activity (e.g. "
+                f"Job '{self.name}' contains an Flow or Job as an input. "
+                f"Usually inputs should be the output of a Job or an Flow (e.g. "
                 f"job.output). If this message is unexpected then double check the "
                 f"inputs to your Job."
             )
@@ -349,7 +349,7 @@ class Job(MSONable):
             raise ValueError("Unrecognised function type.")
 
     @property
-    def input_references(self) -> Tuple[activities.Reference, ...]:
+    def input_references(self) -> Tuple[flows.Reference, ...]:
         """
         Find :obj:`.Reference` objects in the job inputs.
 
@@ -358,7 +358,7 @@ class Job(MSONable):
         tuple(Reference, ...)
             The references in the inputs to the job.
         """
-        from activities.core.reference import find_and_get_references
+        from flows.core.reference import find_and_get_references
 
         references = set()
         for arg in tuple(self.function_args) + tuple(self.function_kwargs.values()):
@@ -423,7 +423,7 @@ class Job(MSONable):
         self.uuid = uuid
         self.output = self.output.set_uuid(uuid)
 
-    def run(self, store: activities.ActivityStore) -> Response:
+    def run(self, store: flows.JobStore) -> Response:
         """
         Run the job.
 
@@ -440,7 +440,7 @@ class Job(MSONable):
         -------
         Response
             A the response of the job, containing the outputs, and other settings
-            that determine the activity execution.
+            that determine the flow execution.
 
         Raises
         ------
@@ -453,7 +453,7 @@ class Job(MSONable):
         """
         from datetime import datetime
 
-        from activities import CURRENT_JOB
+        from flows import CURRENT_JOB
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -490,7 +490,7 @@ class Job(MSONable):
 
     def resolve_args(
         self,
-        store: activities.ActivityStore,
+        store: flows.JobStore,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
         inplace: bool = True,
     ) -> Job:
@@ -516,7 +516,7 @@ class Job(MSONable):
         """
         from copy import deepcopy
 
-        from activities.core.reference import find_and_resolve_references
+        from flows.core.reference import find_and_resolve_references
 
         resolved_args = find_and_resolve_references(
             self.function_args,
@@ -600,9 +600,9 @@ class Job(MSONable):
 
         Examples
         --------
-        Consider an activity containing a simple job with a ``number`` keyword argument.
+        Consider a flow containing a simple job with a ``number`` keyword argument.
 
-        >>> from activities import job, Activity
+        >>> from flows import job, Flow
         >>> @job
         ... def add(a, number=5):
         ...     return a + number
@@ -612,7 +612,7 @@ class Job(MSONable):
 
         >>> add_job.update_kwargs({"number": 10})
         """
-        from activities.utils.dict_mods import apply_mod
+        from flows.utils.dict_mods import apply_mod
 
         if function_filter is not None and not self.matches_function(function_filter):
             return
@@ -630,7 +630,7 @@ class Job(MSONable):
         self,
         update: Dict[str, Any],
         name_filter: Optional[str] = None,
-        class_filter: Optional[Type[activities.Maker]] = None,
+        class_filter: Optional[Type[flows.Maker]] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -658,7 +658,7 @@ class Job(MSONable):
         Consider the following job from a Maker:
 
         >>> from dataclasses import dataclass
-        >>> from activities import job, Maker, Activity
+        >>> from flows import job, Maker, Flow
         >>> @dataclass
         ... class AddMaker(Maker):
         ...     name: str = "add"
@@ -678,7 +678,7 @@ class Job(MSONable):
         which are present in the kwargs of another Maker. Consider the following case
         for a Maker that produces a job that restarts.
 
-        >>> from activities import Response
+        >>> from flows import Response
         >>> @dataclass
         ... class RestartMaker(Maker):
         ...     name: str = "restart"
@@ -703,7 +703,7 @@ class Job(MSONable):
         ...     {"number": 10}, function_filter=AddMaker, nested=False
         ... )
         """
-        from activities import Maker
+        from flows import Maker
 
         if self.function_type == "method" and isinstance(self.function_source, Maker):
             self.function_source = self.function_source.update_kwargs(
@@ -715,7 +715,7 @@ class Job(MSONable):
             )
 
     def as_dict(self):
-        from activities.utils.serialization import deserialize_class, serialize_class
+        from flows.utils.serialization import deserialize_class, serialize_class
 
         # the output schema is a class which isn't serializable using monty.
         # this is a little hack to get around it.
@@ -733,7 +733,7 @@ class Job(MSONable):
     def from_dict(cls, d):
         import inspect
 
-        from activities.utils.serialization import deserialize_class
+        from flows.utils.serialization import deserialize_class
 
         if d["output_schema"] is not None and not inspect.isclass(d["output_schema"]):
             d["output_schema"] = deserialize_class(d["output_schema"])
@@ -750,24 +750,24 @@ class Response:
     output
         The job output.
     detour
-        An activity or job to detour to.
+        A flow or job to detour to.
     restart
-        An activity or job to replace the current job.
+        A flow or job to replace the current job.
     store
-        Data to be stored by the activity manager.
+        Data to be stored by the flow manager.
     stop_children
-        Stop any children of the current activity.
-    stop_activities
+        Stop any children of the current flow.
+    stop_flows
         Stop executing all remaining jobs.
     """
 
     output: Optional[Any] = None
-    restart: Optional[Union[activities.Activity, Job, List[Job]]] = None
-    detour: Optional[Union[activities.Activity, Job, List[Job]]] = None
-    addition: Optional[Union[activities.Activity, Job, List[Job]]] = None
+    restart: Optional[Union[flows.Flow, Job, List[Job]]] = None
+    detour: Optional[Union[flows.Flow, Job, List[Job]]] = None
+    addition: Optional[Union[flows.Flow, Job, List[Job]]] = None
     stored_data: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
-    stop_activities: bool = False
+    stop_flows: bool = False
 
     @classmethod
     def from_job_returns(
@@ -787,7 +787,7 @@ class Response:
 
             .. Warning::
                 :obj:`Detour` and :obj:`Outputs` objects should not be specified
-                simultaneously. The outputs of the detour activity will be used instead.
+                simultaneously. The outputs of the detour flow will be used instead.
 
         output_schema
             The outputs class associated with the job. Used to enforce a schema for the
@@ -797,8 +797,7 @@ class Response:
         Returns
         -------
         Response
-            The job response controlling the data to store and activity execution
-            options.
+            The job response controlling the data to store and flow execution options.
 
         Raises
         ------
@@ -864,17 +863,17 @@ def store_output(outputs: Any):
 
 
 def prepare_restart(
-    restart: Union[activities.Activity, Job, List[Job]],
+    restart: Union[flows.Flow, Job, List[Job]],
     current_job: Job,
 ):
-    from activities.core.activity import Activity
+    from flows.core.flow import Flow
 
     if isinstance(restart, (list, tuple)):
-        restart = Activity(jobs=restart)
+        restart = Flow(jobs=restart)
 
-    if isinstance(restart, Activity) and restart.output is not None:
+    if isinstance(restart, Flow) and restart.output is not None:
         # add a job with same uuid as the current job to store the outputs of the
-        # activity; this job will inherit the metadata and output schema of the current
+        # flow; this job will inherit the metadata and output schema of the current
         # job
         store_output_job = store_output(restart.output)
         store_output_job.config.manager_config = current_job.config.manager_config

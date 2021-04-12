@@ -3,12 +3,12 @@ API
 
 The main interface for constructing jobs is the :obj:`job` function.
 
-:obj:`job` wraps functions for use in activities. It can be used as a decorator, or
+:obj:`job` wraps functions for use in flows. It can be used as a decorator, or
 around function calls directly (i.e. ``job(foo)(a, b, c)``). Outputs from functions
 wrapped in ``job`` are proxy objects of type :obj:`Job` that contain the inputs
 and function to be executed.
 
-.. currentmodule:: activities.core.job
+.. currentmodule:: flows.core.job
 
 .. autofunction:: job
    :noindex:

@@ -1,4 +1,4 @@
-"""Tools for constructing Job and Activity graphs."""
+"""Tools for constructing Job and Flow graphs."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ import typing
 if typing.TYPE_CHECKING:
     from pydot import Dot
 
-    import activities
+    import flows
 
 
 def itergraph(graph: nx.DiGraph):
@@ -48,14 +48,14 @@ def itergraph(graph: nx.DiGraph):
     subgraphs = [graph.subgraph(c) for c in nx.weakly_connected_components(graph)]
 
     if len(subgraphs) > 1:
-        warnings.warn("Some activities are not connected, their ordering may be random")
+        warnings.warn("Some flows are not connected, their ordering may be random")
 
     for subgraph in subgraphs:
         for node in nx.topological_sort(subgraph):
             yield node
 
 
-@requires(matplotlib, "matplotlib must be installed to plot activity graphs.")
+@requires(matplotlib, "matplotlib must be installed to plot flow graphs.")
 def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     """
     Draw a networkx graph.
@@ -97,18 +97,18 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     return plt
 
 
-def to_pydot(activity: activities.Activity) -> Dot:
+def to_pydot(flow: flows.Flow) -> Dot:
     """
-    Convert an activity to a pydot graph.
+    Convert a flow to a pydot graph.
 
     Pydot graphs can be visualised using graphviz and support more advanced features
-    than networkx graphs. For example, the pydot graph also includes the activity
+    than networkx graphs. For example, the pydot graph also includes the flow
     containers.
 
     Parameters
     ----------
-    activity
-        An activity.
+    flow
+        A flow.
 
     Returns
     -------
@@ -117,16 +117,16 @@ def to_pydot(activity: activities.Activity) -> Dot:
 
     Examples
     --------
-    The pydot graph can be generated from an activity using:
+    The pydot graph can be generated from a flow using:
 
-    >>> from activities import job, Activity
+    >>> from flows import job, Flow
     >>> @job
     ... def add(a, b):
     ...     return a + b
     >>> add_first = add(1, 2)
     >>> add_second = add(add_first.output, 2)
-    >>> my_activity = Activity(jobs=[add_first, add_second])
-    >>> graph = to_pydot(my_activity)
+    >>> my_flow = Flow(jobs=[add_first, add_second])
+    >>> graph = to_pydot(my_flow)
 
     If graphviz is installed, the pydot graph can be rendered to a file using:
 
@@ -134,10 +134,10 @@ def to_pydot(activity: activities.Activity) -> Dot:
     """
     import pydot
 
-    from activities import Activity
+    from flows import Flow
 
-    nx_graph = activity.graph
-    pydot_graph = pydot.Dot(f'"{activity.name}"', graph_type="digraph")
+    nx_graph = flow.graph
+    pydot_graph = pydot.Dot(f'"{flow.name}"', graph_type="digraph")
 
     for n, nodedata in nx_graph.nodes(data=True):
         str_nodedata = {k: str(v) for k, v in nodedata.items()}
@@ -149,16 +149,16 @@ def to_pydot(activity: activities.Activity) -> Dot:
         edge = pydot.Edge(str(u), str(v), label=str_edgedata["properties"])
         pydot_graph.add_edge(edge)
 
-    def add_cluster(nested_activity, outer_graph):
-        cluster = pydot.Cluster(nested_activity.uuid)
-        cluster.set_label(nested_activity.name)
-        for job in nested_activity.jobs:
+    def add_cluster(nested_flow, outer_graph):
+        cluster = pydot.Cluster(nested_flow.uuid)
+        cluster.set_label(nested_flow.name)
+        for job in nested_flow.jobs:
             for sub_node in job.graph.nodes:
                 cluster.add_node(pydot_graph.get_node(f'"{sub_node}"')[0])
-            if isinstance(job, Activity):
+            if isinstance(job, Flow):
                 add_cluster(job, cluster)
         outer_graph.add_subgraph(cluster)
 
-    add_cluster(activity, pydot_graph)
+    add_cluster(flow, pydot_graph)
 
     return pydot_graph

@@ -1,6 +1,6 @@
 from typing import List
 
-from activities import Activity, Response, job
+from flows import Activity, Response, job
 
 
 @job
@@ -16,7 +16,7 @@ def simple_activity():
 def test_activity_to_workflow(mongo_store):
     from fireworks import Workflow
 
-    from activities.managers.fireworks import activity_to_workflow
+    from flows.managers.fireworks import activity_to_workflow
 
     activity = simple_activity()
     wf = activity_to_workflow(activity, mongo_store)
@@ -31,7 +31,7 @@ def test_activity_to_workflow(mongo_store):
 def test_fireworks_integration(lpad, mongo_store, clean_dir):
     from fireworks.core.rocket_launcher import rapidfire
 
-    from activities.managers.fireworks import activity_to_workflow
+    from flows.managers.fireworks import activity_to_workflow
 
     activity = simple_activity()
     wf = activity_to_workflow(activity, mongo_store)
@@ -93,7 +93,7 @@ def get_detour_activity_test():
 def test_fireworks_detour(lpad, mongo_store, clean_dir):
     from fireworks.core.rocket_launcher import rapidfire
 
-    from activities.managers.fireworks import activity_to_workflow
+    from flows.managers.fireworks import activity_to_workflow
 
     activity = get_detour_activity_test()
     wf = activity_to_workflow(activity, mongo_store)
@@ -138,7 +138,7 @@ def fibonacci_addition(smaller: int, larger: int, stop_point: int = 1000):
 def test_fireworks_restart(lpad, mongo_store, clean_dir):
     from fireworks.core.rocket_launcher import rapidfire
 
-    from activities.managers.fireworks import activity_to_workflow
+    from flows.managers.fireworks import activity_to_workflow
 
     fibonacci_job = fibonacci_addition(1, 1)
     wf = activity_to_workflow(fibonacci_job, mongo_store)
@@ -162,7 +162,7 @@ def test_fireworks_restart(lpad, mongo_store, clean_dir):
 def test_fireworks_addition(lpad, mongo_store, clean_dir):
     from fireworks.core.rocket_launcher import rapidfire
 
-    from activities.managers.fireworks import activity_to_workflow
+    from flows.managers.fireworks import activity_to_workflow
 
     fibonacci_job = fibonacci_addition(1, 1)
     wf = activity_to_workflow(fibonacci_job, mongo_store)

@@ -4,14 +4,14 @@ import pytest
 
 
 def add(a, b=5):
-    from activities.core.outputs import Number
+    from flows.core.outputs import Number
 
     return Number(a + b)
 
 
 def test_task_init():
-    from activities.core.outputs import Dynamic, Number
-    from activities.core.task import Task
+    from flows.core.outputs import Dynamic, Number
+    from flows.core.task import Task
 
     # test basic init
     test_task = Task(function=("builtins", "print"), args=("I am a job",))
@@ -36,9 +36,9 @@ def test_task_init():
 
 
 def test_task_run(capsys):
-    from activities.core.outputs import Number
-    from activities.core.reference import Reference
-    from activities.core.task import Task
+    from flows.core.outputs import Number
+    from flows.core.reference import Reference
+    from flows.core.task import Task
 
     # test basic run
     test_task = Task(function=("builtins", "print"), args=("I am a job",))
@@ -67,9 +67,9 @@ def test_task_run(capsys):
 
 
 def test_task_input_references():
-    from activities.core.outputs import Number
-    from activities.core.reference import Reference
-    from activities.core.task import Task
+    from flows.core.outputs import Number
+    from flows.core.reference import Reference
+    from flows.core.task import Task
 
     ref = Reference(uuid4(), "b")
     test_task = Task(
@@ -81,8 +81,8 @@ def test_task_input_references():
 
 
 def test_task_output_references():
-    from activities.core.outputs import Number
-    from activities.core.task import Task
+    from flows.core.outputs import Number
+    from flows.core.task import Task
 
     test_task = Task(
         function=(__name__, "add"), args=(1,), kwargs={"b": 2}, outputs=Number
@@ -93,8 +93,8 @@ def test_task_output_references():
 
 
 def test_task_resolve_args(output_store):
-    from activities.core.reference import Reference
-    from activities.core.task import Task
+    from flows.core.reference import Reference
+    from flows.core.task import Task
 
     # test basic run with no references
     test_task = Task(function=("builtins", "print"), args=("I am a job",))
@@ -139,8 +139,8 @@ def test_task_resolve_args(output_store):
 
 
 def test_task_decorator():
-    from activities.core.outputs import Dynamic, Number
-    from activities.core.task import task
+    from flows.core.outputs import Dynamic, Number
+    from flows.core.task import task
 
     # test basic init
     decorated = task(print)
@@ -202,9 +202,9 @@ def test_task_decorator():
 def test_task_response():
     # no need to test init as it is just a dataclass, instead test from_task_returns
     # test no job returns
-    from activities.core.activity import Activity
-    from activities.core.outputs import Dynamic, Number, Value
-    from activities.core.task import Detour, Stop, Store, TaskResponse
+    from flows.core.activity import Activity
+    from flows.core.outputs import Dynamic, Number, Value
+    from flows.core.task import Detour, Stop, Store, TaskResponse
 
     response = TaskResponse.from_task_returns(None)
     assert response == TaskResponse()

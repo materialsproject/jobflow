@@ -9,7 +9,7 @@
    :hidden:
 
    Job <job>
-   Activity <activity>
+   Flow <flow>
 
 .. toctree::
    :caption: Information
@@ -19,7 +19,7 @@
    contributors
    contributing
    license
-   activities on GitHub <https://github.com/hackingmaterials/activities>
+   flows on GitHub <https://github.com/hackingmaterials/flows>
 
 
 .. toctree::
@@ -27,7 +27,7 @@
    :maxdepth: -1
    :hidden:
 
-   API reference <activities>
+   API reference <flows>
    genindex
 
 .. include:: introduction.rst

@@ -8,19 +8,19 @@ with open(module_dir / "README.md") as f:
     long_desc = f.read()
 
 setup(
-    name="activities",
+    name="flows",
     description="",
     long_description=long_desc,
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     long_description_content_type="text/markdown",
-    url="https://github.com/hackingmaterials/activities",
+    url="https://github.com/hackingmaterials/flows",
     author="Alex Ganose",
     author_email="alexganose@googlemail.com",
     license="modified BSD",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    package_data={"activities": ["py.typed"]},
+    package_data={"flows": ["py.typed"]},
     zip_safe=False,
     include_package_data=True,
     install_requires=[

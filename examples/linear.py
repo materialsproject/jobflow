@@ -1,4 +1,4 @@
-from activities import Activity, JobOrder, job
+from flows import Flow, JobOrder, job
 
 
 @job
@@ -10,9 +10,9 @@ add_job_first = add(1, 2)
 add_job_second = add(4, 6)
 
 # No edges between the tasks as the tasks do not depend on each other
-auto_act = Activity([add_job_first, add_job_second], order=JobOrder.AUTO)
+auto_act = Flow([add_job_first, add_job_second], order=JobOrder.AUTO)
 auto_act.draw_graph().show()
 
-# activity graph now shows an edge between the jobs due to the linear execution order
-linear_act = Activity([add_job_first, add_job_second], order=JobOrder.LINEAR)
+# flow graph now shows an edge between the jobs due to the linear execution order
+linear_act = Flow([add_job_first, add_job_second], order=JobOrder.LINEAR)
 linear_act.draw_graph().show()

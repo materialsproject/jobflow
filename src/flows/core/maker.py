@@ -9,7 +9,7 @@ from monty.json import MontyDecoder, MSONable
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Optional, Type, Union
 
-    import activities
+    import flows
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Maker(ABC, MSONable):
     name: str = "Maker"
 
     @abstractmethod
-    def make(self, *args, **kwargs) -> Union[activities.Activity, activities.Job]:
+    def make(self, *args, **kwargs) -> Union[flows.Flow, flows.Job]:
         pass
 
     def update_kwargs(
@@ -30,8 +30,8 @@ class Maker(ABC, MSONable):
     ):
         from pydash import get, set_
 
-        from activities.utils.dict_mods import apply_mod
-        from activities.utils.find import find_key
+        from flows.utils.dict_mods import apply_mod
+        from flows.utils.find import find_key
 
         d = self.as_dict()
 

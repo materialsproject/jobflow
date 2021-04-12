@@ -2,7 +2,7 @@ import pytest
 
 
 def get_task():
-    from activities import Task
+    from flows import Task
 
     return Task(function=("builtins", "sum"), args=(1, 2))
 
@@ -10,8 +10,8 @@ def get_task():
 def test_activity_of_tasks_init():
     from uuid import UUID
 
-    from activities.core.activity import Activity
-    from activities.core.outputs import Dynamic, Value
+    from flows.core.activity import Activity
+    from flows.core.outputs import Dynamic, Value
 
     # test empty activity
     activity = Activity()
@@ -90,8 +90,8 @@ def test_activity_of_tasks_init():
 
 
 def test_activity_of_activities_init():
-    from activities.core.activity import Activity
-    from activities.core.outputs import Dynamic, Value
+    from flows.core.activity import Activity
+    from flows.core.outputs import Dynamic, Value
 
     # test single activity
     add_task = get_task()
@@ -103,7 +103,7 @@ def test_activity_of_activities_init():
     assert activity.task_type == "activity"
     assert activity.tasks[0].host == activity.uuid
 
-    # test multiple activities
+    # test multiple flows
     add_task1 = get_task()
     subactivity1 = Activity(tasks=[add_task1])
     add_task2 = get_task()
@@ -154,7 +154,7 @@ def test_activity_of_activities_init():
     )
     assert isinstance(activity.outputs, Dynamic)
 
-    # test all activities included needed to generate outputs
+    # test all flows included needed to generate outputs
     add_task = get_task()
     subactivity = Activity(tasks=[add_task])
     with pytest.raises(ValueError):
@@ -186,9 +186,9 @@ def test_activity_of_activities_init():
 
 
 def test_activity_sharing():
-    from activities import Activity
+    from flows import Activity
 
-    # test that activities cannot be shared between multiple activities
+    # test that flows cannot be shared between multiple flows
     add_task = get_task()
     shared_activity = Activity(tasks=[add_task])
     activity = Activity(tasks=[shared_activity])
@@ -199,9 +199,9 @@ def test_activity_sharing():
 
 
 def test_task_sharing():
-    from activities import Activity
+    from flows import Activity
 
-    # test that tasks cannot be shared between multiple activities
+    # test that tasks cannot be shared between multiple flows
     shared_task = get_task()
     activity = Activity(tasks=[shared_task])
     assert activity
@@ -211,7 +211,7 @@ def test_task_sharing():
 
 
 def test_task_multiplicity():
-    from activities import Activity
+    from flows import Activity
 
     # test that two of the same job cannot be used in the same activity
     add_task = get_task()
@@ -220,7 +220,7 @@ def test_task_multiplicity():
 
 
 def test_activity_multiplicity():
-    from activities import Activity
+    from flows import Activity
 
     # test that two of the same activity cannot be used in the same activity
     add_task = get_task()
@@ -231,7 +231,7 @@ def test_activity_multiplicity():
 
 
 def test_task_dag_validation():
-    from activities import Activity, Task
+    from flows import Activity, Task
 
     # test tasks out of order
     task1 = Task(function=("builtins", "sum"), args=(1, 2))
@@ -257,9 +257,9 @@ def test_task_dag_validation():
 
 
 def test_activity_dag_validation():
-    from activities import Activity, Task
+    from flows import Activity, Task
 
-    # test cycle detection of sub-activities
+    # test cycle detection of sub-flows
     task1 = Task(function=("builtins", "sum"), args=(1, 2))
     subactivity1 = Activity(tasks=[task1])
 
@@ -270,10 +270,10 @@ def test_activity_dag_validation():
         activity.validate()
 
     # other things to test:
-    # - DAG for activities and tasks
-    # - test all tasks (activities or tasks) included for graph to work
+    # - DAG for flows and tasks
+    # - test all tasks (flows or tasks) included for graph to work
     # - test all the above bad inputs but for job Job object args and kwargs
-    # - add validate call inside either task_to_wf or iteractivity
+    # - add validate call inside either task_to_wf or iterflow
 
 
 def test_serialization():

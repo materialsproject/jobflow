@@ -7,42 +7,42 @@ from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_seria
 if typing.TYPE_CHECKING:
     from typing import Dict, List, Optional, Sequence, Union
 
-    import activities
+    import flows
 
-__all__ = ["activity_to_workflow", "job_to_firework", "JobFiretask"]
+__all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 
-def activity_to_workflow(
-    activity: Union[activities.Activity, activities.Job, List[activities.Job]],
-    store: activities.ActivityStore,
+def flow_to_workflow(
+    flow: Union[flows.Flow, flows.Job, List[flows.Job]],
+    store: flows.JobStore,
 ) -> Workflow:
     from fireworks.core.firework import Workflow
 
-    from activities.core.activity import Activity
+    from flows.core.flow import Flow
 
     parent_mapping = {}
     fireworks = []
 
-    if not isinstance(activity, Activity):
-        # a list of jobs has been provided; make dummy activity to contain them
-        activity = Activity(jobs=activity)
+    if not isinstance(flow, Flow):
+        # a list of jobs has been provided; make dummy flow to contain them
+        flow = Flow(jobs=flow)
 
-    for job, parents in activity.iteractivity():
+    for job, parents in flow.iterflow():
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
         fireworks.append(fw)
 
-    return Workflow(fireworks, name=activity.name)
+    return Workflow(fireworks, name=flow.name)
 
 
 def job_to_firework(
-    job: activities.Job,
-    store: activities.ActivityStore,
+    job: flows.Job,
+    store: flows.JobStore,
     parents: Optional[Sequence[str]] = None,
     parent_mapping: Optional[Dict[str, Firework]] = None,
 ):
     from fireworks.core.firework import Firework
 
-    from activities.core.reference import ReferenceFallback
+    from flows.core.reference import ReferenceFallback
 
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
@@ -74,8 +74,8 @@ class JobFiretask(FiretaskBase):
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
-        from activities import initialize_logger
-        from activities.core.job import Job
+        from flows import initialize_logger
+        from flows.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")
@@ -91,13 +91,13 @@ class JobFiretask(FiretaskBase):
         additions = None
         if response.restart is not None:
             # create a workflow from the new additions
-            detours = [activity_to_workflow(response.restart, store)]
+            detours = [flow_to_workflow(response.restart, store)]
 
         if response.addition is not None:
-            additions = [activity_to_workflow(response.addition, store)]
+            additions = [flow_to_workflow(response.addition, store)]
 
         if response.detour is not None:
-            detour_wf = activity_to_workflow(response.detour, store)
+            detour_wf = flow_to_workflow(response.detour, store)
             if detours is not None:
                 detours.append(detour_wf)
             else:
@@ -107,6 +107,6 @@ class JobFiretask(FiretaskBase):
             stored_data=response.stored_data,
             detours=detours,
             additions=additions,
-            defuse_workflow=response.stop_activities,
+            defuse_workflow=response.stop_flows,
             defuse_children=response.stop_children,
         )

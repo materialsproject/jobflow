@@ -1,4 +1,4 @@
-from activities import Activity, job, run_locally
+from flows import Flow, job, run_locally
 
 
 @job(data=True)
@@ -14,7 +14,7 @@ def calculate_sum(numbers):
 
 big_data_job = generate_big_data()
 sum_job = calculate_sum(big_data_job.output)
-act = Activity([big_data_job, sum_job])
+act = Flow([big_data_job, sum_job])
 
 output = run_locally(act)
 print(output)

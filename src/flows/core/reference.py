@@ -6,10 +6,10 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Type
 from monty.json import MontyDecoder, MSONable, jsanitize
 from pydantic import BaseModel
 
-from activities.utils.enum import ValueEnum
+from flows.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
-    import activities
+    import flows
 
 
 class ReferenceFallback(ValueEnum):
@@ -30,7 +30,7 @@ class Reference(MSONable):
     ):
         import inspect
 
-        from activities.utils.serialization import deserialize_class
+        from flows.utils.serialization import deserialize_class
 
         super(Reference, self).__init__()
         self.uuid = uuid
@@ -42,7 +42,7 @@ class Reference(MSONable):
 
     def resolve(
         self,
-        store: Optional[activities.ActivityStore] = None,
+        store: Optional[flows.JobStore] = None,
         cache: Optional[Dict[str, Dict[str, Any]]] = None,
         on_missing: ReferenceFallback = ReferenceFallback.ERROR,
     ):
@@ -154,7 +154,7 @@ class Reference(MSONable):
         return False
 
     def as_dict(self):
-        from activities.utils.serialization import serialize_class
+        from flows.utils.serialization import serialize_class
 
         schema = self.output_schema
         data = {
@@ -170,7 +170,7 @@ class Reference(MSONable):
 
 def resolve_references(
     references: Sequence[Reference],
-    store: activities.ActivityStore,
+    store: flows.JobStore,
     cache: Optional[Dict] = None,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Dict[Reference, Any]:
@@ -198,7 +198,7 @@ def resolve_references(
 def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
     from pydash import get
 
-    from activities.utils.find import find_key_value
+    from flows.utils.find import find_key_value
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
@@ -219,13 +219,13 @@ def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
 
 def find_and_resolve_references(
     arg: Any,
-    store: activities.ActivityStore,
+    store: flows.JobStore,
     cache: Optional[Dict] = None,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
 ) -> Any:
     from pydash import get, set_
 
-    from activities.utils.find import find_key_value
+    from flows.utils.find import find_key_value
 
     if isinstance(arg, Reference):
         # if the argument is a reference then stop there
