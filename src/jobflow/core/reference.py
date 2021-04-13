@@ -18,7 +18,7 @@ class ReferenceFallback(ValueEnum):
     PASS = "pass"
 
 
-class Reference(MSONable):
+class OutputReference(MSONable):
 
     __slots__ = ("uuid", "attributes", "output_schema")
 
@@ -32,7 +32,7 @@ class Reference(MSONable):
 
         from jobflow.utils.serialization import deserialize_class
 
-        super(Reference, self).__init__()
+        super(OutputReference, self).__init__()
         self.uuid = uuid
         self.attributes = attributes
         self.output_schema = output_schema
@@ -107,13 +107,13 @@ class Reference(MSONable):
             new_reference.uuid = uuid
             return new_reference
 
-    def __getitem__(self, item) -> "Reference":
+    def __getitem__(self, item) -> "OutputReference":
         if self.output_schema is not None:
             validate_schema_access(self.output_schema, item)
 
-        return Reference(self.uuid, self.attributes + (item,))
+        return OutputReference(self.uuid, self.attributes + (item,))
 
-    def __getattr__(self, item) -> "Reference":
+    def __getattr__(self, item) -> "OutputReference":
         if item in {"kwargs", "args", "schema"} or (
             isinstance(item, str) and item.startswith("__")
         ):
@@ -122,16 +122,16 @@ class Reference(MSONable):
         if self.output_schema is not None:
             validate_schema_access(self.output_schema, item)
 
-        return Reference(self.uuid, self.attributes + (item,))
+        return OutputReference(self.uuid, self.attributes + (item,))
 
     def __setattr__(self, attr, val):
         if attr in self.__slots__:
             object.__setattr__(self, attr, val)
         else:
-            raise TypeError("Reference objects are immutable")
+            raise TypeError("OutputReference objects are immutable")
 
     def __setitem__(self, index, val):
-        raise TypeError("Reference objects are immutable")
+        raise TypeError("OutputReference objects are immutable")
 
     def __repr__(self):
         if len(self.attributes) > 0:
@@ -139,13 +139,13 @@ class Reference(MSONable):
         else:
             attribute_str = ""
 
-        return f"Reference({str(self.uuid)}{attribute_str})"
+        return f"OutputReference({str(self.uuid)}{attribute_str})"
 
     def __hash__(self):
         return hash(str(self))
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, Reference):
+        if isinstance(other, OutputReference):
             return (
                 self.uuid == other.uuid
                 and len(self.attributes) == len(other.attributes)
@@ -169,11 +169,11 @@ class Reference(MSONable):
 
 
 def resolve_references(
-    references: Sequence[Reference],
+    references: Sequence[OutputReference],
     store: jobflow.JobStore,
     cache: Optional[Dict] = None,
     on_missing: ReferenceFallback = ReferenceFallback.ERROR,
-) -> Dict[Reference, Any]:
+) -> Dict[OutputReference, Any]:
     from itertools import groupby
 
     resolved_references = {}
@@ -195,12 +195,12 @@ def resolve_references(
     return resolved_references
 
 
-def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
+def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
     from pydash import get
 
     from jobflow.utils.find import find_key_value
 
-    if isinstance(arg, Reference):
+    if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
         return tuple([arg])
 
@@ -211,10 +211,10 @@ def find_and_get_references(arg: Any) -> Tuple[Reference, ...]:
     arg = jsanitize(arg, strict=True)
 
     # recursively find any reference classes
-    locations = find_key_value(arg, "@class", "Reference")
+    locations = find_key_value(arg, "@class", "OutputReference")
 
     # deserialize references and return
-    return tuple([Reference.from_dict(get(arg, loc)) for loc in locations])
+    return tuple([OutputReference.from_dict(get(arg, loc)) for loc in locations])
 
 
 def find_and_resolve_references(
@@ -227,7 +227,7 @@ def find_and_resolve_references(
 
     from jobflow.utils.find import find_key_value
 
-    if isinstance(arg, Reference):
+    if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
         return arg.resolve(store=store, cache=cache, on_missing=on_missing)
 
@@ -239,13 +239,13 @@ def find_and_resolve_references(
     encoded_arg = jsanitize(arg, strict=True)
 
     # recursively find any reference classes
-    locations = find_key_value(encoded_arg, "@class", "Reference")
+    locations = find_key_value(encoded_arg, "@class", "OutputReference")
 
     if len(locations) == 0:
         return arg
 
     # resolve the references
-    references = [Reference.from_dict(get(encoded_arg, list(loc))) for loc in locations]
+    references = [OutputReference.from_dict(get(encoded_arg, list(loc))) for loc in locations]
     resolved_references = resolve_references(
         references,
         store,

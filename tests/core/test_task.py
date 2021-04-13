@@ -37,7 +37,7 @@ def test_task_init():
 
 def test_task_run(capsys):
     from jobflow.core.outputs import Number
-    from jobflow.core.reference import Reference
+    from jobflow.core.reference import OutputReference
     from jobflow.core.task import Task
 
     # test basic run
@@ -56,7 +56,7 @@ def test_task_run(capsys):
     assert response.outputs.value == 3
 
     # test run with input references
-    ref = Reference(uuid4(), "b")
+    ref = OutputReference(uuid4(), "b")
     test_task = Task(
         function=(__name__, "add"), args=(1,), kwargs={"b": ref}, outputs=Number
     )
@@ -68,10 +68,10 @@ def test_task_run(capsys):
 
 def test_task_input_references():
     from jobflow.core.outputs import Number
-    from jobflow.core.reference import Reference
+    from jobflow.core.reference import OutputReference
     from jobflow.core.task import Task
 
-    ref = Reference(uuid4(), "b")
+    ref = OutputReference(uuid4(), "b")
     test_task = Task(
         function=(__name__, "add"), args=(1,), kwargs={"b": ref}, outputs=Number
     )
@@ -93,7 +93,7 @@ def test_task_output_references():
 
 
 def test_task_resolve_args(output_store):
-    from jobflow.core.reference import Reference
+    from jobflow.core.reference import OutputReference
     from jobflow.core.task import Task
 
     # test basic run with no references
@@ -101,7 +101,7 @@ def test_task_resolve_args(output_store):
     resolved_task = test_task.resolve_args()
     assert test_task == resolved_task
 
-    ref = Reference(uuid4(), "b")
+    ref = OutputReference(uuid4(), "b")
     cache = {ref.uuid: {ref.name: 2}}
 
     # test run with input references
@@ -115,7 +115,7 @@ def test_task_resolve_args(output_store):
     resolved_task = test_task.resolve_args(output_cache=cache, inplace=False)
     assert test_task != resolved_task
     assert resolved_task.function_kwargs["b"] == 2
-    assert isinstance(test_task.function_kwargs["b"], Reference)
+    assert isinstance(test_task.function_kwargs["b"], OutputReference)
 
     # test resolve with allow errors
     test_task = Task(function=(__name__, "add"), args=(1,), kwargs={"b": ref})

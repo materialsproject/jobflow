@@ -6,14 +6,14 @@ from pydantic.typing import get_args
 
 
 def with_reference(atype):
-    from jobflow import Reference
+    from jobflow import OutputReference
 
     args = tuple([with_reference(a) for a in get_args(atype)])
 
     if hasattr(atype, "copy_with"):
         atype = atype.copy_with(args)
 
-    return typing.Union[Reference, atype]
+    return typing.Union[OutputReference, atype]
 
 
 def allow_references(model):

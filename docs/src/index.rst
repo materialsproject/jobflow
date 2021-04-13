@@ -23,7 +23,7 @@
 
 
 .. toctree::
-   :caption: Function Reference
+   :caption: Function OutputReference
    :maxdepth: -1
    :hidden:
 

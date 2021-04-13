@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 
 from monty.json import MSONable, jsanitize
 
-from jobflow.core.reference import Reference, ReferenceFallback
+from jobflow.core.reference import OutputReference, ReferenceFallback
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
@@ -105,10 +105,10 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     ...     return a + b
     >>> add_task = add(1, 2)
     >>> add_task.output
-    Reference('abeb6f48-9b34-4698-ab69-e4dc2127ebe9')
+    OutputReference('abeb6f48-9b34-4698-ab69-e4dc2127ebe9')
 
     .. Note::
-        Because the task has not yet been run, the output value is :obj:`Reference`
+        Because the task has not yet been run, the output value is :obj:`OutputReference`
         object. References are automatically converted to their computed values
         (resolved) when the task runs.
 
@@ -120,7 +120,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     ...     return {"sum": a + b, "product": a * b}
     >>> compute_task = compute(1, 2)
     >>> compute_task.output["sum"]
-    Reference('abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'sum')
+    OutputReference('abeb6f48-9b34-4698-ab69-e4dc2127ebe9', 'sum')
 
     .. Warning::
         If an output is indexed incorrectly, for example by trying to access a key that
@@ -294,14 +294,14 @@ class Job(MSONable):
     metadata: Dict[str, Any] = field(default_factory=dict)
     config: JobConfig = field(default_factory=JobConfig)
     host: Optional[str] = None
-    output: Reference = field(init=False)
+    output: OutputReference = field(init=False)
 
     def __post_init__(self):
         import inspect
 
         from jobflow.utils.find import contains_flow_or_job
 
-        self.output = Reference(self.uuid, output_schema=self.output_schema)
+        self.output = OutputReference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
             if self.function_type == "method" and hasattr(self.function_source, "name"):
                 # Probably a Maker instance
@@ -349,13 +349,13 @@ class Job(MSONable):
             raise ValueError("Unrecognised function type.")
 
     @property
-    def input_references(self) -> Tuple[jobflow.Reference, ...]:
+    def input_references(self) -> Tuple[jobflow.OutputReference, ...]:
         """
-        Find :obj:`.Reference` objects in the job inputs.
+        Find :obj:`.OutputReference` objects in the job inputs.
 
         Returns
         -------
-        tuple(Reference, ...)
+        tuple(OutputReference, ...)
             The references in the inputs to the job.
         """
         from jobflow.core.reference import find_and_get_references
@@ -377,7 +377,7 @@ class Job(MSONable):
         return tuple([ref.uuid for ref in self.input_references])
 
     @property
-    def input_references_grouped(self) -> Dict[str, Tuple[Reference, ...]]:
+    def input_references_grouped(self) -> Dict[str, Tuple[OutputReference, ...]]:
         from collections import defaultdict
 
         groups = defaultdict(set)
@@ -427,9 +427,9 @@ class Job(MSONable):
         """
         Run the job.
 
-        If the job has inputs that are :obj:`.Reference` objects, then they will need
+        If the job has inputs that are :obj:`.OutputReference` objects, then they will need
         to be resolved before the job can run. See the docstring for
-        :obj:`.Reference.resolve()` for more details.
+        :obj:`.OutputReference.resolve()` for more details.
 
         Parameters
         ----------
@@ -449,7 +449,7 @@ class Job(MSONable):
 
         See Also
         --------
-        Response, .Reference
+        Response, .OutputReference
         """
         from datetime import datetime
 
@@ -495,9 +495,9 @@ class Job(MSONable):
         inplace: bool = True,
     ) -> Job:
         """
-        Resolve any :obj:`.Reference` objects in the input arguments.
+        Resolve any :obj:`.OutputReference` objects in the input arguments.
 
-        See the docstring for :obj:`.Reference.resolve()` for more details.
+        See the docstring for :obj:`.OutputReference.resolve()` for more details.
 
         Parameters
         ----------
@@ -505,7 +505,7 @@ class Job(MSONable):
             A maggma store to use for resolving references.
         on_missing
             What to do if the reference cannot be resolved. See the docstring
-            for :obj:`.Reference.resolve` for the available options.
+            for :obj:`.OutputReference.resolve` for the available options.
         inplace
             Update the arguments of the current job or return a new job object.
 
