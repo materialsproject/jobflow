@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
-from monty.json import MontyDecoder, MSONable, jsanitize
+from monty.json import MontyDecoder, MSONable, jsanitize, MontyEncoder
 from pydantic import BaseModel
 
 from jobflow.utils.enum import ValueEnum
@@ -28,17 +28,10 @@ class OutputReference(MSONable):
         attributes: Optional[Tuple[Any, ...]] = tuple(),
         output_schema: Optional[Any] = None,
     ):
-        import inspect
-
-        from jobflow.utils.serialization import deserialize_class
-
         super(OutputReference, self).__init__()
         self.uuid = uuid
         self.attributes = attributes
         self.output_schema = output_schema
-
-        if self.output_schema is not None and not inspect.isclass(self.output_schema):
-            self.output_schema = deserialize_class(self.output_schema)
 
     def resolve(
         self,
@@ -154,16 +147,15 @@ class OutputReference(MSONable):
         return False
 
     def as_dict(self):
-        from jobflow.utils.serialization import serialize_class
-
         schema = self.output_schema
+        schema_dict = MontyEncoder().default(schema) if schema is not None else None
         data = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "@version": None,
             "uuid": self.uuid,
             "attributes": self.attributes,
-            "output_schema": serialize_class(schema) if schema is not None else None,
+            "output_schema": schema_dict
         }
         return data
 
@@ -245,7 +237,9 @@ def find_and_resolve_references(
         return arg
 
     # resolve the references
-    references = [OutputReference.from_dict(get(encoded_arg, list(loc))) for loc in locations]
+    references = [
+        OutputReference.from_dict(get(encoded_arg, list(loc))) for loc in locations
+    ]
     resolved_references = resolve_references(
         references,
         store,

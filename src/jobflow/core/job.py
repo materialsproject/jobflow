@@ -152,38 +152,25 @@ def job(method: Optional[Callable] = None, **job_kwargs):
         if desc:
             func = func.__func__
 
-        # there are 4 possible scenarios.
-        # 1. job is decorating a standalone function.
-        # 2. job is decorating a method of a class instance.
-        # 3. job is decorating a classmethod.
-        # 4. job is decorating a staticmethod.
-        # each of these will be handled differently
-        involves_class = "." in func.__qualname__
-
         @wraps(func)
         def get_job(*args, **kwargs) -> Job:
-            cls_instance, cls, args = _declassify(func, args)
-            if not involves_class:
-                # standalone function, (scenario 1)
-                func_source = func.__module__
-            elif involves_class and cls_instance is not None:
-                # method, likely a Maker instance (scenario 2)
-                if not isinstance(cls_instance, MSONable):
-                    raise ValueError(
-                        "job cannot be used on class method for classes that are not "
-                        "MSONable"
-                    )
-                func_source = cls_instance
-            elif involves_class and cls is not None:
-                # classmethod (scenario 3)
-                func_source = (func.__module__, func.__qualname__.split(".")[0], True)
-            else:
-                # staticmethod (scenario 4)
-                func_source = (func.__module__, func.__qualname__.split(".")[0], False)
+
+            f = func
+            if len(args) > 0:
+                # see if the first argument has a function with the same name as
+                # this function
+                met = getattr(args[0], func.__name__, None)
+                if met:
+                    # if so, check to see if that function ha been wrapped and
+                    # whether the unwrapped function is the same as this function
+                    wrap = getattr(met, "__func__", None)
+                    if getattr(wrap, "original", None) is func:
+                        # Ah ha. The function is a bound method.
+                        f = met
+                        args = args[1:]
 
             return Job(
-                function_source=func_source,
-                function_name=func.__name__,
+                function=f,
                 function_args=args,
                 function_kwargs=kwargs,
                 **job_kwargs,
@@ -282,8 +269,7 @@ class Job(MSONable):
     job, Response, .Flow
     """
 
-    function_source: Union[str, MSONable, Tuple[str, str, bool]]
-    function_name: str
+    function: Callable
     function_args: Tuple[Any, ...] = field(default_factory=tuple)
     function_kwargs: Dict[str, Any] = field(default_factory=dict)
     output_schema: Optional[Type[BaseModel]] = None
@@ -297,17 +283,16 @@ class Job(MSONable):
     output: OutputReference = field(init=False)
 
     def __post_init__(self):
-        import inspect
-
         from jobflow.utils.find import contains_flow_or_job
 
         self.output = OutputReference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
-            if self.function_type == "method" and hasattr(self.function_source, "name"):
-                # Probably a Maker instance
-                self.name = self.function_source.name
+            if self.maker is not None:
+                self.name = self.maker.name
             else:
-                self.name = self.function_name
+                self.name = getattr(
+                    self.function, "__qualname__", self.function.__name__
+                )
 
         # check to see if job or flow is included in the job args
         # this is a possible situation but likely a mistake
@@ -319,34 +304,6 @@ class Job(MSONable):
                 f"job.output). If this message is unexpected then double check the "
                 f"inputs to your Job."
             )
-
-    @property
-    def function_type(self) -> str:
-        """
-        The type of the function.
-
-        The potential options are:
-
-        - ``function``: A standalone function.
-        - ``method``: An instance method of a class.
-        - ``classmethod``: A classmethod of a class.
-        - ``staticmethod``: A staticmethod of class.
-
-        Returns
-        -------
-        str
-            The function type.
-        """
-        if isinstance(self.function_source, str):
-            return "function"
-        elif isinstance(self.function_source, tuple) and self.function_source[2]:
-            return "classmethod"
-        elif isinstance(self.function_source, tuple):
-            return "staticmethod"
-        elif isinstance(self.function_source, MSONable):
-            return "method"
-        else:
-            raise ValueError("Unrecognised function type.")
 
     @property
     def input_references(self) -> Tuple[jobflow.OutputReference, ...]:
@@ -385,6 +342,15 @@ class Job(MSONable):
             groups[ref.uuid].add(ref)
 
         return {k: tuple(v) for k, v in groups.items()}
+
+    @property
+    def maker(self) -> Optional[jobflow.Maker]:
+        from jobflow import Maker
+
+        bound = getattr(self.function, "__self__", None)
+        if isinstance(bound, Maker):
+            return bound
+        return None
 
     @property
     def graph(self) -> DiGraph:
@@ -451,8 +417,8 @@ class Job(MSONable):
         --------
         Response, .OutputReference
         """
+        import types
         from datetime import datetime
-
         from jobflow import CURRENT_JOB
 
         index_str = f", {self.index}" if self.index != 1 else ""
@@ -465,8 +431,16 @@ class Job(MSONable):
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
-        args, function = _get_function(self)
-        response: Response = function(*args, **self.function_kwargs)
+        # if Job was created using the job decorator, then access the original function
+        function = getattr(self.function, "original", self.function)
+
+        # if function is bound method we need to do some magic to bind the unwrapped
+        # function to the class/instance
+        bound = getattr(self.function, "__self__", None)
+        if bound is not None:
+            function = types.MethodType(function, bound)
+
+        response = function(*self.function_args, **self.function_kwargs)
 
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
@@ -540,42 +514,6 @@ class Job(MSONable):
         new_job.function_kwargs = resolved_kwargs
         return new_job
 
-    def matches_function(self, func: Callable) -> bool:
-        """
-        Find whether the job corresponds to a function.
-
-        Returns
-        -------
-        bool
-            Whether the job is a call to the function provided.
-        """
-        import inspect
-
-        func = inspect.unwrap(func)
-
-        if "." not in func.__qualname__:
-            # standalone function
-            return (
-                self.function_type == "functioon"
-                and self.function_source == func.__module__
-                and self.function_name == func.__name__
-            )
-
-        cls_name = func.__qualname__.split(".")[0]
-
-        if self.function_type == "method":
-            return (
-                self.function_source.__class__ == cls_name
-                and self.function_source.__module__ == func.__module__
-                and self.function_name == func.__name__
-            )
-        else:
-            return (
-                self.function_source[1] == cls_name
-                and self.function_source[0] == func.__module__
-                and self.function_name == func.__name__
-            )
-
     def update_kwargs(
         self,
         update: Dict[str, Any],
@@ -614,7 +552,7 @@ class Job(MSONable):
         """
         from jobflow.utils.dict_mods import apply_mod
 
-        if function_filter is not None and not self.matches_function(function_filter):
+        if function_filter is not None and function_filter != self.function:
             return
 
         if name_filter is not None and name_filter not in self.name:
@@ -703,41 +641,15 @@ class Job(MSONable):
         ...     {"number": 10}, function_filter=AddMaker, nested=False
         ... )
         """
-        from jobflow import Maker
-
-        if self.function_type == "method" and isinstance(self.function_source, Maker):
-            self.function_source = self.function_source.update_kwargs(
+        if self.maker is not None:
+            maker = self.maker.update_kwargs(
                 update,
                 name_filter=name_filter,
                 class_filter=class_filter,
                 nested=nested,
                 dict_mod=dict_mod,
             )
-
-    def as_dict(self):
-        from jobflow.utils.serialization import deserialize_class, serialize_class
-
-        # the output schema is a class which isn't serializable using monty.
-        # this is a little hack to get around it.
-        if self.output_schema is not None:
-            self.output_schema = serialize_class(self.output_schema)
-
-        d = super().as_dict()
-
-        # need to deserialize schema and put it back
-        if self.output_schema is not None:
-            self.output_schema = deserialize_class(self.output_schema)
-        return d
-
-    @classmethod
-    def from_dict(cls, d):
-        import inspect
-
-        from jobflow.utils.serialization import deserialize_class
-
-        if d["output_schema"] is not None and not inspect.isclass(d["output_schema"]):
-            d["output_schema"] = deserialize_class(d["output_schema"])
-        return super().from_dict(d)
+            self.function = getattr(maker, self.function.__name__)
 
 
 @dataclass
@@ -896,62 +808,3 @@ def prepare_restart(
             restart.output_schema = current_job.output_schema
 
     return restart
-
-
-def _get_function(ojob: Job) -> Tuple[Tuple[Any, ...], Callable]:
-    """Get the arguments and function of a job."""
-    from importlib import import_module
-
-    args = ojob.function_args
-    if ojob.function_type == "method":
-        function = getattr(ojob.function_source, ojob.function_name).original
-        # the first argument must be the class instance
-        args = (ojob.function_source,) + args
-    elif ojob.function_type == "staticmethod":
-        module = import_module(ojob.function_source[0])
-        cls = getattr(module, ojob.function_source[1], None)
-        if cls is None:
-            raise ValueError(
-                f"Could not import {ojob.function_source[1]} from {module}"
-            )
-        function = getattr(cls, ojob.function_name).original
-    elif ojob.function_type == "classmethod":
-        module = import_module(ojob.function_source[0])
-        cls = getattr(module, ojob.function_source[1], None)
-        if cls is None:
-            raise ValueError(
-                f"Could not import {ojob.function_source[1]} from {module}"
-            )
-        function = getattr(cls, ojob.function_name).original
-        # the first argument must be the class
-        args = (cls,) + args
-    else:
-        module = import_module(ojob.function_source)
-        function = getattr(module, ojob.function_name, None)
-
-        if function is None:
-            raise ValueError(f"Could not import {ojob.function_name} from {module}")
-        function = function.original
-    return args, function
-
-
-def _declassify(fun, args):
-    """Extract class information.
-
-    Adapted from https://stackoverflow.com/questions/19314405/how-to-detect-is-decorator-has-been-applied-to-method-or-function
-    """
-    import inspect
-
-    if len(args):
-        met = getattr(args[0], fun.__name__, None)
-        if met:
-            wrap = getattr(met, "__func__", None)
-            if getattr(wrap, "original", None) is fun:
-                class_instance = args[0]
-                if inspect.isclass(class_instance):
-                    cls = class_instance
-                    class_instance = None
-                else:
-                    cls = class_instance.__class__
-                return class_instance, cls, args[1:]
-    return None, None, args
