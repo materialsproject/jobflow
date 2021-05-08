@@ -73,6 +73,17 @@ html_show_sourcelink = False
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
+fonts = [
+    "Lato",
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "Segoe UI",
+    "Helvetica",
+    "Arial",
+    "sans-serif",
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+]
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_favicon = "_static/favicon.ico"
@@ -80,7 +91,7 @@ html_theme_options = {
     "light_css_variables": {
         "admonition-font-size": "92%",
         "admonition-title-font-size": "92%",
-        "font-stack": "Lato, -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji",
+        "font-stack": ",".join(fonts),
         "font-size--small": "92%",
         "font-size--small--2": "87.5%",
         "font-size--small--3": "87.5%",
@@ -89,14 +100,14 @@ html_theme_options = {
     "dark_css_variables": {
         "admonition-font-size": "92%",
         "admonition-title-font-size": "92%",
-        "font-stack": "Lato, -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji",
+        "font-stack": ",".join(fonts),
         "font-size--small": "92%",
         "font-size--small--2": "87.5%",
         "font-size--small--3": "87.5%",
         "font-size--small--4": "87.5%",
     },
 }
-html_title = f"jobflow"
+html_title = "jobflow"
 
 # -- Options for intersphinx extension ---------------------------------------
 

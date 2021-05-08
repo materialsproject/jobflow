@@ -264,7 +264,7 @@ def test_activity_dag_validation():
     subactivity1 = Activity(tasks=[task1])
 
     task2 = Task(function=("builtins", "sum"), args=(subactivity1.outputs.value, 2))
-    subactivity2 = Activity(tasks=[add_task2])
+    subactivity2 = Activity(tasks=[task2])
     activity = Activity(tasks=[subactivity1, subactivity2])
     with pytest.raises(ValueError):
         activity.validate()
@@ -278,9 +278,10 @@ def test_activity_dag_validation():
 
 def test_serialization():
     import json
-    from uuid import uuid4
 
     from monty.json import MontyDecoder, MontyEncoder
+
+    from jobflow import Activity
 
     activity = Activity("MyActivity", [])
     activity_host = Activity("MyActivity", [activity])

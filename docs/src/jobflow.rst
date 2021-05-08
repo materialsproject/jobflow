@@ -7,4 +7,3 @@ jobflow
    jobflow.core
    jobflow.managers
    jobflow.utils
-
