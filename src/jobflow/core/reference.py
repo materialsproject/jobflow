@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
-from monty.json import MontyDecoder, MSONable, jsanitize, MontyEncoder
+from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
 
 from jobflow.utils.enum import ValueEnum
@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     import jobflow
 
 
-class ReferenceFallback(ValueEnum):
+class OnMissing(ValueEnum):
     ERROR = "error"
     NONE = "none"
     PASS = "pass"
@@ -37,11 +37,11 @@ class OutputReference(MSONable):
         self,
         store: Optional[jobflow.JobStore] = None,
         cache: Optional[Dict[str, Dict[str, Any]]] = None,
-        on_missing: ReferenceFallback = ReferenceFallback.ERROR,
+        on_missing: OnMissing = OnMissing.ERROR,
     ):
         # when resolving multiple references simultaneously it is more efficient
         # to use resolve_references as it will minimize the number of database requests
-        if store is None and cache is None and on_missing == ReferenceFallback.ERROR:
+        if store is None and cache is None and on_missing == OnMissing.ERROR:
             raise ValueError("At least one of store and cache must be set.")
 
         if cache is None:
@@ -55,7 +55,7 @@ class OutputReference(MSONable):
             except ValueError:
                 pass
 
-        if on_missing == ReferenceFallback.ERROR and self.uuid not in cache:
+        if on_missing == OnMissing.ERROR and self.uuid not in cache:
             raise ValueError(
                 f"Could not resolve reference - {self.uuid} not in store or cache"
             )
@@ -64,10 +64,10 @@ class OutputReference(MSONable):
             data = cache[self.uuid]
         except KeyError:
             # if we get to here, that means the reference cannot be resolved
-            if on_missing == ReferenceFallback.NONE:
+            if on_missing == OnMissing.NONE:
                 return None
             else:
-                # only other option is ReferenceFallback.PASS
+                # only other option is OnMissing.PASS
                 return self
 
         # resolve nested references
@@ -155,7 +155,7 @@ class OutputReference(MSONable):
             "@version": None,
             "uuid": self.uuid,
             "attributes": self.attributes,
-            "output_schema": schema_dict
+            "output_schema": schema_dict,
         }
         return data
 
@@ -164,7 +164,7 @@ def resolve_references(
     references: Sequence[OutputReference],
     store: jobflow.JobStore,
     cache: Optional[Dict] = None,
-    on_missing: ReferenceFallback = ReferenceFallback.ERROR,
+    on_missing: OnMissing = OnMissing.ERROR,
 ) -> Dict[OutputReference, Any]:
     from itertools import groupby
 
@@ -213,7 +213,7 @@ def find_and_resolve_references(
     arg: Any,
     store: jobflow.JobStore,
     cache: Optional[Dict] = None,
-    on_missing: ReferenceFallback = ReferenceFallback.ERROR,
+    on_missing: OnMissing = OnMissing.ERROR,
 ) -> Any:
     from pydash import get, set_
 

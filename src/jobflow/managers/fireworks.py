@@ -42,7 +42,7 @@ def job_to_firework(
 ):
     from fireworks.core.firework import Firework
 
-    from jobflow.core.reference import ReferenceFallback
+    from jobflow.core.reference import OnMissing
 
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
@@ -56,7 +56,7 @@ def job_to_firework(
         )
 
     spec = {"_add_launchpad_and_fw_id": True}  # this allows the job to know the fw_id
-    if job.config.on_missing_references != ReferenceFallback.ERROR:
+    if job.config.on_missing_references != OnMissing.ERROR:
         spec["_allow_fizzled_parents"] = True
     spec.update(job.config.manager_config)
 
@@ -89,9 +89,9 @@ class JobFiretask(FiretaskBase):
 
         detours = None
         additions = None
-        if response.restart is not None:
+        if response.replace is not None:
             # create a workflow from the new additions
-            detours = [flow_to_workflow(response.restart, store)]
+            detours = [flow_to_workflow(response.replace, store)]
 
         if response.addition is not None:
             additions = [flow_to_workflow(response.addition, store)]

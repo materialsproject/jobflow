@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 
 from monty.json import MSONable, jsanitize
 
-from jobflow.core.reference import OutputReference, ReferenceFallback
+from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
@@ -51,7 +51,7 @@ class JobConfig(MSONable):
     """
 
     resolve_references: bool = True
-    on_missing_references: ReferenceFallback = ReferenceFallback.ERROR
+    on_missing_references: OnMissing = OnMissing.ERROR
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
 
@@ -133,7 +133,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     >>> @job
     ... def replace(a, b):
     ...     new_job = compute(a, b)
-    ...     return Response(restart=new_job)
+    ...     return Response(replace=new_job)
 
     See Also
     --------
@@ -204,14 +204,11 @@ class Job(MSONable):
 
     Parameters
     ----------
-    function_source
-        The source of the function. Can be ``"builtins"`` for builtin functions,
-        a module name, or an :obj:`.MSONable` class instance. Additionally,
-        static and class methods can be specified using a tuple of
-        ``(module_name, class_name, bool)`` where the bool is set to ``True`` for class
-        methods and ``False`` for static methods.
-    function_name
-        The function name.
+    function
+        A function. Can be a builtin function such as ``sum`` or any other function
+        provided it can be imported. Class and static methods can also be used, provided
+        the class is importable. Lastly, methods (functions bound to an instance of
+        class) can be used, provided the class is :obj:`.MSONable`.
     function_args
         The positional arguments to the function call.
     function_kwargs
@@ -245,22 +242,22 @@ class Job(MSONable):
 
     Examples
     --------
-    Builtin functions such as :obj:`print` can be specified using the ``builtins``
-    module.
+    Builtin functions such as :obj:`print` can be specified.
 
-    >>> print_task = Job(function=("builtins", "print"), args=("I am a job", ))
+    >>> print_task = Job(function=print, args=("I am a job", ))
 
-    Other functions should specify the full module path.
+    Or other functions of the Python standard library.
 
-    >>> Job(function=("os.path", "join"), args=("folder", "filename.txt"))
+    >>> import os
+    >>> Job(function=os.path.join, args=("folder", "filename.txt"))
 
-    To use custom functions in a job, the functions should be importable (i.e. not
+    To use custom functions, the functions should be importable (i.e. not
     defined in another function). For example, if the following function is defined
     in the ``my_package`` module.
 
     >>> def add(a, b):
     ...     return a + b
-    >>> add_job = Job(function=("my_package", "add"), args=(1, 2))
+    >>> add_job = Job(function=add, args=(1, 2))
 
     More details are given in the :obj:`job` decorator docstring.
 
@@ -326,15 +323,25 @@ class Job(MSONable):
     @property
     def input_uuids(self) -> Tuple[str, ...]:
         """
+        The uuids of any :obj:`.OutputReference` objects in the job inputs.
 
         Returns
         -------
-
+        tuple(str, ...)
+           The uuids of the references in the job inputs.
         """
         return tuple([ref.uuid for ref in self.input_references])
 
     @property
     def input_references_grouped(self) -> Dict[str, Tuple[OutputReference, ...]]:
+        """
+        Group any :obj:`.OutputReference` objects in the job inputs by their uuids.
+
+        Returns
+        -------
+        dict[str, tuple(OutputReference, ...)]
+            The references grouped by their uuids.
+        """
         from collections import defaultdict
 
         groups = defaultdict(set)
@@ -345,6 +352,14 @@ class Job(MSONable):
 
     @property
     def maker(self) -> Optional[jobflow.Maker]:
+        """
+        Get the host :obj:`.Maker` object if a job is to run a maker function.
+
+        Returns
+        -------
+        Maker or None
+            A maker object.
+        """
         from jobflow import Maker
 
         bound = getattr(self.function, "__self__", None)
@@ -393,24 +408,24 @@ class Job(MSONable):
         """
         Run the job.
 
-        If the job has inputs that are :obj:`.OutputReference` objects, then they will need
-        to be resolved before the job can run. See the docstring for
+        If the job has inputs that are :obj:`.OutputReference` objects, then they will
+        need to be resolved before the job can run. See the docstring for
         :obj:`.OutputReference.resolve()` for more details.
 
         Parameters
         ----------
         store
-            A maggma store to use for resolving references and storing job outputs.
+            A :obj:`.JobStore` to use for resolving references and storing job outputs.
 
         Returns
         -------
         Response
-            A the response of the job, containing the outputs, and other settings
-            that determine the flow execution.
+            The response of the job, containing the outputs, and other settings that
+            determine the flow execution.
 
         Raises
         ------
-        ValueError
+        ImportError
             If the job function cannot be imported.
 
         See Also
@@ -419,6 +434,7 @@ class Job(MSONable):
         """
         import types
         from datetime import datetime
+
         from jobflow import CURRENT_JOB
 
         index_str = f", {self.index}" if self.index != 1 else ""
@@ -445,8 +461,8 @@ class Job(MSONable):
         if not isinstance(response, Response):
             response = Response.from_job_returns(response, self.output_schema)
 
-        if response.restart is not None:
-            response.restart = prepare_restart(response.restart, self)
+        if response.replace is not None:
+            response.replace = prepare_replace(response.replace, self)
 
         save = "output" if self.data is True else self.data
         data = {
@@ -465,7 +481,7 @@ class Job(MSONable):
     def resolve_args(
         self,
         store: jobflow.JobStore,
-        on_missing: ReferenceFallback = ReferenceFallback.ERROR,
+        on_missing: OnMissing = OnMissing.ERROR,
         inplace: bool = True,
     ) -> Job:
         """
@@ -619,13 +635,13 @@ class Job(MSONable):
         >>> from jobflow import Response
         >>> @dataclass
         ... class RestartMaker(Maker):
-        ...     name: str = "restart"
+        ...     name: str = "replace"
         ...     add_maker: Maker = AddMaker()
         ...
         ...     @job
         ...     def make(self, a):
         ...         restart_job = self.add_maker.make(a)
-        ...         return Response(restart=restart_job)
+        ...         return Response(replace=restart_job)
         >>> maker = RestartMaker()
         >>> my_job = maker.make(1)
 
@@ -663,9 +679,11 @@ class Response:
         The job output.
     detour
         A flow or job to detour to.
-    restart
+    addition
+        A flow or job to add to the current flow.
+    replace
         A flow or job to replace the current job.
-    store
+    stored_data
         Data to be stored by the flow manager.
     stop_children
         Stop any children of the current flow.
@@ -674,9 +692,9 @@ class Response:
     """
 
     output: Optional[Any] = None
-    restart: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
     detour: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
     addition: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
+    replace: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
     stored_data: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
     stop_flows: bool = False
@@ -724,9 +742,9 @@ class Response:
         .Outputs, Store, Detour, Restart, Stop
         """
         if isinstance(job_returns, Response):
-            if job_returns.restart is not None:
-                # only apply output schema if there is no restart.
-                job_returns.output = apply_schema(job_returns.output)
+            if job_returns.replace is not None:
+                # only apply output schema if there is no replace.
+                job_returns.output = apply_schema(job_returns.output, output_schema)
 
             return job_returns
 
@@ -735,8 +753,7 @@ class Response:
             for r in job_returns:
                 if isinstance(r, Response):
                     raise ValueError(
-                        "Response cannot be returned in combination with other "
-                        "outputs."
+                        "Response cannot be returned in combination with other outputs."
                     )
 
         return cls(output=apply_schema(job_returns, output_schema))
@@ -765,46 +782,42 @@ def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
     return schema(**output)
 
 
-@job(
-    config=JobConfig(
-        resolve_references=False, on_missing_references=ReferenceFallback.NONE
-    )
-)
+@job(config=JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE))
 def store_output(outputs: Any):
     return outputs
 
 
-def prepare_restart(
-    restart: Union[jobflow.Flow, Job, List[Job]],
+def prepare_replace(
+    replace: Union[jobflow.Flow, Job, List[Job]],
     current_job: Job,
 ):
     from jobflow.core.flow import Flow
 
-    if isinstance(restart, (list, tuple)):
-        restart = Flow(jobs=restart)
+    if isinstance(replace, (list, tuple)):
+        replace = Flow(jobs=replace)
 
-    if isinstance(restart, Flow) and restart.output is not None:
+    if isinstance(replace, Flow) and replace.output is not None:
         # add a job with same uuid as the current job to store the outputs of the
         # flow; this job will inherit the metadata and output schema of the current
         # job
-        store_output_job = store_output(restart.output)
+        store_output_job = store_output(replace.output)
         store_output_job.config.manager_config = current_job.config.manager_config
         store_output_job.set_uuid(current_job.uuid)
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
-        restart.jobs.append(store_output_job)
+        replace.jobs.append(store_output_job)
 
     else:
-        # restart is a single Job
-        restart.set_uuid(current_job.uuid)
-        restart.index = current_job.index + 1
+        # replace is a single Job
+        replace.set_uuid(current_job.uuid)
+        replace.index = current_job.index + 1
 
-        metadata = restart.metadata
+        metadata = replace.metadata
         metadata.update(current_job.metadata)
-        restart.metadata = metadata
+        replace.metadata = metadata
 
-        if not restart.output_schema:
-            restart.output_schema = current_job.output_schema
+        if not replace.output_schema:
+            replace.output_schema = current_job.output_schema
 
-    return restart
+    return replace

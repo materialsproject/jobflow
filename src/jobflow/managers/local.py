@@ -19,8 +19,8 @@ def run_locally(
 ):
     from maggma.stores import MemoryStore
 
-    from jobflow import Flow, JobStore, Job, initialize_logger
-    from jobflow.core.reference import ReferenceFallback
+    from jobflow import Flow, Job, JobStore, initialize_logger
+    from jobflow.core.reference import OnMissing
 
     if store is None:
         store = JobStore.from_store(MemoryStore())
@@ -53,7 +53,7 @@ def run_locally(
 
         if (
             len(set(parents).intersection(fizzled)) > 0
-            and job.config.on_missing_references == ReferenceFallback.ERROR
+            and job.config.on_missing_references == OnMissing.ERROR
         ):
             fizzled.add(job.uuid)
             return
@@ -79,9 +79,9 @@ def run_locally(
             stop_activities = True
             return False
 
-        if response.restart is not None:
+        if response.replace is not None:
             # first run any restarts
-            _run(response.restart)
+            _run(response.replace)
 
         if response.detour is not None:
             # next any detours
@@ -106,7 +106,7 @@ def run_locally(
                 if response is False:
                     return False
 
-    logger.info(f"Started executing jobs locally")
+    logger.info("Started executing jobs locally")
     _run(flow)
-    logger.info(f"Finished executing jobs locally")
+    logger.info("Finished executing jobs locally")
     return responses

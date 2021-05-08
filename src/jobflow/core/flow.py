@@ -385,13 +385,13 @@ class Flow(MSONable):
         >>> from jobflow import Response
         >>> @dataclass
         ... class RestartMaker(Maker):
-        ...     name: str = "restart"
+        ...     name: str = "replace"
         ...     add_maker: Maker = AddMaker()
         ...
         ...     @job
         ...     def make(self, a):
         ...         restart_job = self.add_maker.make(a)
-        ...         return Response(restart=restart_job)
+        ...         return Response(replace=restart_job)
         >>> maker = RestartMaker()
         >>> my_job = maker.make(1)
         >>> flow = Flow([my_job]
