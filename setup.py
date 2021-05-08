@@ -40,7 +40,7 @@ setup(
         ],
         "tests": ["pytest"],
         "fireworks": ["fireworks"],
-        "dev": ["black==20.8b1", "isort==5.8.0"],
+        "dev": ["pre-commit>=2.12.1"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

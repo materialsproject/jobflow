@@ -24,8 +24,7 @@ T = typing.TypeVar("T", bound="JobStore")
 
 
 class JobStore(Store):
-    """
-    Store intended to allow pushing and pulling documents into multiple stores.
+    """Store intended to allow pushing and pulling documents into multiple stores.
 
     Parameters
     ----------
@@ -46,6 +45,7 @@ class JobStore(Store):
         save: save_type = None,
         load: load_type = False,
     ):
+        """ """
         self.docs_store = docs_store
         self.data_store = data_store
 
@@ -429,7 +429,7 @@ class JobStore(Store):
         load: load_type = False,
     ):
         """
-        `Get the output from of a job UUID.
+        Get the output from of a job UUID.
 
         Parameters
         ----------
