@@ -1,3 +1,5 @@
+"""Jobflow is a package for writing dynamic and connected workflows."""
+
 from jobflow._version import __version__
 from jobflow.core.flow import Flow, JobOrder
 from jobflow.core.job import Job, JobConfig, Response, job
