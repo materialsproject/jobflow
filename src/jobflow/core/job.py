@@ -33,7 +33,7 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["job", "Job", "Response", "JobConfig", "store_output"]
+__all__ = ["job", "Job", "Response", "JobConfig", "store_inputs"]
 
 
 @dataclass
@@ -747,7 +747,6 @@ class Response:
         -------
         Response
             The job response controlling the data to store and flow execution options.
-
         """
         if isinstance(job_returns, Response):
             if job_returns.replace is not None:
@@ -813,14 +812,46 @@ def apply_schema(output: Any, schema: Optional[Type[jobflow.Schema]]):
 
 
 @job(config=JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE))
-def store_output(outputs: Any):
-    return outputs
+def store_inputs(inputs: Any) -> Any:
+    """
+    Job to store inputs.
+
+    Note that any :obj:`Reference` objects will not be resolved, however, missing
+    references will be replaced with ``None``.
+
+    Parameters
+    ----------
+    inputs:
+        The inputs to store.
+    """
+    return inputs
 
 
 def prepare_replace(
     replace: Union[jobflow.Flow, Job, List[Job]],
     current_job: Job,
-):
+) -> Union[jobflow.Flow, Job, List[Job]]:
+    """
+    Prepare a replacement :obj:`Flow` or :obj:`Job`.
+
+    If the replacement is a ``Flow``, then an additional ``Job`` will be inserted
+    that maps the output id of the original job to outputs of the ``Flow``.
+
+    If the replacement is a ``Flow`` or a ``Job``, then this function pass on
+    the manager config, schema, and metadata and set the according uuids and job index.
+
+    Parameters
+    ----------
+    replace
+        A :obj:`Flow` or :obj:`Job` to use as the replacement.
+    current_job
+        The current job.
+
+    Returns
+    -------
+    Flow or Job
+        The updated flow or job.
+    """
     from jobflow.core.flow import Flow
 
     if isinstance(replace, (list, tuple)):
@@ -830,7 +861,7 @@ def prepare_replace(
         # add a job with same uuid as the current job to store the outputs of the
         # flow; this job will inherit the metadata and output schema of the current
         # job
-        store_output_job = store_output(replace.output)
+        store_output_job = store_inputs(replace.output)
         store_output_job.config.manager_config = current_job.config.manager_config
         store_output_job.set_uuid(current_job.uuid)
         store_output_job.index = current_job.index + 1
