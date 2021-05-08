@@ -1,4 +1,4 @@
-"""This module defines functions and classes for representing Job objects."""
+"""Functions and classes for representing Job objects."""
 
 from __future__ import annotations
 
@@ -13,10 +13,21 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Type, Union
+    from enum import Enum
+    from typing import (
+        Any,
+        Callable,
+        Dict,
+        Hashable,
+        List,
+        Optional,
+        Set,
+        Tuple,
+        Type,
+        Union,
+    )
 
     from networkx import DiGraph
-    from pydantic.main import BaseModel
 
     import jobflow
 
@@ -58,7 +69,7 @@ class JobConfig(MSONable):
 
 def job(method: Optional[Callable] = None, **job_kwargs):
     """
-    Wraps a function to produce a :obj:`Job`.
+    Wrap a function to produce a :obj:`Job`.
 
     :obj:`Job` objects are delayed function calls that can be used in an
     :obj:`Flow`. A job is a composed of the function name and source and any
@@ -269,17 +280,20 @@ class Job(MSONable):
     function: Callable
     function_args: Tuple[Any, ...] = field(default_factory=tuple)
     function_kwargs: Dict[str, Any] = field(default_factory=dict)
-    output_schema: Optional[Type[BaseModel]] = None
+    output_schema: Optional[Type[jobflow.Schema]] = None
     uuid: str = field(default_factory=suuid)
     index: int = 1
     name: Optional[str] = None
-    data: Union[bool, str, Type[MSONable], List[Union[str, Type[MSONable]]]] = False
+    data: Union[
+        bool, str, Enum, Type[MSONable], List[Union[Enum, str, Type[MSONable]]]
+    ] = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     config: JobConfig = field(default_factory=JobConfig)
     host: Optional[str] = None
     output: OutputReference = field(init=False)
 
     def __post_init__(self):
+        """Initialize the job name and check job arguments."""
         from jobflow.utils.find import contains_flow_or_job
 
         self.output = OutputReference(self.uuid, output_schema=self.output_schema)
@@ -314,7 +328,7 @@ class Job(MSONable):
         """
         from jobflow.core.reference import find_and_get_references
 
-        references = set()
+        references: Set[jobflow.OutputReference] = set()
         for arg in tuple(self.function_args) + tuple(self.function_kwargs.values()):
             references.update(find_and_get_references(arg))
 
@@ -323,7 +337,7 @@ class Job(MSONable):
     @property
     def input_uuids(self) -> Tuple[str, ...]:
         """
-        The uuids of any :obj:`.OutputReference` objects in the job inputs.
+        Uuids of any :obj:`.OutputReference` objects in the job inputs.
 
         Returns
         -------
@@ -384,7 +398,7 @@ class Job(MSONable):
             properties = [
                 ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
             ]
-            properties = properties if len(properties) > 0 else "output"
+            properties = properties if len(properties) > 0 else ["output"]
             edges.append((uuid, self.uuid, {"properties": properties}))
 
         graph = DiGraph()
@@ -571,7 +585,11 @@ class Job(MSONable):
         if function_filter is not None and function_filter != self.function:
             return
 
-        if name_filter is not None and name_filter not in self.name:
+        if (
+            name_filter is not None
+            and self.name is not None
+            and name_filter not in self.name
+        ):
             return
 
         # if we get to here then we pass all the filters
@@ -630,19 +648,19 @@ class Job(MSONable):
 
         By default, the updates are applied to nested Makers. These are Makers
         which are present in the kwargs of another Maker. Consider the following case
-        for a Maker that produces a job that restarts.
+        for a Maker that produces a job that replaces itself with another job.
 
         >>> from jobflow import Response
         >>> @dataclass
-        ... class RestartMaker(Maker):
+        ... class ReplacementMaker(Maker):
         ...     name: str = "replace"
         ...     add_maker: Maker = AddMaker()
         ...
         ...     @job
         ...     def make(self, a):
-        ...         restart_job = self.add_maker.make(a)
-        ...         return Response(replace=restart_job)
-        >>> maker = RestartMaker()
+        ...         add_job = self.add_maker.make(a)
+        ...         return Response(replace=add_job)
+        >>> maker = ReplacementMaker()
         >>> my_job = maker.make(1)
 
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
@@ -665,7 +683,7 @@ class Job(MSONable):
                 nested=nested,
                 dict_mod=dict_mod,
             )
-            self.function = getattr(maker, self.function.__name__)
+            setattr(self, "function", getattr(maker, self.function.__name__))
 
 
 @dataclass
@@ -703,7 +721,7 @@ class Response:
     def from_job_returns(
         cls,
         job_returns: Optional[Any],
-        output_schema: Optional[Type[BaseModel]] = None,
+        output_schema: Optional[Type[jobflow.Schema]] = None,
     ) -> Response:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
@@ -711,35 +729,25 @@ class Response:
         Parameters
         ----------
         job_returns
-            The outputs of a job. Should be a single or list of :obj:`Outputs`,
-            :obj:`Store`, :obj:`Detour`, :obj:`Restart`, or :obj:`Stop` objects. Only
-            one of each type of object is supported.
-
-            .. Warning::
-                :obj:`Detour` and :obj:`Outputs` objects should not be specified
-                simultaneously. The outputs of the detour flow will be used instead.
+            The outputs of a job. If this is a :obj:`Response` object, the output schema
+            will be applied to the response outputs and the response returned.
+            Otherwise, the ``job_returns`` will be put into the ``outputs`` of a new
+            :obj:`Response` object.
 
         output_schema
             The outputs class associated with the job. Used to enforce a schema for the
-            outputs. Currently, only a warning will be given if the job outputs do not
-            match the expected outputs class.
+            outputs.
+
+        Raises
+        ------
+        ValueError
+            If the job outputs do not match the output schema.
 
         Returns
         -------
         Response
             The job response controlling the data to store and flow execution options.
 
-        Raises
-        ------
-        ValueError
-            If the job returns type ares not :obj:`Outputs`, :obj:`Store`, :obj:`Detour`,
-            :obj:`Restart`, or :obj:`Stop` objects.
-        ValueError
-            If more than one of the same return type is given.
-
-        See Also
-        --------
-        .Outputs, Store, Detour, Restart, Stop
         """
         if isinstance(job_returns, Response):
             if job_returns.replace is not None:
@@ -759,7 +767,29 @@ class Response:
         return cls(output=apply_schema(job_returns, output_schema))
 
 
-def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
+def apply_schema(output: Any, schema: Optional[Type[jobflow.Schema]]):
+    """
+    Apply schema to job outputs.
+
+    Parameters
+    ----------
+    output
+        The job outputs.
+    schema
+        The schema to apply.
+
+    Raises
+    ------
+    ValueError
+        If a schema is set but there are no outputs.
+    ValueError
+        If the outputs do not match the schema.
+
+    Returns
+    -------
+    Schema or Any
+        Returns an instance of the schema if the schema is set or the original output.
+    """
     from pydantic import BaseModel
 
     # comparing schema instance is surprisingly fickle.

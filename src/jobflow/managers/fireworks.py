@@ -16,11 +16,11 @@ def flow_to_workflow(
     flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
     store: jobflow.JobStore,
 ) -> Workflow:
-    from fireworks.core.firework import Workflow
+    from fireworks.core.firework import Firework, Workflow
 
     from jobflow.core.flow import Flow
 
-    parent_mapping = {}
+    parent_mapping: Dict[str, Firework] = {}
     fireworks = []
 
     if not isinstance(flow, Flow):
@@ -50,7 +50,7 @@ def job_to_firework(
     job_firetask = JobFiretask(job=job, store=store)
 
     job_parents = None
-    if parents is not None:
+    if parents is not None and parent_mapping is not None:
         job_parents = (
             [parent_mapping[parent] for parent in parents] if parents else None
         )

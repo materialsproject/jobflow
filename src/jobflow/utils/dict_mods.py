@@ -13,7 +13,7 @@ import re
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Tuple
+    from typing import Any, Dict, Optional, Tuple
 
 
 __author__ = "Shyue Ping Ong"
@@ -171,7 +171,7 @@ def apply_mod(modification: Dict[str, Any], obj: Dict[str, Any]):
 
 def _get_nested_dict(
     input_dict: Dict[str, Any], key: str
-) -> Tuple[Dict[str, Any], str]:
+) -> Optional[Tuple[Dict[str, Any], str]]:
     """Get nested dicts using a key."""
     current = input_dict
     toks = key.split("->")
@@ -182,6 +182,7 @@ def _get_nested_dict(
         elif i == n - 1:
             return current, toks[-1]
         current = current[tok]
+    return None
 
 
 def _arrow_to_dot(input_dict: Dict[str, Any]) -> Dict[str, Any]:

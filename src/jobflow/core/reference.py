@@ -25,7 +25,7 @@ class OutputReference(MSONable):
     def __init__(
         self,
         uuid: str,
-        attributes: Optional[Tuple[Any, ...]] = tuple(),
+        attributes: Tuple[Any, ...] = tuple(),
         output_schema: Optional[Any] = None,
     ):
         super().__init__()
@@ -162,7 +162,7 @@ class OutputReference(MSONable):
 
 def resolve_references(
     references: Sequence[OutputReference],
-    store: jobflow.JobStore,
+    store: Optional[jobflow.JobStore],
     cache: Optional[Dict] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Dict[OutputReference, Any]:
@@ -173,7 +173,7 @@ def resolve_references(
         cache = {}
 
     for uuid, ref_group in groupby(references, key=lambda x: x.uuid):
-        if uuid not in cache:
+        if uuid not in cache and store is not None:
             try:
                 cache[uuid] = store.get_output(uuid, load=True)
             except ValueError:
@@ -211,7 +211,7 @@ def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
 
 def find_and_resolve_references(
     arg: Any,
-    store: jobflow.JobStore,
+    store: Optional[jobflow.JobStore],
     cache: Optional[Dict] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Any:

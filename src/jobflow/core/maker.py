@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import typing
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from monty.json import MontyDecoder, MSONable
@@ -13,12 +12,11 @@ if typing.TYPE_CHECKING:
 
 
 @dataclass
-class Maker(ABC, MSONable):
+class Maker(MSONable):
     name: str = "Maker"
 
-    @abstractmethod
     def make(self, *args, **kwargs) -> Union[jobflow.Flow, jobflow.Job]:
-        pass
+        raise NotImplementedError
 
     def update_kwargs(
         self,

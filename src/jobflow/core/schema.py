@@ -4,6 +4,8 @@ from monty.json import MSONable
 from pydantic import BaseModel, create_model
 from pydantic.typing import get_args
 
+__all__ = ["Schema"]
+
 
 def with_reference(atype):
     from jobflow import OutputReference

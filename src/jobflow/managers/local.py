@@ -5,7 +5,7 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import List, Optional, Union
+    from typing import List, Optional, Set, Union
 
     import jobflow
 
@@ -23,8 +23,10 @@ def run_locally(
     from jobflow.core.reference import OnMissing
 
     if store is None:
-        store = JobStore.from_store(MemoryStore())
-        store.connect()
+        jobstore = JobStore.from_store(MemoryStore())
+        jobstore.connect()
+    else:
+        jobstore = store
 
     if log:
         initialize_logger()
@@ -32,8 +34,8 @@ def run_locally(
     if not isinstance(flow, Flow):
         flow = Flow(jobs=flow)
 
-    stopped_parents = set()
-    fizzled = set()
+    stopped_parents: Set[str] = set()
+    fizzled: Set[str] = set()
     responses = {}
     stop_activities = False
 
@@ -59,7 +61,7 @@ def run_locally(
             return
 
         try:
-            response = job.run(store=store)
+            response = job.run(store=jobstore)
         except Exception:
             import traceback
 

@@ -131,7 +131,7 @@ class Flow(MSONable):
             jobs = [jobs]
 
         if uuid is None:
-            self.uuid = suuid()
+            uuid = suuid()
 
         self.jobs = jobs
         self.output = output
@@ -179,7 +179,7 @@ class Flow(MSONable):
     @property
     def job_uuids(self) -> List[str]:
         """
-        The uuids of every Job contained in the Flow (including nested Flows).
+        Uuids of every Job contained in the Flow (including nested Flows).
 
         Returns
         -------
@@ -252,7 +252,7 @@ class Flow(MSONable):
         resolved. I.e., root nodes of the flow graph are always returned first.
 
         Yields
-        -------
+        ------
         Job, list[str]
             The Job and the uuids of any parent jobs (not to be confused with the host
             flow).

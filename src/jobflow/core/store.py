@@ -3,15 +3,20 @@ from __future__ import annotations
 import typing
 
 from maggma.core import Store
-from monty.dev import deprecated
 from monty.json import MSONable
 
 if typing.TYPE_CHECKING:
+    from enum import Enum
     from pathlib import Path
-    from typing import Any, Dict, Hashable, Iterator, List, Optional, Tuple, Type, Union
+    from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
 
     from maggma.core import Sort
     from maggma.stores import GridFSStore, MongoStore, MongoURIStore, S3Store
+
+    save_type = Optional[
+        Union[str, Enum, Type[MSONable], List[Union[Enum, str, Type[MSONable]]]]
+    ]
+    load_type = Union[bool, save_type]
 
 T = typing.TypeVar("T", bound="JobStore")
 
@@ -21,8 +26,8 @@ class JobStore(Store):
         self,
         docs_store: Store,
         data_store: Store,
-        save: Union[str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
-        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
+        save: save_type = None,
+        load: load_type = False,
     ):
         """
         Store intended to allow pushing and pulling documents into multiple stores.
@@ -43,18 +48,18 @@ class JobStore(Store):
 
         # enforce uuid key
         self.data_store.key = "blob_id"
-        self.docs_store.key = ["uuid", "index"]
+        self.docs_store.key = "uuid"
 
         if save is None or save is False:
             save = []
         elif not isinstance(save, (list, tuple)):
-            save = (save,)
+            save = [save]
         self.save = save
 
-        if not load:
+        if load is None:
             load = False
-        elif not isinstance(load, (list, tuple, bool)):
-            load = (load,)
+        if not isinstance(load, (list, tuple, bool)):
+            load = [load]
         self.load = load
 
         kwargs = {
@@ -113,8 +118,8 @@ class JobStore(Store):
         sort: Optional[Dict[str, Union[Sort, int]]] = None,
         skip: int = 0,
         limit: int = 0,
-        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
-    ) -> Optional[Iterator[Dict]]:
+        load: load_type = None,
+    ) -> Iterator[Dict]:
         """
         Queries the JobStore for documents.
 
@@ -145,7 +150,8 @@ class JobStore(Store):
 
         if load is None:
             load = self.load
-        load = _prepare_load(load)
+
+        load_keys = _prepare_load(load)
 
         if isinstance(properties, (list, tuple)):
             properties += ["uuid", "index"]
@@ -157,7 +163,7 @@ class JobStore(Store):
         )
 
         for doc in docs:
-            if load:
+            if load_keys:
                 # Process is
                 # 1. Find the locations of all blob identifiers.
                 # 2. Filter the locations based on the load criteria.
@@ -165,7 +171,7 @@ class JobStore(Store):
                 # 4. Insert the data blobs into the document
                 locations = find_key(doc, "blob_uuid")
                 blobs = [get(doc, list(loc)) for loc in locations]
-                blobs, locations = _filter_blobs(blobs, locations, load)
+                blobs, locations = _filter_blobs(blobs, locations, load_keys)
 
                 object_info = {b["blob_uuid"]: loc for b, loc in zip(blobs, locations)}
                 objects = self.data_store.query(
@@ -186,7 +192,7 @@ class JobStore(Store):
         criteria: Optional[Dict] = None,
         properties: Union[Dict, List, None] = None,
         sort: Optional[Dict[str, Union[Sort, int]]] = None,
-        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
+        load: load_type = None,
     ) -> Optional[Dict]:
         """
         Queries the Store for a single document.
@@ -218,7 +224,7 @@ class JobStore(Store):
         self,
         docs: Union[List[Dict], Dict],
         key: Union[List, str, None] = None,
-        save: Union[str, List[str], Type[MSONable], List[Type[MSONable]]] = None,
+        save: Union[bool, save_type] = None,
     ):
         """
         Update or insert documents into the Store
@@ -241,14 +247,20 @@ class JobStore(Store):
 
         from jobflow.utils.find import find_key, update_in_dictionary
 
-        if save is None or save is False:
-            save = self.save
-        elif not isinstance(save, (tuple, list)):
-            save = [save]
-        save = [o.value if isinstance(o, Enum) else o for o in save]
+        save_keys = []
+        if save is None or save is True:
+            save_keys = self.save
+        elif not isinstance(save, (tuple, list, bool)):
+            save_keys = [save]
+        elif isinstance(save, (tuple, list)):
+            save_keys = save
+        save_keys = [o.value if isinstance(o, Enum) else o for o in save_keys]
 
         if not isinstance(docs, list):
             docs = [docs]
+
+        if key is not None:
+            key = ["uuid", "index"]
 
         blob_data = []
         dict_docs = []
@@ -256,10 +268,10 @@ class JobStore(Store):
             doc = jsanitize(doc, strict=True)
             dict_docs.append(doc)
 
-            if save:
+            if save_keys:
                 locations = []
-                for key in save:
-                    locations.extend(find_key(doc, key, include_end=True))
+                for save_key in save_keys:
+                    locations.extend(find_key(doc, save_key, include_end=True))
                 objects = [get(doc, list(loc)) for loc in locations]
                 object_map = dict(zip(map(tuple, locations), objects))
                 object_info = {k: _get_blob_info(o) for k, o in object_map.items()}
@@ -279,7 +291,7 @@ class JobStore(Store):
 
         self.docs_store.update(dict_docs, key=key)
 
-        if save:
+        if save_keys:
             self.data_store.update(blob_data, key="blob_uuid")
 
     def ensure_index(self, key: str, unique: bool = False) -> bool:
@@ -308,7 +320,7 @@ class JobStore(Store):
         sort: Optional[Dict[str, Union[Sort, int]]] = None,
         skip: int = 0,
         limit: int = 0,
-        load: Optional[Union[Hashable, List[Hashable]]] = None,
+        load: load_type = None,
     ) -> Iterator[Tuple[Dict, List[Dict]]]:
         """
         Simple grouping function that will group documents by keys.
@@ -360,7 +372,7 @@ class JobStore(Store):
             return tuple(get(doc, k) for k in keys)
 
         for vals, group in groupby(sorted(data, key=grouping_keys), key=grouping_keys):
-            doc = {}
+            doc: Dict[str, Any] = {}
             for k, v in zip(keys, vals):
                 set_(doc, k, get(v, k))
             yield doc, list(group)
@@ -382,13 +394,12 @@ class JobStore(Store):
         self.docs_store.remove_docs(criteria)
 
     @property
-    @deprecated(message="This will be removed in the future")
     def collection(self):
         """Get the collection name."""
         return self.docs_store.collection
 
     @classmethod
-    def from_store(cls, store: Store, **kwargs):
+    def from_store(cls, store: Store, **kwargs) -> JobStore:
         """
         Create a new job store that uses the same store for documents and data.
 
@@ -412,7 +423,7 @@ class JobStore(Store):
         self,
         uuid: str,
         which: str = "last",
-        load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]] = False,
+        load: load_type = False,
     ):
         if which in ("last", "first"):
             sort = -1 if which == "last" else 1
@@ -426,17 +437,18 @@ class JobStore(Store):
 
             return result["output"]
         else:
-            result = self.query({"uuid": uuid}, ["output"], {"index": -1}, load=load)
-            result = list(result)
+            results = list(
+                self.query({"uuid": uuid}, ["output"], {"index": -1}, load=load)
+            )
 
-            if len(result) == 0:
+            if len(results) == 0:
                 raise ValueError(f"{uuid} has not outputs.")
 
-            return [r["output"] for r in result]
+            return [r["output"] for r in results]
 
     @classmethod
     def from_db_file(
-        cls: Type[T], db_file: Union[str, Path], admin: Optional[bool] = True, **kwargs
+        cls: Type[T], db_file: Union[str, Path], admin: bool = True, **kwargs
     ) -> T:
         """
         Create an JobStore from a database file.
@@ -526,15 +538,13 @@ class JobStore(Store):
         return cls(docs_store, data_store, **kwargs)
 
 
-def _get_docs_store(credentials: Dict[str, Any], admin: bool) -> MongoStore:
+def _get_docs_store(credentials: Dict[str, str], admin: bool) -> MongoStore:
     """
     Get the docs store from mongodb credentials.
 
     See JobStore.from_db_file for supported mongo connection arguments.
     """
-
-    collection_name = credentials.get("collection")
-    return _get_mongo_like_store(collection_name, credentials, admin)
+    return _get_mongo_like_store(credentials["collection"], credentials, admin)
 
 
 def _get_data_store(credentials: Dict[str, Any], admin: bool) -> Store:
@@ -557,7 +567,7 @@ def _get_data_store(credentials: Dict[str, Any], admin: bool) -> Store:
                 credentials["database"], collection_name, compression=True, **auth
             )
 
-    data_store_kwargs = credentials.get("data_store_kwargs")
+    data_store_kwargs = credentials.get("data_store_kwargs", {})
     if "bucket" in data_store_kwargs:
         # Store is a S3 bucket
         index_collection_name = f"{collection_name}_index"
@@ -614,11 +624,12 @@ def _get_mongo_auth(credentials: Dict[str, Any], admin: bool) -> Dict[str, Any]:
     return auth
 
 
-def _prepare_load(
-    load: Union[bool, str, List[str], Type[MSONable], List[Type[MSONable]]]
-) -> Union[bool, List[Union[str, Tuple[str, str]]]]:
+def _prepare_load(load: load_type) -> Union[bool, List[Union[str, Tuple[str, str]]]]:
     """Standardize load types."""
     from enum import Enum
+
+    if load is None:
+        return []
 
     if isinstance(load, bool):
         return load
@@ -627,13 +638,13 @@ def _prepare_load(
         load = [load]
 
     new_load = []
-    for load_type in load:
-        if isinstance(load_type, Enum):
-            load_type = load_type.value
-        elif issubclass(load_type, MSONable):
-            load_type = (load_type.__module__, load_type.__name__)
-
-        new_load.append(load_type)
+    for ltype in load:
+        if isinstance(ltype, Enum):
+            new_load.append(ltype.value)
+        elif not isinstance(ltype, str) and issubclass(ltype, MSONable):
+            new_load.append((ltype.__module__, ltype.__name__))
+        else:
+            new_load.append(ltype)
     return new_load
 
 
@@ -646,17 +657,21 @@ def _filter_blobs(
         # return all blobs
         return blob_infos, locations
 
+    if not load or isinstance(load, bool):
+        # Don't return any blobs
+        return [], []
+
     new_blobs = []
     new_locations = []
     for blob, location in zip(blob_infos, locations):
-        for load_type in load:
+        for ltype in load:
             if (
-                isinstance(load_type, tuple)
-                and blob.get("@class", None) == load_type[1]
-                and blob.get("@module", None) == load_type[0]
+                isinstance(ltype, tuple)
+                and blob.get("@class", None) == ltype[1]
+                and blob.get("@module", None) == ltype[0]
             ):
                 pass
-            elif location[-1] == load_type:
+            elif location[-1] == ltype:
                 pass
             else:
                 continue
