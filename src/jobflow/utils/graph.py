@@ -51,8 +51,7 @@ def itergraph(graph: nx.DiGraph):
         warnings.warn("Some jobflow are not connected, their ordering may be random")
 
     for subgraph in subgraphs:
-        for node in nx.topological_sort(subgraph):
-            yield node
+        yield from nx.topological_sort(subgraph)
 
 
 @requires(matplotlib, "matplotlib must be installed to plot flow graphs.")

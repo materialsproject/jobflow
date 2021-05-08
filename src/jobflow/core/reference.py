@@ -28,7 +28,7 @@ class OutputReference(MSONable):
         attributes: Optional[Tuple[Any, ...]] = tuple(),
         output_schema: Optional[Any] = None,
     ):
-        super(OutputReference, self).__init__()
+        super().__init__()
         self.uuid = uuid
         self.attributes = attributes
         self.output_schema = output_schema
@@ -100,13 +100,13 @@ class OutputReference(MSONable):
             new_reference.uuid = uuid
             return new_reference
 
-    def __getitem__(self, item) -> "OutputReference":
+    def __getitem__(self, item) -> OutputReference:
         if self.output_schema is not None:
             validate_schema_access(self.output_schema, item)
 
         return OutputReference(self.uuid, self.attributes + (item,))
 
-    def __getattr__(self, item) -> "OutputReference":
+    def __getattr__(self, item) -> OutputReference:
         if item in {"kwargs", "args", "schema"} or (
             isinstance(item, str) and item.startswith("__")
         ):

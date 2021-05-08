@@ -61,7 +61,7 @@ class JobStore(Store):
             k: getattr(docs_store, k)
             for k in ("key", "last_updated_field", "last_updated_type")
         }
-        super(JobStore, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def name(self) -> str:
         """Get the name of the data source.

@@ -27,7 +27,7 @@ __date__ = "Jun 1, 2012"
 __all__ = ["DictMods", "apply_mod"]
 
 
-class DictMods(object):
+class DictMods:
     """
     Class to define mongo-like modifications on a dict.
 
@@ -110,7 +110,7 @@ class DictMods(object):
         for k, v in settings.items():
             (d, key) = _get_nested_dict(input_dict, k)
             if key in d and (not isinstance(d[key], (list, tuple))):
-                raise ValueError("Keyword {} does not refer to an array.".format(k))
+                raise ValueError(f"Keyword {k} does not refer to an array.")
             if key in d and v not in d[key]:
                 d[key].append(v)
             elif key not in d:
@@ -121,7 +121,7 @@ class DictMods(object):
         for k, v in settings.items():
             (d, key) = _get_nested_dict(input_dict, k)
             if key in d and (not isinstance(d[key], (list, tuple))):
-                raise ValueError("Keyword {} does not refer to an array.".format(k))
+                raise ValueError(f"Keyword {k} does not refer to an array.")
             if key in d:
                 d[key] = [i for i in d[key] if i != v]
 
@@ -129,7 +129,7 @@ class DictMods(object):
     def pull_all(input_dict, settings):
         for k, v in settings.items():
             if k in input_dict and (not isinstance(input_dict[k], (list, tuple))):
-                raise ValueError("Keyword {} does not refer to an array.".format(k))
+                raise ValueError(f"Keyword {k} does not refer to an array.")
             for i in v:
                 DictMods.pull(input_dict, {k: i})
 
@@ -138,7 +138,7 @@ class DictMods(object):
         for k, v in settings.items():
             (d, key) = _get_nested_dict(input_dict, k)
             if key in d and (not isinstance(d[key], (list, tuple))):
-                raise ValueError("Keyword {} does not refer to an array.".format(k))
+                raise ValueError(f"Keyword {k} does not refer to an array.")
             if v == 1:
                 d[key].pop()
             elif v == -1:
@@ -166,7 +166,7 @@ def apply_mod(modification: Dict[str, Any], obj: Dict[str, Any]):
         if action in _DM.supported_actions:
             _DM.supported_actions[action].__call__(obj, settings)
         else:
-            raise ValueError("{} is not a supported action!".format(action))
+            raise ValueError(f"{action} is not a supported action!")
 
 
 def _get_nested_dict(

@@ -142,7 +142,7 @@ class Flow(MSONable):
 
         # ensure that we have all the jobs needed to resolve the reference connections
         job_references = find_and_get_references(self.jobs)
-        job_reference_uuids = set([ref.uuid for ref in job_references])
+        job_reference_uuids = {ref.uuid for ref in job_references}
         missing_jobs = job_reference_uuids.difference(set(self.job_uuids))
         if len(missing_jobs) > 0:
             raise ValueError(
@@ -169,7 +169,7 @@ class Flow(MSONable):
 
             # check if the jobs array contains all jobs needed for the references
             references = find_and_get_references(self.output)
-            reference_uuids = set([ref.uuid for ref in references])
+            reference_uuids = {ref.uuid for ref in references}
 
             if not reference_uuids.issubset(set(self.job_uuids)):
                 raise ValueError(
