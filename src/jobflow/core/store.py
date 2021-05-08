@@ -1,3 +1,5 @@
+"""Define the primary jobflow database interface."""
+
 from __future__ import annotations
 
 import typing
@@ -22,6 +24,21 @@ T = typing.TypeVar("T", bound="JobStore")
 
 
 class JobStore(Store):
+    """
+    Store intended to allow pushing and pulling documents into multiple stores.
+
+    Parameters
+    ----------
+    docs_store
+        Store for basic documents.
+    data_store
+        Maggma store for large data objects.
+    save
+        List of keys to save in the data store when uploading documents.
+    load
+        List of keys to load from the data store when querying.
+    """
+
     def __init__(
         self,
         docs_store: Store,
@@ -29,20 +46,6 @@ class JobStore(Store):
         save: save_type = None,
         load: load_type = False,
     ):
-        """
-        Store intended to allow pushing and pulling documents into multiple stores.
-
-        Parameters
-        ----------
-        docs_store
-            Store for basic documents.
-        data_store
-            Maggma store for large data objects.
-        save
-            List of keys to save in the data store when uploading documents.
-        load
-            List of keys to load from the data store when querying.
-        """
         self.docs_store = docs_store
         self.data_store = data_store
 
@@ -91,13 +94,13 @@ class JobStore(Store):
         self.data_store.connect(force_reset=force_reset)
 
     def close(self):
-        """Closes any connections."""
+        """Close any connections."""
         self.docs_store.close()
         self.data_store.close()
 
     def count(self, criteria: Optional[Dict] = None) -> int:
         """
-        Counts the number of documents matching the query criteria.
+        Count the number of documents matching the query criteria.
 
         Parameters
         ----------
@@ -121,7 +124,7 @@ class JobStore(Store):
         load: load_type = None,
     ) -> Iterator[Dict]:
         """
-        Queries the JobStore for documents.
+        Query the JobStore for documents.
 
         Parameters
         ----------
@@ -195,7 +198,7 @@ class JobStore(Store):
         load: load_type = None,
     ) -> Optional[Dict]:
         """
-        Queries the Store for a single document.
+        Query the Store for a single document.
 
         Parameters
         ----------
@@ -227,7 +230,7 @@ class JobStore(Store):
         save: Union[bool, save_type] = None,
     ):
         """
-        Update or insert documents into the Store
+        Update or insert documents into the Store.
 
         Parameters
         ----------
@@ -296,7 +299,7 @@ class JobStore(Store):
 
     def ensure_index(self, key: str, unique: bool = False) -> bool:
         """
-        Tries to create an index on document store and return true if it succeeded.
+        Try to create an index on document store and return True success.
 
         Parameters
         ----------
@@ -323,7 +326,7 @@ class JobStore(Store):
         load: load_type = None,
     ) -> Iterator[Tuple[Dict, List[Dict]]]:
         """
-        Simple grouping function that will group documents by keys.
+        Group documents by keys.
 
         Parameters
         ----------
@@ -425,6 +428,26 @@ class JobStore(Store):
         which: str = "last",
         load: load_type = False,
     ):
+        """
+        `Get the output from of a job UUID.
+
+        Parameters
+        ----------
+        uuid
+            A job UUID.
+        which
+            If there are multiple job runs, which index to use. Options are:
+            - `"last"` (default): Use the last job that ran.
+            - `"first"`: Use the first job that ran.
+            - `"all"`: Return all outputs.
+        load
+            The keys to load from the datastore.
+
+        Returns
+        -------
+        Any
+            The output(s) for the job UUID.
+        """
         if which in ("last", "first"):
             sort = -1 if which == "last" else 1
 
