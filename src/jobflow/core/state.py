@@ -1,3 +1,5 @@
+"""Stateful interface for accessing the current job (and store)."""
+
 from __future__ import annotations
 
 import typing
