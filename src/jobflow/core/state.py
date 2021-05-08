@@ -1,4 +1,12 @@
-"""Stateful interface for accessing the current job (and store)."""
+"""
+Stateful interface for accessing the current job (and store).
+
+This module defines the ``CURRENT_JOB`` object which has two attributes:
+
+- `job`: Containing the current job.
+- `store`: Containing the current store. Only available if ``expose_store`` is set in
+  the job config.
+"""
 
 from __future__ import annotations
 
