@@ -1,13 +1,35 @@
+"""Define job output schema class."""
+
 import typing
 
 from monty.json import MSONable
 from pydantic import BaseModel, create_model
-from pydantic.typing import get_args
+
+if typing.TYPE_CHECKING:
+    from typing import Type
 
 __all__ = ["Schema"]
 
 
-def with_reference(atype):
+def with_reference(atype: Type):
+    """
+    Recursively redefine a type with the union of the type and :obj:`OutputReference`.
+
+    For example, if the original type is ``Union[str, Tuple[str]]`` the modified
+    type would be ``Union[str, OutputReference, Tuple[Union[str, OutputReference]]]``.
+
+    Parameters
+    ----------
+    atype
+        A type.
+
+    Returns
+    -------
+    type
+        A new type which is the recursive union with :obj:`OutputReference`.
+    """
+    from pydantic.typing import get_args
+
     from jobflow import OutputReference
 
     args = tuple([with_reference(a) for a in get_args(atype)])
@@ -18,9 +40,14 @@ def with_reference(atype):
     return typing.Union[OutputReference, atype]
 
 
-def allow_references(model):
+def allow_references(model: Type[BaseModel]):
     """
-    Create a new BaseModel with the exact same fields as `model` but making them all optional
+    Create new BaseModel with the same fields as ``model`` but that accepts References.
+
+    Parameters
+    ----------
+    model
+        A pydantic model.
     """
     from copy import deepcopy
 
@@ -57,6 +84,14 @@ class _BaseSchema(MSONable, BaseModel):
 
 
 class Schema(_BaseSchema):
+    """
+    Base Schema class for representing job output schemas.
+
+    This is a special pydantic model that automatically converts all types to support
+    the :obj:`OutputReference` objects.
+    """
+
     def __new__(cls, **kwargs):
+        """Allow new instances to support :obj:`OutputReference` objects."""
         t = allow_references(cls)(**kwargs)
         return t
