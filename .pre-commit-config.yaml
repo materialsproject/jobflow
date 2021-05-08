@@ -34,7 +34,7 @@ repos:
     args:
     - --profile=black
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.9.1
+  rev: 3.9.2
   hooks:
   - id: flake8
     files: ^src/
