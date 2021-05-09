@@ -108,7 +108,7 @@ class Maker(MSONable):
     ...     def make(self, a, b):
     ...         add_first = self.add_maker.make(a, b)
     ...         add_second = self.add_maker.make(add_first.output, b)
-    ...         return Flow([add_first, add_second])
+    ...         return Flow([add_first, add_second], name=self.name)
     >>> maker = DoubleAddMaker()
     >>> double_add_job = maker.make(1, 2)
     """
@@ -154,7 +154,6 @@ class Maker(MSONable):
         >>> from jobflow import job, Maker
         >>> @dataclass
         ... class AddMaker(Maker):
-        ...     name: str = "add"
         ...     number: float = 10
         ...
         ...     @job
