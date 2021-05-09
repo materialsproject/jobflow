@@ -31,6 +31,7 @@ jobflow.core.reference
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: uuid, attributes, output_schema
 
 jobflow.core.schema
 -------------------
