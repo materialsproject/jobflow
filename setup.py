@@ -25,7 +25,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "setuptools",
-        "monty",
+        "monty>=2021.5.9",
         "pydash",
         "networkx",
         "maggma",
