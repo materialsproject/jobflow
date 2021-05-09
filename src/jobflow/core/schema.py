@@ -1,5 +1,7 @@
 """Define job output schema class."""
 
+from __future__ import annotations
+
 import typing
 
 from monty.json import MSONable
