@@ -20,6 +20,8 @@ if typing.TYPE_CHECKING:
     ]
     load_type = Union[bool, save_type]
 
+__all__ = ["JobStore"]
+
 T = typing.TypeVar("T", bound="JobStore")
 
 

@@ -12,6 +12,8 @@ if typing.TYPE_CHECKING:
 
     import jobflow
 
+__all__ = ["Maker"]
+
 
 @dataclass
 class Maker(MSONable):
