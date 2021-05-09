@@ -1,11 +1,12 @@
 """Tools for running jobflow locally."""
+
 from __future__ import annotations
 
 import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import List, Optional, Set, Union
+    from typing import Any, Dict, List, Optional, Set, Union
 
     import jobflow
 
@@ -16,7 +17,25 @@ def run_locally(
     flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
     log: bool = True,
     store: Optional[jobflow.JobStore] = None,
-):
+) -> Dict[str, Any]:
+    """
+    Run a :obj:`Job` or :obj:`Flow` locally.
+
+    Parameters
+    ----------
+    flow
+        A job or flow.
+    log
+        Whether to print log messages.
+    store
+        A job store. If a job store is not specified then a maggma ``MemoryStore`` will
+        be used while the job is executed and deleted once the job is finished.
+
+    Returns
+    -------
+    dict[str, Any]
+        The responses of the jobs, as a dict of ``{uuid: response}``.
+    """
     from maggma.stores import MemoryStore
 
     from jobflow import Flow, Job, JobStore, initialize_logger

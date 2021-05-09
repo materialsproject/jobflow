@@ -123,8 +123,8 @@ class JobFiretask(FiretaskBase):
     """
     A firetask that will run any job.
 
-    Required Parameters
-    -------------------
+    Other Parameters
+    ----------------
     job : Job
         A job.
     store : JobStore
