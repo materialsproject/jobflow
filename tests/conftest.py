@@ -3,24 +3,29 @@ import pytest
 
 @pytest.fixture(scope="session")
 def database():
-    return "activities_test"
+    return "jobflow_test"
 
 
 @pytest.fixture(scope="session")
-def mongo_store(database):
+def mongo_jobstore(database):
     from maggma.stores import MongoStore
 
-    store = MongoStore(database, "activity_outputs")
+    from jobflow import JobStore
+
+    store = JobStore.from_store(MongoStore(database, "outputs"))
     store.connect()
     return store
 
 
 @pytest.fixture(scope="session")
-def memory_store():
+def memory_jobstore():
     from maggma.stores import MemoryStore
 
-    store = MemoryStore()
+    from jobflow import JobStore
+
+    store = JobStore.from_store(MemoryStore())
     store.connect()
+
     return store
 
 

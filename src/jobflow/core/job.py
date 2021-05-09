@@ -446,6 +446,7 @@ class Job(MSONable):
         --------
         Response, .OutputReference
         """
+        import builtins
         import types
         from datetime import datetime
 
@@ -467,7 +468,7 @@ class Job(MSONable):
         # if function is bound method we need to do some magic to bind the unwrapped
         # function to the class/instance
         bound = getattr(self.function, "__self__", None)
-        if bound is not None:
+        if bound is not None and bound is not builtins:
             function = types.MethodType(function, bound)
 
         response = function(*self.function_args, **self.function_kwargs)
