@@ -1,3 +1,5 @@
+"""Tools for running :obj:`Flow` and :obj:`Job` objects using the FireWorks package."""
+
 from __future__ import annotations
 
 import typing
@@ -15,7 +17,29 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 def flow_to_workflow(
     flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
     store: jobflow.JobStore,
+    **kwargs,
 ) -> Workflow:
+    """
+    Convert a :obj:`Flow` or a :obj:`Job` to a FireWorks :obj:`Workflow` object.
+
+    Each firework spec is updated with the contents of the
+    :obj:`Job.config.manager_config` dictionary. Accordingly, a :obj:`.JobConfig` object
+    can be used to configure FireWork options such as metadata and the fireworker.
+
+    Parameters
+    ----------
+    flow
+        A flow or job.
+    store
+        A job store.
+    **kwargs
+        Keyword arguments passed to Workflow init method.
+
+    Returns
+    -------
+    Workflow
+        The job or flow as a workflow.
+    """
     from fireworks.core.firework import Firework, Workflow
 
     from jobflow.core.flow import Flow
@@ -31,7 +55,7 @@ def flow_to_workflow(
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
         fireworks.append(fw)
 
-    return Workflow(fireworks, name=flow.name)
+    return Workflow(fireworks, name=flow.name, **kwargs)
 
 
 def job_to_firework(
@@ -39,7 +63,33 @@ def job_to_firework(
     store: jobflow.JobStore,
     parents: Optional[Sequence[str]] = None,
     parent_mapping: Optional[Dict[str, Firework]] = None,
-):
+    **kwargs,
+) -> Firework:
+    """
+    Convert a :obj:`Job` to a :obj:`.Firework`.
+
+    The firework spec is updated with the contents of the
+    :obj:`Job.config.manager_config` dictionary. Accordingly, a :obj:`.JobConfig` object
+    can be used to configure FireWork options such as metadata and the fireworker.
+
+    Parameters
+    ----------
+    job
+        A job.
+    store
+        A job store.
+    parents
+        The parent uuids of the job.
+    parent_mapping
+        A dictionary mapping job uuids to Firework objects, as ``{uuid: Firework}``.
+    **kwargs
+        Keyword arguments passed to the Firework constructor.
+
+    Returns
+    -------
+    Firework
+        A firework that will run the job.
+    """
     from fireworks.core.firework import Firework
 
     from jobflow.core.reference import OnMissing
@@ -47,7 +97,7 @@ def job_to_firework(
     if (parents is None) is not (parent_mapping is None):
         raise ValueError("Both of neither of parents and parent_mapping must be set.")
 
-    job_firetask = JobFiretask(job=job, store=store)
+    task = JobFiretask(job=job, store=store)
 
     job_parents = None
     if parents is not None and parent_mapping is not None:
@@ -60,7 +110,7 @@ def job_to_firework(
         spec["_allow_fizzled_parents"] = True
     spec.update(job.config.manager_config)
 
-    fw = Firework(tasks=[job_firetask], name=job.name, parents=job_parents, spec=spec)
+    fw = Firework([task], spec=spec, name=job.name, parents=job_parents, **kwargs)
 
     if parent_mapping is not None:
         parent_mapping[job.uuid] = fw
@@ -70,10 +120,21 @@ def job_to_firework(
 
 @explicit_serialize
 class JobFiretask(FiretaskBase):
+    """
+    A firetask that will run any job.
+
+    Required Parameters
+    -------------------
+    job : Job
+        A job.
+    store : JobStore
+        A job store.
+    """
 
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
+        """Run the job and handle any dynamic firework submissions."""
         from jobflow import initialize_logger
         from jobflow.core.job import Job
 
