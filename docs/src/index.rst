@@ -10,6 +10,7 @@
 
    Job <job>
    Flow <flow>
+   Maker <maker>
 
 .. toctree::
    :caption: Information
@@ -23,7 +24,7 @@
 
 
 .. toctree::
-   :caption: Function OutputReference
+   :caption: Function Reference
    :maxdepth: -1
    :hidden:
 
