@@ -68,7 +68,8 @@ def test_job_input_references():
     test_job = Job(add, function_args=(ref1,), function_kwargs={"b": ref2})
     assert set(test_job.input_references) == {ref1, ref2}
     assert set(test_job.input_uuids) == {"12345"}
-    assert test_job.input_references_grouped == {"12345": (ref1, ref2)}
+    assert set(list(test_job.input_references_grouped)) == set(["12345"])
+    assert set(list(test_job.input_references_grouped["12345"])) == set([ref1, ref2])
 
 
 def test_job_resolve_args(memory_jobstore):

@@ -38,7 +38,7 @@ setup(
             "furo==2021.3.20b30",
             "m2r2==0.2.7",
         ],
-        "tests": ["pytest"],
+        "tests": ["pytest", "pytest-cov==2.11.1"],
         "fireworks": ["fireworks"],
         "dev": ["pre-commit>=2.12.1"],
     },

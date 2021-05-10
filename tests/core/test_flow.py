@@ -174,16 +174,16 @@ def test_dag_validation():
     from jobflow import Flow, Job
 
     # test cycle detection of jobs
-    job1 = Job(function=sum, function_args=(1, 2))
-    job2 = Job(function=sum, function_args=(job1.output, 2))
+    job1 = Job(add, function_args=(1, 2))
+    job2 = Job(add, function_args=(job1.output, 2))
     job1.function_args = (job2.output, 2)
     flow = Flow(jobs=[job1, job2])
     with pytest.raises(ValueError):
         next(flow.iterflow())
 
     # test all jobs included for graph to work
-    job1 = Job(function=sum, function_args=(1, 2))
-    job2 = Job(function=sum, function_args=(job1.output.value, 2))
+    job1 = Job(add, function_args=(1, 2))
+    job2 = Job(add, function_args=(job1.output.value, 2))
     with pytest.raises(ValueError):
         Flow(jobs=[job2])
 
