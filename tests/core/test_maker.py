@@ -32,3 +32,4 @@ def test_job_maker():
     add_job = maker.make(1, 2)
     assert add_job.name == "add"
     assert add_job.function == maker.make
+    assert add_job.function_args == (1, 2)
