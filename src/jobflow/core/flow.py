@@ -11,7 +11,7 @@ from monty.json import MSONable
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Dict, List, Optional, Type, Union
+    from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
     from networkx import DiGraph
 
@@ -150,13 +150,20 @@ class Flow(MSONable):
                 f"resolve output references:\n{list(missing_jobs)}"
             )
 
+        job_ids = set()
         for job in self.jobs:
-            if job.host is not None:
+            if job.host is not None and job.host != self.uuid:
                 raise ValueError(
                     f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
                     f"to another flow."
                 )
+            if job.uuid in job_ids:
+                raise ValueError(
+                    "jobs array contains multiple jobs/flows with the same uuid "
+                    f"({job.uuid})"
+                )
             job.host = self.uuid
+            job_ids.add(job.uuid)
 
         if self.output is not None:
             if contains_flow_or_job(self.output):
@@ -177,7 +184,7 @@ class Flow(MSONable):
                 )
 
     @property
-    def job_uuids(self) -> List[str]:
+    def job_uuids(self) -> Tuple[str, ...]:
         """
         Uuids of every Job contained in the Flow (including nested Flows).
 
@@ -186,13 +193,13 @@ class Flow(MSONable):
         list[str]
             The uuids of all Jobs in the Flow (including nested Flows).
         """
-        uuids = []
+        uuids: List[str] = []
         for job in self.jobs:
             if isinstance(job, Flow):
                 uuids.extend(job.job_uuids)
             else:
                 uuids.append(job.uuid)
-        return uuids
+        return tuple(uuids)
 
     @property
     def graph(self) -> DiGraph:

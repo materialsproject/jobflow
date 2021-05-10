@@ -222,3 +222,20 @@ def test_response():
 
     with pytest.raises(ValidationError):
         Response.from_job_returns({"number": "5"}, output_schema=MySchema)
+
+
+def test_serialization():
+    import json
+
+    from monty.json import MontyDecoder, MontyEncoder
+
+    from jobflow import Job
+
+    test_job = Job(function=add, function_args=(1,), function_kwargs={"b": 2})
+
+    uuid = test_job.uuid
+
+    encoded_job = json.loads(MontyEncoder().encode(test_job))
+    decoded_job = MontyDecoder().process_decoded(encoded_job)
+
+    assert decoded_job.uuid == uuid
