@@ -239,3 +239,57 @@ def test_serialization():
     decoded_job = MontyDecoder().process_decoded(encoded_job)
 
     assert decoded_job.uuid == uuid
+
+
+def test_class_jobs(memory_jobstore):
+    from jobflow.core.job import job
+
+    class Test:
+        @job
+        @staticmethod
+        def static_before(x, y):
+            return x + y
+
+        @staticmethod
+        @job
+        def static_after(x, y):
+            return x + y
+
+        @job
+        @classmethod
+        def class_before(cls, x, y):
+            return x + y
+
+        @classmethod
+        @job
+        def class_after(cls, x, y):
+            return x + y
+
+        @job
+        def instance(self, x, y):
+            return x + y
+
+    # test staticmethod decorator put after job decorator
+    test_job = Test.static_after(3, 4)
+    response = test_job.run(memory_jobstore)
+    assert response.output == 7
+
+    # test staticmethod decorator put before job decorator
+    test_job = Test.static_before(3, 4)
+    response = test_job.run(memory_jobstore)
+    assert response.output == 7
+
+    # test classmethod decorator put after job decorator
+    test_job = Test.class_after(3, 4)
+    response = test_job.run(memory_jobstore)
+    assert response.output == 7
+
+    # test classmethod decorator put before job decorator
+    test_job = Test.class_before(3, 4)
+    response = test_job.run(memory_jobstore)
+    assert response.output == 7
+
+    # test job decorator in instance method
+    test_job = Test().instance(3, 4)
+    response = test_job.run(memory_jobstore)
+    assert response.output == 7
