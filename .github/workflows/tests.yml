@@ -39,7 +39,7 @@ jobs:
         pip install .[fireworks]
 
     - name: Test
-      run: pytest --cov=src/jobflow --cov-report=xml
+      run: pytest --cov=src --cov-report=xml
 
     - uses: codecov/codecov-action@v1
       if: matrix.python-version == 3.8 && github.repository == 'hackingmaterials/jobflow'
