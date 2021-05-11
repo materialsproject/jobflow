@@ -12,5 +12,5 @@ show_missing = True
 exclude_lines =
     \#\s*pragma: no cover
     ^\s*assert False(,|$)
-    ^\s*if TYPE_CHECKING:
+    ^\s*if typing.TYPE_CHECKING:
     ^\s*@overload( |$)
