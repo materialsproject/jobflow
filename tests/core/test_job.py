@@ -311,7 +311,7 @@ def test_job_input_references():
 
 def test_job_resolve_args(memory_jobstore):
     from jobflow.core.job import Job
-    from jobflow.core.reference import OnMissing, OutputReference
+    from jobflow.core.reference import OutputReference
 
     # test basic run with no references
     test_job = Job(print, function_args=("I am a job",))
@@ -333,22 +333,6 @@ def test_job_resolve_args(memory_jobstore):
     assert test_job != resolved_job
     assert resolved_job.function_kwargs["b"] == 2
     assert isinstance(test_job.function_kwargs["b"], OutputReference)
-
-    # test resolve with on missing == error
-    ref = OutputReference("a")
-    test_job = Job(add, function_args=(1,), function_kwargs={"b": ref})
-    with pytest.raises(ValueError):
-        test_job.resolve_args(memory_jobstore, on_missing=OnMissing.ERROR)
-
-    # test resolve with on missing == none
-    resolved_job = test_job.resolve_args(memory_jobstore, on_missing=OnMissing.NONE)
-    assert test_job == resolved_job
-
-    # test resolve with on missing == pass
-    test_job = Job(add, function_args=(1,), function_kwargs={"b": ref})
-    resolved_job = test_job.resolve_args(memory_jobstore, on_missing=OnMissing.PASS)
-    assert test_job == resolved_job
-    assert resolved_job.function_kwargs["b"] == ref
 
 
 def test_job_decorator():
