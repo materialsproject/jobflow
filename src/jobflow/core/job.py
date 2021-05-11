@@ -54,6 +54,9 @@ class JobConfig(MSONable):
         The configuration settings to control the manager execution.
     expose_store
         Whether to expose the store in :obj:`.CURRENT_JOB`` when the job is running.
+    pass_manager_config
+        Whether to pass the manager configuration on to detour, addition, and
+        replacement jobs.
 
     Returns
     -------
@@ -65,6 +68,7 @@ class JobConfig(MSONable):
     on_missing_references: OnMissing = OnMissing.ERROR
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
+    pass_manager_config: bool = True
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):
@@ -479,6 +483,16 @@ class Job(MSONable):
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
 
+        if self.config.pass_manager_config:
+            if response.addition is not None:
+                pass_manager_config(response.addition, self.config.manager_config)
+
+            if response.detour is not None:
+                pass_manager_config(response.detour, self.config.manager_config)
+
+            if response.replace is not None:
+                pass_manager_config(response.replace, self.config.manager_config)
+
         save = "output" if self.data is True else self.data
         data = {
             "uuid": self.uuid,
@@ -496,7 +510,6 @@ class Job(MSONable):
     def resolve_args(
         self,
         store: jobflow.JobStore,
-        on_missing: OnMissing = OnMissing.ERROR,
         inplace: bool = True,
     ) -> Job:
         """
@@ -508,9 +521,6 @@ class Job(MSONable):
         ----------
         store
             A maggma store to use for resolving references.
-        on_missing
-            What to do if the reference cannot be resolved. See the docstring
-            for :obj:`.OutputReference.resolve` for the available options.
         inplace
             Update the arguments of the current job or return a new job object.
 
@@ -526,12 +536,12 @@ class Job(MSONable):
         resolved_args = find_and_resolve_references(
             self.function_args,
             store=store,
-            on_missing=on_missing,
+            on_missing=self.config.on_missing_references,
         )
         resolved_kwargs = find_and_resolve_references(
             self.function_kwargs,
             store=store,
-            on_missing=on_missing,
+            on_missing=self.config.on_missing_references,
         )
         resolved_args = tuple(resolved_args)
 
@@ -863,14 +873,13 @@ def prepare_replace(
         # flow; this job will inherit the metadata and output schema of the current
         # job
         store_output_job = store_inputs(replace.output)
-        store_output_job.config.manager_config = current_job.config.manager_config
         store_output_job.set_uuid(current_job.uuid)
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
         replace.jobs.append(store_output_job)
 
-    else:
+    elif isinstance(replace, Job):
         # replace is a single Job
         replace.set_uuid(current_job.uuid)
         replace.index = current_job.index + 1
@@ -883,3 +892,43 @@ def prepare_replace(
             replace.output_schema = current_job.output_schema
 
     return replace
+
+
+def pass_manager_config(
+    jobs: Union[Job, jobflow.Flow, List[Union[Job, jobflow.Flow]]],
+    manager_config: Dict[str, Any],
+):
+    """
+    Pass the manager config on to any jobs in the jobs array.
+
+    Parameters
+    ----------
+    jobs
+        A job, flow, or list of jobs/flows.
+    manager_config
+        A manager config to pass on.
+    """
+    from copy import deepcopy
+
+    all_jobs: List[Job] = []
+
+    def get_jobs(arg):
+
+        if isinstance(arg, Job):
+            all_jobs.append(arg)
+        elif isinstance(arg, (list, tuple)):
+            for j in arg:
+                get_jobs(j)
+        elif hasattr(arg, "jobs"):
+            # this is a flow
+            get_jobs(arg.jobs)
+        else:
+            print(arg)
+            raise ValueError("Unrecognised jobs format")
+
+    # extract all jobs from the input array
+    get_jobs(jobs)
+
+    # update manager config
+    for ajob in all_jobs:
+        ajob.config.manager_config = deepcopy(manager_config)
