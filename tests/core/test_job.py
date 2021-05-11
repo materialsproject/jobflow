@@ -9,20 +9,20 @@ def test_job_init():
     from jobflow.core.job import Job
 
     # test basic init
-    test_job = Job(function=print, function_args=("I am a job",))
+    test_job = Job(function=add, function_args=("I am a job",))
     assert test_job
-    assert test_job.function == print
-    assert test_job.name == "print"
+    assert test_job.function == add
+    assert test_job.name == "add"
     assert test_job.function_args == ("I am a job",)
     assert test_job.function_kwargs == {}
     assert test_job.uuid is not None
     assert test_job.output.uuid == test_job.uuid
 
     # test init no args
-    test_job = Job(function=print, function_args=tuple())
+    test_job = Job(function=add, function_args=tuple())
     assert test_job
-    assert test_job.function == print
-    assert test_job.name == "print"
+    assert test_job.function == add
+    assert test_job.name == "add"
     assert test_job.function_args == tuple()
     assert test_job.function_kwargs == {}
     assert test_job.uuid is not None
