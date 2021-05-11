@@ -23,6 +23,41 @@ def get_flow():
     return Flow([add_job, div_job])
 
 
+def get_maker_flow(return_makers=False):
+    from dataclasses import dataclass
+
+    from jobflow import Flow, Maker, job
+
+    @dataclass
+    class AddMaker(Maker):
+        name: str = "add"
+        b: int = 2
+
+        @job
+        def make(self, a):
+            return a + self.b
+
+    @dataclass
+    class DivMaker(Maker):
+        name: str = "div"
+        b: int = 5
+
+        @job
+        def make(self, a):
+            return a + self.b
+
+    add_maker = AddMaker(b=3)
+    div_maker = DivMaker(b=4)
+    add_job = add_maker.make(2)
+    div_job = div_maker.make(add_job.output)
+    flow = Flow([add_job, div_job])
+
+    if return_makers:
+        return flow, (AddMaker, DivMaker)
+    else:
+        return flow
+
+
 def test_flow_of_jobs_init():
     from jobflow.core.flow import Flow, JobOrder
 
@@ -462,3 +497,42 @@ def test_update_kwargs():
     flow.update_kwargs({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 8
+
+
+def test_update_maker_kwargs():
+
+    # test no filter
+    flow = get_maker_flow()
+    flow.update_maker_kwargs({"b": 10})
+    assert flow.jobs[0].maker.b == 10
+    assert flow.jobs[1].maker.b == 10
+
+    # test bad kwarg
+    flow = get_maker_flow()
+    with pytest.raises(TypeError):
+        flow.update_maker_kwargs({"c": 10})
+
+    # test name filter
+    flow = get_maker_flow()
+    flow.update_maker_kwargs({"b": 10}, name_filter="div")
+    assert flow.jobs[0].maker.b == 3
+    assert flow.jobs[1].maker.b == 10
+
+    # test class filter
+    flow, (_, DivMaker) = get_maker_flow(return_makers=True)
+    flow.update_maker_kwargs({"b": 10}, class_filter=DivMaker)
+    assert flow.jobs[0].maker.b == 3
+    assert flow.jobs[1].maker.b == 10
+
+    # test class filter with instance
+    flow, (_, DivMaker) = get_maker_flow(return_makers=True)
+    div_maker = DivMaker()
+    flow.update_maker_kwargs({"b": 10}, class_filter=div_maker)
+    assert flow.jobs[0].maker.b == 3
+    assert flow.jobs[1].maker.b == 10
+
+    # test dict mod
+    flow = get_maker_flow()
+    flow.update_maker_kwargs({"_inc": {"b": 10}}, name_filter="div", dict_mod=True)
+    assert flow.jobs[0].maker.b == 3
+    assert flow.jobs[1].maker.b == 14
