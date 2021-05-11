@@ -62,3 +62,17 @@ def lpad(database, debug_mode):
         lpad.reset("", require_password=False)
         for coll in lpad.db.list_collection_names():
             lpad.db[coll].drop()
+
+
+@pytest.fixture
+def no_pydot(monkeypatch):
+    import builtins
+
+    import_orig = builtins.__import__
+
+    def mocked_import(name, *args, **kwargs):
+        if name == "pydot":
+            raise ImportError()
+        return import_orig(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mocked_import)

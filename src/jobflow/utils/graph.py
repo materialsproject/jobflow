@@ -79,7 +79,7 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
             pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
         except (ImportError, ModuleNotFoundError, FileNotFoundError):
             # graphviz not installed
-            pos = nx.planar_layout(graph, prog="dot")
+            pos = nx.planar_layout(graph)
     else:
         pos = layout_function(graph)
 

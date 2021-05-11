@@ -264,6 +264,37 @@ def test_draw_graph():
     assert flow.draw_graph()
 
 
+@pytest.mark.usefixtures("no_pydot")
+def test_draw_graph_nopydot():
+    from jobflow import Flow, JobOrder
+
+    # test unconnected graph
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2])
+    assert flow.draw_graph()
+
+    # test unconnected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    assert flow.draw_graph()
+
+    # test connected graph, wrong order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2])
+    assert flow.draw_graph()
+
+    # test connected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    assert flow.draw_graph()
+
+
 def test_iterflow():
     from jobflow import Flow, JobOrder
 
