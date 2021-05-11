@@ -15,8 +15,6 @@ except ImportError:
 import typing
 
 if typing.TYPE_CHECKING:
-    from pydot import Dot
-
     import jobflow
 
 __all__ = ["itergraph", "draw_graph", "to_pydot"]
@@ -77,7 +75,11 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     import matplotlib.pyplot as plt
 
     if layout_function is None:
-        pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
+        try:
+            pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
+        except (ImportError, ModuleNotFoundError, FileNotFoundError):
+            # graphviz not installed
+            pos = nx.planar_layout(graph, prog="dot")
     else:
         pos = layout_function(graph)
 
@@ -98,13 +100,16 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     return plt
 
 
-def to_pydot(flow: jobflow.Flow) -> Dot:
+def to_pydot(flow: jobflow.Flow):
     """
     Convert a flow to a pydot graph.
 
     Pydot graphs can be visualised using graphviz and support more advanced features
     than networkx graphs. For example, the pydot graph also includes the flow
     containers.
+
+    .. Note::
+        Requires pydot and graphviz to be installed.
 
     Parameters
     ----------
