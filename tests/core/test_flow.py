@@ -5,10 +5,22 @@ def add(a, b):
     return a + b
 
 
+def div(a, b=2):
+    return a / b
+
+
 def get_job():
     from jobflow import Job
 
     return Job(add, function_args=(1, 2))
+
+
+def get_flow():
+    from jobflow import Flow, Job
+
+    add_job = Job(add, function_args=(1, 2))
+    div_job = Job(div, function_args=(add_job.output,), function_kwargs={"b": 3})
+    return Flow([add_job, div_job])
 
 
 def test_flow_of_jobs_init():
@@ -233,6 +245,56 @@ def test_graph():
     assert len(graph.edges) == 2
     assert len(graph.nodes) == 2
 
+    # test unconnected graph
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job3 = get_job()
+    add_job4 = get_job()
+    subflow1 = Flow([add_job1, add_job2])
+    subflow2 = Flow([add_job3, add_job4])
+    flow = Flow([subflow1, subflow2])
+    graph = flow.graph
+    assert len(graph.edges) == 0
+    assert len(graph.nodes) == 4
+
+    # test unconnected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job3 = get_job()
+    add_job4 = get_job()
+    subflow1 = Flow([add_job1, add_job2])
+    subflow2 = Flow([add_job3, add_job4])
+    flow = Flow([subflow1, subflow2], order=JobOrder.LINEAR)
+    graph = flow.graph
+    assert len(graph.edges) == 4
+    assert len(graph.nodes) == 4
+
+    # test connected graph, wrong order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job3 = get_job()
+    add_job4 = get_job()
+    subflow1 = Flow([add_job1, add_job2])
+    subflow2 = Flow([add_job3, add_job4])
+    add_job1.function_args = (2, add_job3.output)
+    flow = Flow([subflow1, subflow2])
+    graph = flow.graph
+    assert len(graph.edges) == 1
+    assert len(graph.nodes) == 4
+
+    # test connected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job3 = get_job()
+    add_job4 = get_job()
+    subflow1 = Flow([add_job1, add_job2])
+    subflow2 = Flow([add_job3, add_job4])
+    add_job1.function_args = (2, add_job3.output)
+    flow = Flow([subflow1, subflow2], order=JobOrder.LINEAR)
+    graph = flow.graph
+    assert len(graph.edges) == 5
+    assert len(graph.nodes) == 4
+
 
 def test_draw_graph():
     from jobflow import Flow, JobOrder
@@ -374,3 +436,29 @@ def test_serialization():
     decoded_flow = MontyDecoder().process_decoded(encoded_flow)
 
     assert decoded_flow.jobs[0].host == host_uuid
+
+
+def test_update_kwargs():
+    # test no filter
+    flow = get_flow()
+    flow.update_kwargs({"b": 5})
+    assert flow.jobs[0].function_kwargs["b"] == 5
+    assert flow.jobs[1].function_kwargs["b"] == 5
+
+    # test name filter
+    flow = get_flow()
+    flow.update_kwargs({"b": 5}, name_filter="div")
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 5
+
+    # test function filter
+    flow = get_flow()
+    flow.update_kwargs({"b": 5}, function_filter=div)
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 5
+
+    # test dict mod
+    flow = get_flow()
+    flow.update_kwargs({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 8
