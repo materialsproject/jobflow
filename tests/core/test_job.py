@@ -30,7 +30,7 @@ def test_job_init():
 
     # test job as another job as input
     with pytest.warns(UserWarning):
-        Job(function=print, function_args=(test_job,))
+        Job(function=add, function_args=(test_job,))
 
     # test init with kwargs
     test_job = Job(function=add, function_args=(1,), function_kwargs={"b": 2})
