@@ -350,6 +350,18 @@ def test_job_decorator():
     assert test_job.uuid is not None
     assert test_job.uuid == test_job.output.uuid
 
+    # test init no args
+    decorated = job(print)
+    test_job = decorated()
+    assert test_job
+    assert test_job.function == print
+    assert test_job.function_args == tuple()
+    assert test_job.function_kwargs == {}
+    assert test_job.name == "print"
+    assert type(test_job.output).__name__ == "OutputReference"
+    assert test_job.uuid is not None
+    assert test_job.uuid == test_job.output.uuid
+
     # test init with outputs
     decorated = job(add)
     test_job = decorated(1, b=2)
@@ -690,7 +702,7 @@ def test_update_maker_kwargs():
 
 
 def test_output_schema(memory_jobstore):
-    from jobflow import Schema, job
+    from jobflow import Job, Response, Schema, job
 
     class AddSchema(Schema):
         result: int
@@ -716,13 +728,42 @@ def test_output_schema(memory_jobstore):
         a + b
         return None
 
+    @job(output_schema=AddSchema)
+    def add_schema_response_dict(a, b):
+        return Response(output={"result": a + b})
+
+    @job(output_schema=AddSchema)
+    def add_schema_response(a, b):
+        return Response(output=AddSchema(result=a + b))
+
+    @job
+    def add_schema_replace(a, b):
+        new_job = Job(add, function_args=(a, b), output_schema=AddSchema)
+        return Response(replace=new_job)
+
     test_job = add_schema(5, 6)
     response = test_job.run(memory_jobstore)
     assert response.output.__class__.__name__ == "AddSchema"
+    assert response.output.result == 11
 
     test_job = add_schema_dict(5, 6)
     response = test_job.run(memory_jobstore)
     assert response.output.__class__.__name__ == "AddSchema"
+    assert response.output.result == 11
+
+    test_job = add_schema_response(5, 6)
+    response = test_job.run(memory_jobstore)
+    assert response.output.__class__.__name__ == "AddSchema"
+    assert response.output.result == 11
+
+    test_job = add_schema_response_dict(5, 6)
+    response = test_job.run(memory_jobstore)
+    assert response.output.__class__.__name__ == "AddSchema"
+    assert response.output.result == 11
+
+    test_job = add_schema_replace(5, 6)
+    response = test_job.run(memory_jobstore)
+    assert response.replace.output_schema.__name__ == "AddSchema"
 
     test_job = add_schema_bad(5, 6)
     with pytest.raises(ValueError):
@@ -750,3 +791,34 @@ def test_store_inputs(memory_jobstore):
     test_job.run(memory_jobstore)
     output = memory_jobstore.query_one({"uuid": test_job.uuid}, ["output"])["output"]
     assert OutputReference.from_dict(output) == ref
+
+
+def test_pass_manager_config():
+    from jobflow import Flow, Job
+    from jobflow.core.job import pass_manager_config
+
+    manager_config = {"abc": 1}
+
+    # test single job
+    test_job1 = Job(add, function_args=(1,))
+    pass_manager_config(test_job1, manager_config)
+    assert test_job1.config.manager_config == manager_config
+
+    # test list job
+    test_job1 = Job(add, function_args=(1,))
+    test_job2 = Job(add, function_args=(1,))
+    pass_manager_config([test_job1, test_job2], manager_config)
+    assert test_job1.config.manager_config == manager_config
+    assert test_job2.config.manager_config == manager_config
+
+    # test flow
+    test_job1 = Job(add, function_args=(1,))
+    test_job2 = Job(add, function_args=(1,))
+    flow = Flow([test_job1, test_job2])
+    pass_manager_config(flow, manager_config)
+    assert test_job1.config.manager_config == manager_config
+    assert test_job2.config.manager_config == manager_config
+
+    # test bad input
+    with pytest.raises(ValueError):
+        pass_manager_config(["str"], manager_config)

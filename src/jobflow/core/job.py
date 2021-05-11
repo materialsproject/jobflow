@@ -476,9 +476,7 @@ class Job(MSONable):
             function = types.MethodType(function, bound)
 
         response = function(*self.function_args, **self.function_kwargs)
-
-        if not isinstance(response, Response):
-            response = Response.from_job_returns(response, self.output_schema)
+        response = Response.from_job_returns(response, self.output_schema)
 
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
@@ -760,7 +758,7 @@ class Response:
             The job response controlling the data to store and flow execution options.
         """
         if isinstance(job_returns, Response):
-            if job_returns.replace is not None:
+            if job_returns.replace is None:
                 # only apply output schema if there is no replace.
                 job_returns.output = apply_schema(job_returns.output, output_schema)
 
@@ -923,7 +921,6 @@ def pass_manager_config(
             # this is a flow
             get_jobs(arg.jobs)
         else:
-            print(arg)
             raise ValueError("Unrecognised jobs format")
 
     # extract all jobs from the input array
