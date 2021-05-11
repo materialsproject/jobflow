@@ -37,6 +37,7 @@ jobs:
         pip install -r requirements.txt
         pip install .[tests]
         pip install .[fireworks]
+        pip install .[vis]
 
     - name: Test
       run: pytest --cov=jobflow --cov-report=xml

@@ -39,6 +39,7 @@ setup(
             "m2r2==0.2.7",
         ],
         "tests": ["pytest", "pytest-cov==2.11.1"],
+        "vis": ["matplotlib"],
         "fireworks": ["fireworks"],
         "dev": ["pre-commit>=2.12.1"],
     },
