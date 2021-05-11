@@ -12,7 +12,7 @@ def get_job():
 
 
 def test_flow_of_jobs_init():
-    from jobflow.core.flow import Flow
+    from jobflow.core.flow import Flow, JobOrder
 
     # test single job
     add_job = get_job()
@@ -22,10 +22,26 @@ def test_flow_of_jobs_init():
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
 
+    # test single job no list
+    add_job = get_job()
+    flow = Flow(add_job, name="add")
+    assert flow.name == "add"
+    assert flow.host is None
+    assert flow.output is None
+    assert flow.job_uuids == (add_job.uuid,)
+
     # # test multiple job
     add_job1 = get_job()
     add_job2 = get_job()
     flow = Flow([add_job1, add_job2])
+    assert flow.host is None
+    assert flow.output is None
+    assert flow.job_uuids == (add_job1.uuid, add_job2.uuid)
+
+    # # test multiple job, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job1.uuid, add_job2.uuid)
@@ -75,6 +91,16 @@ def test_flow_of_flows_init():
     add_job = get_job()
     subflow = Flow([add_job])
     flow = Flow([subflow], name="add")
+    assert flow.name == "add"
+    assert flow.host is None
+    assert flow.output is None
+    assert flow.job_uuids == (add_job.uuid,)
+    assert flow.jobs[0].host == flow.uuid
+
+    # test single flow no list
+    add_job = get_job()
+    subflow = Flow(add_job)
+    flow = Flow(subflow, name="add")
     assert flow.name == "add"
     assert flow.host is None
     assert flow.output is None
@@ -168,6 +194,120 @@ def test_flow_job_mixed():
     subflow = Flow([add_job2], output=add_job2.output)
     with pytest.raises(ValueError):
         Flow([add_job], output=[add_job.output, subflow.output])
+
+
+def test_graph():
+    from jobflow import Flow, JobOrder
+
+    # test unconnected graph
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2])
+    graph = flow.graph
+    assert len(graph.edges) == 0
+    assert len(graph.nodes) == 2
+
+    # test unconnected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    graph = flow.graph
+    assert len(graph.edges) == 1
+    assert len(graph.nodes) == 2
+
+    # test connected graph, wrong order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2])
+    graph = flow.graph
+    assert len(graph.edges) == 1
+    assert len(graph.nodes) == 2
+
+    # test connected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    graph = flow.graph
+    assert len(graph.edges) == 2
+    assert len(graph.nodes) == 2
+
+
+def test_draw_graph():
+    from jobflow import Flow, JobOrder
+
+    # test unconnected graph
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2])
+    assert flow.draw_graph()
+
+    # test unconnected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    assert flow.draw_graph()
+
+    # test connected graph, wrong order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2])
+    assert flow.draw_graph()
+
+    # test connected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    assert flow.draw_graph()
+
+
+def test_iterflow():
+    from jobflow import Flow, JobOrder
+
+    # test unconnected graph
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2])
+    iterated = list(flow.iterflow())
+    assert len(iterated) == 2
+    assert iterated[0][0] == add_job1
+    assert len(iterated[0][1]) == 0
+    assert iterated[1][0] == add_job2
+    assert len(iterated[1][1]) == 0
+
+    # test unconnected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    iterated = list(flow.iterflow())
+    assert len(iterated) == 2
+    assert iterated[0][0] == add_job1
+    assert len(iterated[0][1]) == 0
+    assert iterated[1][0] == add_job2
+    assert len(iterated[1][1]) == 1
+
+    # test connected graph, wrong order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2])
+    iterated = list(flow.iterflow())
+    assert len(iterated) == 2
+    assert iterated[0][0] == add_job2
+    assert len(iterated[0][1]) == 0
+    assert iterated[1][0] == add_job1
+    assert len(iterated[1][1]) == 1
+
+    # test connected graph, linear order
+    add_job1 = get_job()
+    add_job2 = get_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
+    with pytest.raises(ValueError):
+        list(flow.iterflow())
 
 
 def test_dag_validation():
