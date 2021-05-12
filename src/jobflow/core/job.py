@@ -96,10 +96,8 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     >>> print_job = print_message()
     >>> type(print_job)
     <class 'jobflow.core.job.Job'>
-    >>> print_job.function_source
-    '__main__'
-    >>> print_job.function_name
-    'print_message'
+    >>> print_job.function
+    <function print_message at 0x7ff72bdf6af0>
 
     Jobs can have required and optional parameters.
 
@@ -235,8 +233,7 @@ class Job(MSONable):
     index
         The index of the job (number of times the job has been replaced).
     name
-        The name of the job. If not set it will be determined from ``function_source``
-        and ``function_name``.
+        The name of the job. If not set it will be determined from ``function``.
     metadata
         A dictionary of information that will get stored alongside the job output.
     config
