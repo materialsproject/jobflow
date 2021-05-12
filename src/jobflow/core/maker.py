@@ -132,6 +132,10 @@ class Maker(MSONable):
         """
         Update the keyword arguments of the :obj:`.Maker`.
 
+        .. Note::
+            Note, the maker is not updated in place. Instead a new maker object is
+            returned.
+
         Parameters
         ----------
         update
@@ -186,12 +190,14 @@ class Maker(MSONable):
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``SquareThenAddMaker``:
 
-        >>> maker.update_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> maker = maker.update_kwargs({"number": 10}, function_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
-        >>> maker.update_kwargs({"number": 10}, function_filter=AddMaker, nested=False)
+        >>> maker = maker.update_kwargs(
+        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ... )
         """
         from pydash import get, set_
 
@@ -212,7 +218,7 @@ class Maker(MSONable):
             # 4. Reconstruct initial maker kwargs
 
             # find all classes in the serialized maker kwargs
-            locations = find_key(d, "@class")
+            locations = find_key(d, "@class", nested=True)
 
             for location in locations:
                 if len(location) == 0:
@@ -235,10 +241,10 @@ class Maker(MSONable):
                     set_(d, list(location), nested_class.as_dict())
 
         if name_filter is not None and name_filter not in self.name:
-            return self
+            return self.from_dict(d)
 
         if class_filter is not None and not isinstance(self, class_filter):
-            return self
+            return self.from_dict(d)
 
         # if we get to here then we pass all the filters
         if dict_mod:
