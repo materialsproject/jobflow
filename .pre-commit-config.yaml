@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v3.4.0
+  rev: v4.0.1
   hooks:
   - id: check-yaml
   - id: fix-encoding-pragma
@@ -18,7 +18,7 @@ repos:
     - --remove-unused-variable
     - --ignore-init-module-imports
 - repo: https://github.com/psf/black
-  rev: 21.5b0
+  rev: 21.5b1
   hooks:
   - id: black
 - repo: https://github.com/asottile/blacken-docs
