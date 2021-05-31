@@ -33,7 +33,7 @@ def test_job_maker():
     assert add_job.name == "add"
     assert add_job.function_args == (1, 2)
     assert add_job.maker == maker  # maker should match as all kwargs are the same
-    assert add_job.function != maker.make  # make should differ as objects are different
+    assert str(add_job.function) == str(maker.make)
 
     # test updating maker class does not impact the job
     maker.name = "sum"
