@@ -142,9 +142,7 @@ class OutputReference(MSONable):
 
         if store and self.uuid not in cache:
             try:
-                cache[self.uuid] = store.get_output(
-                    self.uuid, which="latest", load=True
-                )
+                cache[self.uuid] = store.get_output(self.uuid, which="last", load=True)
             except ValueError:
                 pass
 
