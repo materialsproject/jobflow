@@ -138,3 +138,26 @@ def test_update_kwargs():
     maker = DetourMaker()
     maker = maker.update_kwargs({"c": 10}, class_filter=AddMaker, nested=False)
     assert maker.add_maker.c == 5
+
+    @dataclass
+    class NotAMaker:
+        name: str = "add"
+        c: int = 5
+
+        @job
+        def make(self, a, b):
+            return a + b + self.c
+
+    @dataclass
+    class FakeDetourMaker(Maker):
+        name: str = "add"
+        add_maker: Maker = NotAMaker()
+
+        def make(self, a, b):
+            detour = self.add_maker.make(a, b)
+            return Response(detour=detour)
+
+    # test non maker dataclasses not updated
+    maker = FakeDetourMaker()
+    maker = maker.update_kwargs({"c": 10}, class_filter=AddMaker, nested=True)
+    assert maker.add_maker.c == 5
