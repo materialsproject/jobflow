@@ -199,8 +199,13 @@ def test_resolve(memory_jobstore):
     cache = {"123": {"a": [5, 6, 7]}}
     assert ref.resolve(cache=cache) == 6
 
+    ref = OutputReference("123", ("__module__",))
+    cache = {"123": OutputReference}
+    assert ref.resolve(cache=cache) == "jobflow.core.reference"
+
     # test missing attribute throws error
     ref = OutputReference("123", ("b",))
+
     cache = {"123": [1234]}
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         ref.resolve(cache=cache)

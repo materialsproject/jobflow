@@ -175,7 +175,7 @@ class OutputReference(MSONable):
         for attribute in self.attributes:
             try:
                 data = data[attribute]
-            except KeyError:
+            except (KeyError, TypeError):
                 data = getattr(data, attribute)
 
         return data
