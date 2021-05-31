@@ -141,6 +141,9 @@ def test_update_kwargs():
     maker = maker.update_kwargs({"c": 10}, class_filter=AddMaker, nested=False)
     assert maker.add_maker.c == 5
 
+    global NotAMaker
+    global FakeDetourMaker
+
     @dataclass
     class NotAMaker(MSONable):
         name: str = "add"
@@ -153,7 +156,7 @@ def test_update_kwargs():
     @dataclass
     class FakeDetourMaker(Maker):
         name: str = "add"
-        add_maker: Maker = NotAMaker()
+        add_maker: MSONable = NotAMaker()
 
         def make(self, a, b):
             detour = self.add_maker.make(a, b)
@@ -161,5 +164,5 @@ def test_update_kwargs():
 
     # test non maker dataclasses not updated
     maker = FakeDetourMaker()
-    maker = maker.update_kwargs({"c": 10}, class_filter=AddMaker, nested=True)
+    maker = maker.update_kwargs({"c": 10}, class_filter=NotAMaker, nested=True)
     assert maker.add_maker.c == 5
