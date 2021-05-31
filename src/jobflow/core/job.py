@@ -295,7 +295,12 @@ class Job(MSONable):
 
     def __post_init__(self):
         """Initialize the job name and check job arguments."""
+        from copy import deepcopy
+
         from jobflow.utils.find import contains_flow_or_job
+
+        # make a deep copy of the function (means makers do not share the same instance)
+        self.function = deepcopy(self.function)
 
         self.output = OutputReference(self.uuid, output_schema=self.output_schema)
         if self.name is None:
@@ -343,19 +348,19 @@ class Job(MSONable):
         Returns
         -------
         tuple(str, ...)
-           The uuids of the references in the job inputs.
+           The UUIDs of the references in the job inputs.
         """
         return tuple([ref.uuid for ref in self.input_references])
 
     @property
     def input_references_grouped(self) -> Dict[str, Tuple[OutputReference, ...]]:
         """
-        Group any :obj:`.OutputReference` objects in the job inputs by their uuids.
+        Group any :obj:`.OutputReference` objects in the job inputs by their UUIDs.
 
         Returns
         -------
         dict[str, tuple(OutputReference, ...)]
-            The references grouped by their uuids.
+            The references grouped by their UUIDs.
         """
         from collections import defaultdict
 
@@ -844,7 +849,7 @@ def prepare_replace(
     that maps the output id of the original job to outputs of the ``Flow``.
 
     If the replacement is a ``Flow`` or a ``Job``, then this function pass on
-    the manager config, schema, and metadata and set the according uuids and job index.
+    the manager config, schema, and metadata and set the according UUIDs and job index.
 
     Parameters
     ----------
@@ -864,7 +869,7 @@ def prepare_replace(
         replace = Flow(jobs=replace)
 
     if isinstance(replace, Flow) and replace.output is not None:
-        # add a job with same uuid as the current job to store the outputs of the
+        # add a job with same UUID as the current job to store the outputs of the
         # flow; this job will inherit the metadata and output schema of the current
         # job
         store_output_job = store_inputs(replace.output)

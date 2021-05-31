@@ -31,9 +31,14 @@ def test_job_maker():
     maker = AddMaker()
     add_job = maker.make(1, 2)
     assert add_job.name == "add"
-    assert add_job.function == maker.make
     assert add_job.function_args == (1, 2)
-    assert add_job.maker == maker
+    assert add_job.maker == maker  # maker should match as all kwargs are the same
+    assert add_job.function != maker.make  # make should differ as objects are different
+
+    # test updating maker class does not impact the job
+    maker.name = "sum"
+    assert add_job.maker != maker  # now makers should not match
+    assert add_job.maker.name != "sum"
 
 
 def test_flow_maker():

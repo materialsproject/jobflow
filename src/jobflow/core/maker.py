@@ -51,6 +51,11 @@ class Maker(MSONable):
     >>> add_job.name
     "add"
 
+    .. Note:
+        Jobs created by the same Maker will not share the same Maker object. This means
+        if a job is created, the maker variables are changed a new job is created, only
+        the second job will reflect the updated maker variables.
+
     There are two key features of :obj:`Maker` objects that make them extremely
     powerful. The first is the ability to have class instance variables that
     are used inside the make function. For example, running the job below will produce
