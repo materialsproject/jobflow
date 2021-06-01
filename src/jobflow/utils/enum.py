@@ -22,11 +22,3 @@ class ValueEnum(Enum):
     def as_dict(self):
         """Create a serializable representation of the enum."""
         return str(self.value)
-
-    def __new__(cls, value, doc=None):
-        """Add support for enum docstrings."""
-        self = object.__new__(cls)
-        self._value_ = value
-        if doc is not None:
-            self.__doc__ = doc
-        return self
