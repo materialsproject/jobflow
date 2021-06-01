@@ -59,7 +59,8 @@ def allow_references(model: Type[BaseModel]):
         optional_field_info = deepcopy(field.field_info)
 
         if hasattr(field.outer_type_, "copy_with"):
-            field_type = field.outer_type_.copy_with(field.type_)
+            # field_type = field.outer_type_.copy_with(field.type_)
+            field_type = field.outer_type_
         else:
             field_type = field.type_
 
