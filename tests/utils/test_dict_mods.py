@@ -58,6 +58,10 @@ def test_apply_mod():
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [2, 3], "number": 10}
 
+    mod = {"_pull": {"num": 1}}
+    apply_mod(mod, d)
+    assert d == {"Bye": "World", "List": [2, 3], "number": 10}
+
     mod = {"_pull": {"number": 3}}
     with pytest.raises(ValueError):
         apply_mod(mod, d)
@@ -83,6 +87,10 @@ def test_apply_mod():
     assert d == {"Bye": "World", "List": [0, 1, 2, 3, 4, 5, 6, 7, 8], "number": 10}
 
     mod = {"_pop": {"List": -1}}
+    apply_mod(mod, d)
+    assert d == {"Bye": "World", "List": [1, 2, 3, 4, 5, 6, 7, 8], "number": 10}
+
+    mod = {"_pop": {"List": 2}}
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [1, 2, 3, 4, 5, 6, 7, 8], "number": 10}
 

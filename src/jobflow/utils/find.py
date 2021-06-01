@@ -65,6 +65,8 @@ def find_key(
     """
     import inspect
 
+    from monty.json import MSONable
+
     found_items = set()
 
     def _lookup(obj, path=None):
