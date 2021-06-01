@@ -108,7 +108,7 @@
 #
 #     assert all([s == "COMPLETED" for s in wf.fw_states.values()])
 #
-#     # check output_store has the activity output
+#     # check output_store has the activity outputsd
 #     result = mongo_store.query_one({"uuid": str(activity.uuid)})
 #     assert result["output"] == 3578
 #

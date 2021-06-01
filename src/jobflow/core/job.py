@@ -724,9 +724,9 @@ class Response:
     """
 
     output: Optional[Any] = None
-    detour: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
-    addition: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
-    replace: Optional[Union[jobflow.Flow, Job, List[Job]]] = None
+    detour: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
+    addition: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
+    replace: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
     stored_data: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
     stop_flows: bool = False

@@ -41,6 +41,7 @@ def run_locally(
     dict[str, Any]
         The responses of the jobs, as a dict of ``{uuid: response}``.
     """
+    from collections import defaultdict
     from datetime import datetime
     from pathlib import Path
     from random import randint
@@ -65,7 +66,7 @@ def run_locally(
 
     stopped_parents: Set[str] = set()
     fizzled: Set[str] = set()
-    responses = {}
+    responses: Dict[str, Dict[int, jobflow.Response]] = defaultdict(dict)
     stop_activities = False
 
     root_dir = Path.cwd()
@@ -100,7 +101,7 @@ def run_locally(
             fizzled.add(job.uuid)
             return
 
-        responses[job.uuid] = response
+        responses[job.uuid][job.index] = response
 
         if response.stored_data is not None:
             logger.warning("Response.stored_data is not supported with local manager.")
@@ -128,8 +129,10 @@ def run_locally(
 
     def _get_job_dir():
         if create_folders:
-            time_now = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
-            return root_dir / f"job_{time_now}-{randint(5)}"
+            time_now = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
+            job_dir = root_dir / f"job_{time_now}-{randint(10000, 99999)}"
+            job_dir.mkdir()
+            return job_dir
         else:
             return root_dir
 
