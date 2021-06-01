@@ -1,4 +1,4 @@
-"""Tool for logging."""
+"""Tools for logging."""
 
 import logging
 

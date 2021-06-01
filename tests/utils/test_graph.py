@@ -1,3 +1,5 @@
+import importlib
+
 import pytest
 
 
@@ -53,11 +55,13 @@ def test_draw_graph_no_pydot():
 def test_draw_graph_no_matplotlib():
     from networkx import DiGraph
 
-    from jobflow.utils.graph import draw_graph
+    import jobflow.utils.graph
+
+    importlib.reload(jobflow.utils.graph)
 
     graph = DiGraph([("a", "b", {"properties": "1"}), ("b", "c", {"properties": "x"})])
     with pytest.raises(RuntimeError):
-        assert draw_graph(graph)
+        assert jobflow.utils.graph.draw_graph(graph)
 
 
 def add(a, b):
