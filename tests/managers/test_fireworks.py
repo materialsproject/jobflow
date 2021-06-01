@@ -525,6 +525,3 @@ def test_replace_and_detour_flow(
     assert result2["output"] == "11_end"
     assert result3["output"] == "xyz_end"
     assert result4["output"] == "12345_end"
-
-    assert result2["completed_at"] < result3["completed_at"]
-    assert result3["completed_at"] < result4["completed_at"]
