@@ -1,17 +1,18 @@
 def test_definition():
-    from typing import Dict, List
+    from typing import Dict, List, Tuple
 
     from jobflow import Schema
 
     class MySchema(Schema):
-        a = int
-        b = str
+        a: int
+        b: str
 
     assert MySchema.schema() is not None
 
     class MySchema(Schema):
-        a = List[int]
-        b = Dict[str, int]
+        a: List[int]
+        b: Dict[str, int]
+        c: Tuple[int, str, float, List[int]]
 
     assert MySchema.schema() is not None
 

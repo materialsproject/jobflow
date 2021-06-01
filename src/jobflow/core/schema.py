@@ -91,7 +91,7 @@ class Schema(_BaseSchema):
     Base Schema class for representing job output schemas.
 
     This is a special pydantic model that automatically converts all types to support
-    the :obj:`OutputReference` objects.
+    :obj:`OutputReference` objects.
     """
 
     def __new__(cls, **kwargs):
