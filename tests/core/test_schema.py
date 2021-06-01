@@ -1,11 +1,14 @@
 def test_definition():
     from typing import Dict, List, Tuple
 
+    from pydantic import Field
+
     from jobflow import Schema
 
     class MySchema(Schema):
         a: int
         b: str
+        c: None = 1
 
     assert MySchema.schema() is not None
 
@@ -13,6 +16,8 @@ def test_definition():
         a: List[int]
         b: Dict[str, int]
         c: Tuple[int, str, float, List[int]]
+        d: int = Field(...)
+        e: str = Field(None)
 
     assert MySchema.schema() is not None
 
@@ -20,11 +25,14 @@ def test_definition():
 def test_creation():
     from typing import Dict, List, Tuple
 
+    from pydantic import Field
+
     from jobflow import Schema
 
     class MySchema(Schema):
         a: int
         b: str
+        c: None = 1
 
     schema = MySchema(a="1", b=1)
     assert schema.schema() is not None
@@ -35,8 +43,10 @@ def test_creation():
         a: List[int]
         b: Dict[str, int]
         c: Tuple[int, str, float, List[int]]
+        d: int = Field(...)
+        e: str = Field(None)
 
-    schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ["1", "2"]])
+    schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ["1", "2"]], d=1)
     assert schema.schema() is not None
     assert schema.a == [1, 2, 4]
     assert schema.b == {"a": 5}
@@ -46,6 +56,8 @@ def test_creation():
 def test_creation_with_reference():
     from typing import Dict, List, Tuple
 
+    from pydantic import Field
+
     from jobflow import OutputReference, Schema
 
     ref1 = OutputReference("123")
@@ -54,6 +66,7 @@ def test_creation_with_reference():
     class MySchema(Schema):
         a: int
         b: str
+        c: None = 1
 
     # test basic replacement with reference
     schema = MySchema(a="1", b=ref1)
@@ -71,19 +84,21 @@ def test_creation_with_reference():
         a: List[int]
         b: Dict[str, int]
         c: Tuple[int, str, float, List[int]]
+        d: int = Field(...)
+        e: str = Field(None)
 
     # test list item replacement with reference
-    schema = MySchema(a=(1, 2, ref1), b={"a": "5"}, c=["1", 2, 3, ["1", "2"]])
+    schema = MySchema(a=(1, 2, ref1), b={"a": "5"}, c=["1", 2, 3, ["1", "2"]], d=1)
     assert schema.a == [1, 2, ref1]
 
     # test dict value replacement with reference
-    schema = MySchema(a=(1, 2, 4), b={"a": ref2}, c=["1", 2, 3, ["1", "2"]])
+    schema = MySchema(a=(1, 2, 4), b={"a": ref2}, c=["1", 2, 3, ["1", "2"]], d=1)
     assert schema.b == {"a": ref2}
 
     # test nested list replacement with reference
-    schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ref2])
+    schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ref2], d=1)
     assert schema.c == (1, "2", 3.0, ref2)
 
     # test double nested list replacement with reference
-    schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ["1", ref2]])
+    schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ["1", ref2]], d=1)
     assert schema.c == (1, "2", 3.0, [1, ref2])
