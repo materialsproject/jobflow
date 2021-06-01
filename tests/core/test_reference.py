@@ -42,10 +42,10 @@ def test_access():
     assert isinstance(new_ref, OutputReference)
 
     with pytest.raises(AttributeError):
-        ref.args
+        _ = ref.args
 
     with pytest.raises(AttributeError):
-        ref.__fake_variable
+        _ = ref.__fake_variable
 
 
 def test_get_set_attr():
@@ -84,7 +84,7 @@ def test_hash():
     from jobflow import OutputReference
 
     assert hash(OutputReference("123")) == hash(OutputReference("123"))
-    assert hash(OutputReference("123", [1, 2])) == hash(OutputReference("123", [1, 2]))
+    assert hash(OutputReference("123", (1, 2))) == hash(OutputReference("123", (1, 2)))
 
 
 def test_eq():
@@ -92,12 +92,11 @@ def test_eq():
 
     assert OutputReference("123") == OutputReference("123")
     assert OutputReference("123") != OutputReference("1234")
-    assert OutputReference("123", [1]) == OutputReference("123", [1])
-    assert OutputReference("123", [1]) == OutputReference("123", (1,))
-    assert OutputReference("123", [1]) != OutputReference("1234", [1])
-    assert OutputReference("123", [1]) != OutputReference("123", [2])
-    assert OutputReference("123", [1]) != OutputReference("123", [2, 3, 4])
-    assert OutputReference("123", [1]) != "OutputReference(123, 1)"
+    assert OutputReference("123", (1,)) == OutputReference("123", (1,))
+    assert OutputReference("123", (1,)) != OutputReference("1234", (1,))
+    assert OutputReference("123", (1,)) != OutputReference("123", (2,))
+    assert OutputReference("123", (1,)) != OutputReference("123", (2, 3, 4))
+    assert OutputReference("123", (1,)) != "OutputReference(123, 1)"
 
 
 def test_as_dict():
@@ -167,7 +166,7 @@ def test_resolve(memory_jobstore):
 
     # fail if cache or store not provided
     with pytest.raises(ValueError):
-        assert ref.resolve()
+        ref.resolve()
 
     # resolve using cache
     cache = {"123": "xyz"}
@@ -209,3 +208,187 @@ def test_resolve(memory_jobstore):
     cache = {"123": [1234]}
     with pytest.raises(AttributeError):
         ref.resolve(cache=cache)
+
+
+def test_resolve_references(memory_jobstore):
+    from jobflow import OnMissing, OutputReference
+    from jobflow.core.reference import resolve_references
+
+    # resolve single using cache
+    ref = OutputReference("123")
+    cache = {"123": "xyz"}
+    output = resolve_references([ref], cache=cache)
+    assert len(output) == 1
+    assert output[ref] == "xyz"
+
+    # resolve multiple using cache
+    ref1 = OutputReference("123")
+    ref2 = OutputReference("1234")
+    cache = {"123": "xyz", "1234": 101}
+    output = resolve_references([ref1, ref2], cache=cache)
+    assert len(output) == 2
+    assert output[ref1] == "xyz"
+    assert output[ref2] == 101
+
+    # resolve group using cache
+    ref1 = OutputReference("123", ("a",))
+    ref2 = OutputReference("123", ("b",))
+    ref3 = OutputReference("1234")
+    cache = {"123": {"a": "xyz", "b": "abc"}, "1234": 101}
+    output = resolve_references([ref1, ref2, ref3], cache=cache)
+    assert len(output) == 3
+    assert output[ref1] == "xyz"
+    assert output[ref2] == "abc"
+    assert output[ref3] == 101
+
+    # test on missing
+    ref1 = OutputReference("123")
+    ref2 = OutputReference("1234")
+    cache = {"123": "xyz"}
+    output = resolve_references([ref1, ref2], cache=cache, on_missing=OnMissing.NONE)
+    assert len(output) == 2
+    assert output[ref1] == "xyz"
+    assert output[ref2] is None
+
+    cache = {"123": "xyz"}
+    output = resolve_references([ref1, ref2], cache=cache, on_missing=OnMissing.PASS)
+    assert len(output) == 2
+    assert output[ref1] == "xyz"
+    assert output[ref2] == ref2
+
+    with pytest.raises(ValueError):
+        resolve_references([ref1, ref2], cache={}, on_missing=OnMissing.ERROR)
+
+    # resolve using store
+    memory_jobstore.update({"uuid": "123", "index": 1, "output": "xyz"})
+    output = resolve_references([ref], store=memory_jobstore)
+    assert len(output) == 1
+    assert output[ref] == "xyz"
+
+    # resolve using store and empty cache
+    cache = {}
+    output = resolve_references([ref], store=memory_jobstore, cache=cache)
+    assert len(output) == 1
+    assert output[ref] == "xyz"
+
+    # check cache supersedes store
+    cache = {"123": 101}
+    output = resolve_references([ref], store=memory_jobstore, cache=cache)
+    assert len(output) == 1
+    assert output[ref] == 101
+
+    # test attributes
+    ref = OutputReference("123", ("a", 1))
+    cache = {"123": {"a": [5, 6, 7]}}
+    output = resolve_references([ref], cache=cache)
+    assert output[ref] == 6
+
+    ref = OutputReference("123", ("__module__",))
+    cache = {"123": OutputReference}
+    output = resolve_references([ref], cache=cache)
+    assert output[ref] == "jobflow.core.reference"
+
+
+def test_find_and_get_references():
+    from jobflow.core.reference import OutputReference, find_and_get_references
+
+    ref1 = OutputReference("123")
+    ref2 = OutputReference("1234", ("a",))
+
+    # test single reference
+    assert find_and_get_references(ref1) == (ref1,)
+
+    # test list and tuple of references
+    assert find_and_get_references([ref1]) == (ref1,)
+    assert set(find_and_get_references([ref1, ref2])) == {ref1, ref2}
+    assert set(find_and_get_references((ref1, ref2))) == {ref1, ref2}
+
+    # test dictionary dictionary values
+    assert find_and_get_references({"a": ref1}) == (ref1,)
+    assert set(find_and_get_references({"a": ref1, "b": ref2})) == {ref1, ref2}
+
+    # test nested
+    assert set(find_and_get_references({"a": [ref1, ref2]})) == {ref1, ref2}
+    assert set(find_and_get_references([{"a": ref1}, {"b": ref2}])) == {ref1, ref2}
+
+
+def test_find_and_resolve_references(memory_jobstore):
+    from jobflow.core.reference import (
+        OnMissing,
+        OutputReference,
+        find_and_resolve_references,
+    )
+
+    ref1 = OutputReference("123")
+    ref2 = OutputReference("1234", ("a",))
+    cache = {"123": 101, "1234": {"a": "xyz", "b": 5}}
+
+    # test no reference
+    assert find_and_resolve_references(True, cache=cache) == True
+    assert find_and_resolve_references("xyz", cache=cache) == "xyz"
+    assert find_and_resolve_references([101], cache=cache) == [101]
+
+    # test single reference
+    assert find_and_resolve_references(ref1, cache=cache) == 101
+
+    # test list and tuple of references
+    assert find_and_resolve_references([ref1], cache=cache) == [101]
+    assert find_and_resolve_references([ref1, ref2], cache=cache) == [101, "xyz"]
+
+    # test dictionary dictionary values
+    output = find_and_resolve_references({"a": ref1}, cache=cache)
+    assert output == {"a": 101}
+    output = find_and_resolve_references({"a": ref1, "b": ref2}, cache=cache)
+    assert output == {
+        "a": 101,
+        "b": "xyz",
+    }
+
+    # test nested
+    output = find_and_resolve_references({"a": [ref1, ref2]}, cache=cache)
+    assert output == {"a": [101, "xyz"]}
+    output = find_and_resolve_references([{"a": ref1}, {"b": ref2}], cache=cache)
+    assert output == [
+        {"a": 101},
+        {"b": "xyz"},
+    ]
+
+    # test store, no cache
+    memory_jobstore.update(
+        [
+            {"uuid": "123", "index": 1, "output": 101},
+            {"uuid": "1234", "index": 1, "output": {"a": "xyz", "b": 5}},
+        ]
+    )
+    output = find_and_resolve_references({"a": [ref1, ref2]}, store=memory_jobstore)
+    assert output == {"a": [101, "xyz"]}
+
+    # test store, blank cache
+    cache = {}
+    output = find_and_resolve_references(
+        {"a": [ref1, ref2]}, store=memory_jobstore, cache=cache
+    )
+    assert output == {"a": [101, "xyz"]}
+    assert cache["123"] == 101
+
+    # test cache overrides store
+    output = find_and_resolve_references(
+        {"a": [ref1, ref2]}, store=memory_jobstore, cache={"123": 1}
+    )
+    assert output == {"a": [1, "xyz"]}
+
+    # test on missing
+    cache = {"123": 101}
+    output = find_and_resolve_references(
+        [ref1, ref2], cache=cache, on_missing=OnMissing.PASS
+    )
+    assert output == [101, ref2]
+    output = find_and_resolve_references(
+        [ref1, ref2], cache=cache, on_missing=OnMissing.NONE
+    )
+    assert output == [101, None]
+
+    with pytest.raises(ValueError):
+        find_and_resolve_references(
+            [ref1, ref2], cache=cache, on_missing=OnMissing.ERROR
+        )

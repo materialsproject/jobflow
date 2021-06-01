@@ -20,7 +20,7 @@ class Maker(MSONable):
     """
     Base maker (factory) class for constructing :obj:`Job` and :obj:`Flow` objects.
 
-    Note, this class is only an abstract implementant. To create a functioning Maker
+    Note, this class is only an abstract implementation. To create a functioning Maker
     subclass :obj:`Maker` and define the ``make`` method. See examples below.
 
     Parameters

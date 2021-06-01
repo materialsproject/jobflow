@@ -101,9 +101,9 @@ class OutputReference(MSONable):
     def resolve(
         self,
         store: Optional[jobflow.JobStore] = None,
-        cache: Optional[Dict[str, Dict[str, Any]]] = None,
+        cache: Optional[Dict[str, Any]] = None,
         on_missing: OnMissing = OnMissing.ERROR,
-    ):
+    ) -> Any:
         """
         Resolve the reference.
 
@@ -163,7 +163,7 @@ class OutputReference(MSONable):
 
         # resolve nested references
         data = find_and_resolve_references(
-            data, store, cache=cache, on_missing=on_missing
+            data, store=store, cache=cache, on_missing=on_missing
         )
 
         # decode objects before attribute access
@@ -240,7 +240,7 @@ class OutputReference(MSONable):
         # Setting items via indexing is not allowed.
         raise TypeError("OutputReference objects are immutable")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Get a string representation of the reference and attributes."""
         if len(self.attributes) > 0:
             attribute_str = ", " + ", ".join(map(repr, self.attributes))
@@ -249,7 +249,7 @@ class OutputReference(MSONable):
 
         return f"OutputReference({str(self.uuid)}{attribute_str})"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Return a hash of the reference."""
         return hash(str(self))
 
@@ -280,8 +280,8 @@ class OutputReference(MSONable):
 
 def resolve_references(
     references: Sequence[OutputReference],
-    store: Optional[jobflow.JobStore],
-    cache: Optional[Dict] = None,
+    store: Optional[jobflow.JobStore] = None,
+    cache: Optional[Dict[str, Any]] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Dict[OutputReference, Any]:
     """
@@ -367,8 +367,8 @@ def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
 
 def find_and_resolve_references(
     arg: Any,
-    store: Optional[jobflow.JobStore],
-    cache: Optional[Dict] = None,
+    store: Optional[jobflow.JobStore] = None,
+    cache: Optional[Dict[str, Any]] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Any:
     """
@@ -423,7 +423,7 @@ def find_and_resolve_references(
     ]
     resolved_references = resolve_references(
         references,
-        store,
+        store=store,
         cache=cache,
         on_missing=on_missing,
     )
