@@ -271,4 +271,56 @@ def test_stop_children_flow(memory_jobstore, clean_dir, stop_children_flow, caps
     assert result3["output"] == "12345_end"
 
 
-# error job
+def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
+    from jobflow import run_locally
+
+    flow = error_flow()
+
+    # run with log
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled
+    assert len(responses) == 0
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+
+def test_stored_data_flow(memory_jobstore, clean_dir, stored_data_flow, capsys):
+    from jobflow import run_locally
+
+    flow = stored_data_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+    captured = capsys.readouterr()
+
+    # check responses has been filled
+    assert len(responses) == 1
+    assert "Response.stored_data is not supported" in captured.out
+
+
+def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow, capsys):
+    from jobflow import run_locally
+
+    flow = detour_stop_flow()
+    uuid1 = flow.jobs[0].uuid
+    uuid3 = flow.jobs[1].uuid
+
+    # run with log
+    responses = run_locally(flow, store=memory_jobstore)
+    uuid2 = [u for u in responses.keys() if u != uuid1 and u != uuid3][0]
+
+    # check responses has been filled
+    assert len(responses) == 2
+    assert responses[uuid1][1].output == 11
+    assert responses[uuid1][1].detour is not None
+    assert responses[uuid2][1].output == "1234"
+
+    # check store has the activity output
+    result1 = memory_jobstore.query_one({"uuid": uuid1})
+    result2 = memory_jobstore.query_one({"uuid": uuid2})
+    result3 = memory_jobstore.query_one({"uuid": uuid3})
+
+    assert result1["output"] == 11
+    assert result2["output"] == "1234"
+    assert result3 is None

@@ -175,3 +175,78 @@ def stop_children_flow(stop_children_job, simple_job):
         return Flow([stop, simple1, simple2], simple2.output)
 
     return _gen
+
+
+@pytest.fixture(scope="session")
+def error_job():
+    from jobflow import job
+
+    global error_func
+
+    @job
+    def error_func():
+        raise ValueError("errored")
+
+    return error_func
+
+
+@pytest.fixture(scope="session")
+def error_flow(error_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        error = error_job()
+        simple1 = simple_job(error.output)
+        simple2 = simple_job(simple1.output)
+        return Flow([error, simple1, simple2])
+
+    return _gen
+
+
+@pytest.fixture(scope="session")
+def stored_data_job():
+    from jobflow import Response, job
+
+    global stored_data_func
+
+    @job
+    def stored_data_func(message):
+        return Response(output=message + "_end", stored_data={"a": "message"})
+
+    return stored_data_func
+
+
+@pytest.fixture(scope="session")
+def stored_data_flow(stored_data_job):
+    from jobflow import Flow
+
+    def _gen():
+        store = stored_data_job("12345")
+        return Flow([store])
+
+    return _gen
+
+
+@pytest.fixture(scope="session")
+def detour_stop_job(stop_jobflow_job):
+    from jobflow import Response, job
+
+    global detour_stop_func
+
+    @job
+    def detour_stop_func(a, b):
+        return Response(output=a + b, detour=stop_jobflow_job())
+
+    return detour_stop_func
+
+
+@pytest.fixture(scope="session")
+def detour_stop_flow(detour_stop_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        detour = detour_stop_job(5, 6)
+        simple = simple_job("12345")
+        return Flow([detour, simple], simple.output)
+
+    return _gen
