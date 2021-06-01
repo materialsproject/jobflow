@@ -8,6 +8,8 @@ interest is :obj:`apply_mod`.
     This code is based heavily on the Ansible class of `custodian
     <https://pypi.python.org/pypi/custodian>`_, but simplifies it considerably for the
     limited use cases required by jobflow.
+
+    The original version of this file was written by Shyue Ping Ong and Anubhav Jain.
 """
 
 from __future__ import annotations
@@ -18,14 +20,6 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Optional, Tuple
 
-
-__author__ = "Shyue Ping Ong"
-__credits__ = "Anubhav Jain"
-__copyright__ = "Copyright 2012, The Materials Project"
-__version__ = "0.1"
-__maintainer__ = "Shyue Ping Ong"
-__email__ = "shyue@mit.edu"
-__date__ = "Jun 1, 2012"
 
 __all__ = ["DictMods", "apply_mod"]
 
