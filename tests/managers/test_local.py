@@ -1,16 +1,16 @@
-def test_simple_job(mongo_jobstore, clean_dir, simple_job, capsys):
+def test_simple_job(memory_jobstore, clean_dir, simple_job, capsys):
     from jobflow import run_locally
 
     # run with log
     job = simple_job("12345")
     uuid = job.uuid
-    responses = run_locally(job, store=mongo_jobstore)
+    responses = run_locally(job, store=memory_jobstore)
 
     # check responses has been filled
     assert responses[uuid][1].output == "12345_end"
 
     # check store has the activity output
-    result = mongo_jobstore.query_one({"uuid": uuid})
+    result = memory_jobstore.query_one({"uuid": uuid})
     assert result["output"] == "12345_end"
 
 
