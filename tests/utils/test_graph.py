@@ -72,6 +72,15 @@ def test_to_pydot():
     from jobflow import Flow, Job
     from jobflow.utils.graph import to_pydot
 
+    # test edges
+    add_job1 = Job(add, function_args=(1, 2))
+    add_job2 = Job(add, function_args=(1, add_job1.output))
+    flow = Flow([add_job1, add_job2])
+
+    pydot = to_pydot(flow)
+    assert pydot is not None
+
+    # test nested
     add_job1 = Job(add, function_args=(1, 2))
     add_job2 = Job(add, function_args=(1, 2))
     add_job3 = Job(add, function_args=(1, 2))
