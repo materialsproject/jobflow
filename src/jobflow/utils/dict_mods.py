@@ -190,25 +190,3 @@ def _get_nested_dict(
             return current, toks[-1]
         current = current[tok]
     return None
-
-
-def _arrow_to_dot(input_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Convert arrows ('->') in dict keys to dots '.' recursively.
-
-    Allows for storing MongoDB nested document queries in MongoDB.
-
-    Parameters
-    ----------
-    input_dict
-        A dictionary.
-
-    Returns
-    -------
-    dict
-        The modified dictionary.
-    """
-    if not isinstance(input_dict, dict):
-        return input_dict
-    else:
-        return {k.replace("->", "."): _arrow_to_dot(v) for k, v in input_dict.items()}

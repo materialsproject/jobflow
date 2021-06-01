@@ -33,6 +33,10 @@ def test_apply_mod():
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [1, 2], "number": 10}
 
+    mod = {"_rename": {"num": "number2"}}
+    apply_mod(mod, d)
+    assert d == {"Bye": "World", "List": [1, 2], "number": 10}
+
     mod = {"_add_to_set": {"List": 2}}
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [1, 2], "number": 10}
@@ -40,6 +44,11 @@ def test_apply_mod():
     mod = {"_add_to_set": {"List": 3}}
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [1, 2, 3], "number": 10}
+
+    e = {}
+    mod = {"_add_to_set": {"List": 3}}
+    apply_mod(mod, e)
+    assert e == {"List": 3}
 
     mod = {"_add_to_set": {"number": 3}}
     with pytest.raises(ValueError):
@@ -49,13 +58,25 @@ def test_apply_mod():
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [2, 3], "number": 10}
 
+    mod = {"_pull": {"number": 3}}
+    with pytest.raises(ValueError):
+        apply_mod(mod, d)
+
     mod = {"_pull_all": {"List": [2, 3]}}
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [], "number": 10}
 
+    mod = {"_pull_all": {"number": 3}}
+    with pytest.raises(ValueError):
+        apply_mod(mod, d)
+
     mod = {"_push_all": {"List": list(range(10))}}
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "number": 10}
+
+    e = {}
+    apply_mod({"_push_all": {"k": list(range(3))}}, e)
+    assert e == {"k": [0, 1, 2]}
 
     mod = {"_pop": {"List": 1}}
     apply_mod(mod, d)
@@ -64,6 +85,10 @@ def test_apply_mod():
     mod = {"_pop": {"List": -1}}
     apply_mod(mod, d)
     assert d == {"Bye": "World", "List": [1, 2, 3, 4, 5, 6, 7, 8], "number": 10}
+
+    mod = {"_pop": {"number": -1}}
+    with pytest.raises(ValueError):
+        apply_mod(mod, d)
 
     d = {}
     mod = {"_set": {"a->b->c": 100}}
@@ -113,3 +138,7 @@ def test_apply_mod():
     mod = {"_pop": {"a->e->f": -1}}
     apply_mod(mod, d)
     assert d == {"a": {"b": {"c": 102}, "e": {"f": [201, 301]}}}
+
+    mod = {"_abcd": {"a": "b"}}
+    with pytest.raises(ValueError):
+        apply_mod(mod, d)
