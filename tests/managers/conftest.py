@@ -267,3 +267,30 @@ def fw_dir():
 
     os.chdir(old_cwd)
     shutil.rmtree(newpath)
+
+
+@pytest.fixture(scope="session")
+def replace_and_detour_job(simple_job):
+    from jobflow import Response, job
+
+    global replace_and_detour_func
+
+    @job
+    def replace_and_detour_func(a, b):
+        return Response(
+            output=a + b, replace=simple_job(str(a + b)), detour=simple_job("xyz")
+        )
+
+    return replace_and_detour_func
+
+
+@pytest.fixture(scope="session")
+def replace_and_detour_flow(replace_and_detour_job, simple_job):
+    from jobflow import Flow, JobOrder
+
+    def _gen():
+        replace = replace_and_detour_job(5, 6)
+        simple = simple_job("12345")
+        return Flow([replace, simple], simple.output, order=JobOrder.LINEAR)
+
+    return _gen

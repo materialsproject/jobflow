@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_flow_to_workflow(
     memory_jobstore, simple_job, simple_flow, connected_flow, nested_flow
 ):
@@ -55,8 +58,33 @@ def test_flow_to_workflow(
     flow = connected_flow()
     flow.jobs[0].config.manager_config = {"metadata": 5}
     wf = flow_to_workflow(flow, memory_jobstore)
-
     assert wf.fws[0].spec["metadata"] == 5
+
+
+def test_job_to_firework(
+    memory_jobstore, simple_job, simple_flow, connected_flow, nested_flow
+):
+    from fireworks import Firework
+
+    from jobflow.managers.fireworks import job_to_firework
+
+    # test simple job
+    job = simple_job()
+    fw = job_to_firework(job, memory_jobstore)
+
+    assert type(fw) == Firework
+    assert fw.name == "func"
+
+    job2 = simple_job()
+    fw = job_to_firework(
+        job2, memory_jobstore, parents=[job.uuid], parent_mapping={job.uuid: 1}
+    )
+
+    assert type(fw) == Firework
+    assert fw.name == "func"
+
+    with pytest.raises(ValueError):
+        job_to_firework(job2, memory_jobstore, parents=[job.uuid])
 
 
 def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
@@ -87,6 +115,46 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     captured = capsys.readouterr()
     assert "INFO Starting job - func" in captured.out
     assert "INFO Finished job - func" in captured.out
+
+
+def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
+    from fireworks.core.rocket_launcher import rapidfire
+
+    from jobflow.managers.fireworks import flow_to_workflow
+
+    flow = simple_flow()
+    uuid = flow.jobs[0].uuid
+
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = list(fw_ids.values())[0]
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+
+    # check store has the activity output
+    result = mongo_jobstore.query_one({"uuid": uuid})
+    assert result["output"] == "12345_end"
+    assert result["metadata"]["fw_id"] == fw_id
+
+    # test override
+    flow = simple_flow()
+    flow.jobs[0].config.manager_config = {"_add_launchpad_and_fw_id": False}
+    uuid = flow.jobs[0].uuid
+
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    result = mongo_jobstore.query_one({"uuid": uuid})
+    assert result["metadata"] == {}
 
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
@@ -419,3 +487,44 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     assert result1["output"] == 11
     assert result2["output"] == "1234"
     assert result3 is None
+
+
+def test_replace_and_detour_flow(
+    lpad, mongo_jobstore, fw_dir, replace_and_detour_flow, capsys
+):
+    from fireworks.core.rocket_launcher import rapidfire
+
+    from jobflow.managers.fireworks import flow_to_workflow
+
+    flow = replace_and_detour_flow()
+    uuid1 = flow.jobs[0].uuid
+    uuid3 = flow.jobs[1].uuid
+
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = list(fw_ids.values())[0]
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
+    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
+
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+
+    # check store has the activity output
+    result1 = mongo_jobstore.query_one({"uuid": uuid1, "index": 1})
+    result2 = mongo_jobstore.query_one({"uuid": uuid1, "index": 2})
+    result3 = mongo_jobstore.query_one({"uuid": uuid2, "index": 1})
+    result4 = mongo_jobstore.query_one({"uuid": uuid3, "index": 1})
+
+    assert result1["output"] == 11
+    assert result2["output"] == "11_end"
+    assert result3["output"] == "xyz_end"
+    assert result4["output"] == "12345_end"
+
+    assert result2["completed_at"] < result3["completed_at"]
+    assert result3["completed_at"] < result4["completed_at"]

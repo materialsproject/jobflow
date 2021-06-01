@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
 
     import jobflow
 
-__all__ = ["flow_to_workflow", "JobFiretask"]
+__all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 
 def flow_to_workflow(
@@ -142,8 +142,8 @@ class JobFiretask(FiretaskBase):
         store = self.get("store")
         store.connect()
 
-        if "fw_id" in fw_spec:
-            job.metadata.update({"fw_id": fw_spec["fw_id"]})
+        if hasattr(self, "fw_id"):
+            job.metadata.update({"fw_id": self.fw_id})
 
         initialize_logger()
         response = job.run(store=store)
