@@ -196,7 +196,7 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
     assert result2["output"] == "11_end"
     assert result3["output"] == "12345_end"
 
-    # assert job2 (detoured job) ran before job3
+    # assert job2 (replaced job) ran before job3
     assert result2["completed_at"] < result3["completed_at"]
 
 

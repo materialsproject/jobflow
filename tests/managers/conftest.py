@@ -34,7 +34,7 @@ def connected_flow(simple_job):
     def _gen():
         simple1 = simple_job("12345")
         simple2 = simple_job(simple1.output)
-        return Flow([simple1, simple2], simple2.output)
+        return Flow([simple1, simple2], simple2.output, "Connected Flow")
 
     return _gen
 
@@ -91,12 +91,12 @@ def detour_job(simple_job):
 
 @pytest.fixture(scope="session")
 def detour_flow(detour_job, simple_job):
-    from jobflow import Flow
+    from jobflow import Flow, JobOrder
 
     def _gen():
         detour = detour_job(5, 6)
         simple = simple_job("12345")
-        return Flow([detour, simple], simple.output)
+        return Flow([detour, simple], simple.output, order=JobOrder.LINEAR)
 
     return _gen
 
@@ -116,12 +116,12 @@ def replace_job(simple_job):
 
 @pytest.fixture(scope="session")
 def replace_flow(replace_job, simple_job):
-    from jobflow import Flow
+    from jobflow import Flow, JobOrder
 
     def _gen():
         replace = replace_job(5, 6)
         simple = simple_job("12345")
-        return Flow([replace, simple], simple.output)
+        return Flow([replace, simple], simple.output, order=JobOrder.LINEAR)
 
     return _gen
 
@@ -242,11 +242,11 @@ def detour_stop_job(stop_jobflow_job):
 
 @pytest.fixture(scope="session")
 def detour_stop_flow(detour_stop_job, simple_job):
-    from jobflow import Flow
+    from jobflow import Flow, JobOrder
 
     def _gen():
         detour = detour_stop_job(5, 6)
         simple = simple_job("12345")
-        return Flow([detour, simple], simple.output)
+        return Flow([detour, simple], simple.output, order=JobOrder.LINEAR)
 
     return _gen

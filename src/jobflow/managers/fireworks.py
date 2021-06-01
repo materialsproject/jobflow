@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
 
     import jobflow
 
-__all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
+__all__ = ["flow_to_workflow", "JobFiretask"]
 
 
 def flow_to_workflow(
@@ -125,8 +125,8 @@ class JobFiretask(FiretaskBase):
 
     Other Parameters
     ----------------
-    job : Job
-        A job.
+    job : Dict
+        A serialized job.
     store : JobStore
         A job store.
     """
@@ -164,10 +164,11 @@ class JobFiretask(FiretaskBase):
             else:
                 detours = [detour_wf]
 
-        return FWAction(
+        fwa = FWAction(
             stored_data=response.stored_data,
             detours=detours,
             additions=additions,
-            defuse_workflow=response.stop_flows,
+            defuse_workflow=response.stop_jobflow,
             defuse_children=response.stop_children,
         )
+        return fwa

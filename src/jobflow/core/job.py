@@ -699,6 +699,14 @@ class Job(MSONable):
             )
             setattr(self, "function", getattr(maker, self.function.__name__))
 
+    def as_dict(self) -> Dict:
+        """Serialize the job as a dictionary."""
+        d = super().as_dict()
+
+        # fireworks can't serialize functions, so explicitly serialize to avoid issues
+        d["function"] = jsanitize(d["function"])
+        return d
+
 
 @dataclass
 class Response:
