@@ -141,12 +141,12 @@ def stop_jobflow_job():
 
 @pytest.fixture(scope="session")
 def stop_jobflow_flow(stop_jobflow_job, simple_job):
-    from jobflow import Flow
+    from jobflow import Flow, JobOrder
 
     def _gen():
         stop = stop_jobflow_job()
         simple = simple_job("12345")
-        return Flow([stop, simple], simple.output)
+        return Flow([stop, simple], simple.output, order=JobOrder.LINEAR)
 
     return _gen
 
@@ -250,3 +250,20 @@ def detour_stop_flow(detour_stop_job, simple_job):
         return Flow([detour, simple], simple.output, order=JobOrder.LINEAR)
 
     return _gen
+
+
+@pytest.fixture(scope="session")
+def fw_dir():
+    # longer session
+    import os
+    import shutil
+    import tempfile
+
+    old_cwd = os.getcwd()
+    newpath = tempfile.mkdtemp()
+    os.chdir(newpath)
+
+    yield
+
+    os.chdir(old_cwd)
+    shutil.rmtree(newpath)

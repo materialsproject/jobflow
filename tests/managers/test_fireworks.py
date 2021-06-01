@@ -59,7 +59,7 @@ def test_flow_to_workflow(
     assert wf.fws[0].spec["metadata"] == 5
 
 
-def test_simple_flow(lpad, mongo_jobstore, clean_dir, simple_flow, capsys):
+def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -89,7 +89,7 @@ def test_simple_flow(lpad, mongo_jobstore, clean_dir, simple_flow, capsys):
     assert "INFO Finished job - func" in captured.out
 
 
-def test_connected_flow(lpad, mongo_jobstore, clean_dir, connected_flow, capsys):
+def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -118,7 +118,7 @@ def test_connected_flow(lpad, mongo_jobstore, clean_dir, connected_flow, capsys)
     assert result2["output"] == "12345_end_end"
 
 
-def test_nested_flow(lpad, mongo_jobstore, clean_dir, nested_flow, capsys):
+def test_nested_flow(lpad, mongo_jobstore, fw_dir, nested_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -153,7 +153,7 @@ def test_nested_flow(lpad, mongo_jobstore, clean_dir, nested_flow, capsys):
     assert result4["output"] == "12345_end_end_end_end"
 
 
-def test_addition_flow(lpad, mongo_jobstore, clean_dir, addition_flow, capsys):
+def test_addition_flow(lpad, mongo_jobstore, fw_dir, addition_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -183,7 +183,7 @@ def test_addition_flow(lpad, mongo_jobstore, clean_dir, addition_flow, capsys):
     assert result2["output"] == "11_end"
 
 
-def test_detour_flow(lpad, mongo_jobstore, clean_dir, detour_flow, capsys):
+def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -219,7 +219,7 @@ def test_detour_flow(lpad, mongo_jobstore, clean_dir, detour_flow, capsys):
     assert result2["completed_at"] < result3["completed_at"]
 
 
-def test_replace_flow(lpad, mongo_jobstore, clean_dir, replace_flow, capsys):
+def test_replace_flow(lpad, mongo_jobstore, fw_dir, replace_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -253,7 +253,7 @@ def test_replace_flow(lpad, mongo_jobstore, clean_dir, replace_flow, capsys):
     assert result2["completed_at"] < result3["completed_at"]
 
 
-def test_stop_jobflow_flow(lpad, mongo_jobstore, clean_dir, stop_jobflow_flow, capsys):
+def test_stop_jobflow_flow(lpad, mongo_jobstore, fw_dir, stop_jobflow_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -282,7 +282,7 @@ def test_stop_jobflow_flow(lpad, mongo_jobstore, clean_dir, stop_jobflow_flow, c
     assert result2 is None
 
 
-def test_stop_jobflow_job(lpad, mongo_jobstore, clean_dir, stop_jobflow_job, capsys):
+def test_stop_jobflow_job(lpad, mongo_jobstore, fw_dir, stop_jobflow_job, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -308,9 +308,7 @@ def test_stop_jobflow_job(lpad, mongo_jobstore, clean_dir, stop_jobflow_job, cap
     assert result1["output"] == "1234"
 
 
-def test_stop_children_flow(
-    lpad, mongo_jobstore, clean_dir, stop_children_flow, capsys
-):
+def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -342,7 +340,7 @@ def test_stop_children_flow(
     assert result3["output"] == "12345_end"
 
 
-def test_error_flow(lpad, mongo_jobstore, clean_dir, error_flow, capsys):
+def test_error_flow(lpad, mongo_jobstore, fw_dir, error_flow):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -355,18 +353,18 @@ def test_error_flow(lpad, mongo_jobstore, clean_dir, error_flow, capsys):
 
     # run the workflow
     rapidfire(lpad)
-
     # check workflow completed
     fw_id = list(fw_ids.values())[0]
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert list(wf.fw_states.values()) == ["WAITING", "WAITING", "FIZZLED"]
+    assert set(wf.fw_states.values()) == {"WAITING", "FIZZLED"}
 
     result1 = mongo_jobstore.query_one({"uuid": uuid})
+
     assert result1 is None
 
 
-def test_stored_data_flow(lpad, mongo_jobstore, clean_dir, stored_data_flow, capsys):
+def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -390,7 +388,7 @@ def test_stored_data_flow(lpad, mongo_jobstore, clean_dir, stored_data_flow, cap
     assert result["action"]["stored_data"] == {"a": "message"}
 
 
-def test_detour_stop_flow(lpad, mongo_jobstore, clean_dir, detour_stop_flow, capsys):
+def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow

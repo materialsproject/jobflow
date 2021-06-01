@@ -7,6 +7,12 @@ on:
 
 jobs:
   release:
+    services:
+      local_mongodb:
+        image: mongo:4.0
+        ports:
+          - 27017:27017
+
     runs-on: ubuntu-latest
 
     steps:
