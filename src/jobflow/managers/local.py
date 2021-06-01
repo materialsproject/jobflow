@@ -19,6 +19,7 @@ def run_locally(
     flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
     log: bool = True,
     store: Optional[jobflow.JobStore] = None,
+    create_folders: bool = False,
 ) -> Dict[str, Any]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
@@ -32,13 +33,20 @@ def run_locally(
     store
         A job store. If a job store is not specified then a maggma ``MemoryStore`` will
         be used while the job is executed and deleted once the job is finished.
+    create_folders
+        Whether to run each job in a new folder.
 
     Returns
     -------
     dict[str, Any]
         The responses of the jobs, as a dict of ``{uuid: response}``.
     """
+    from datetime import datetime
+    from pathlib import Path
+    from random import randint
+
     from maggma.stores import MemoryStore
+    from monty.os import cd
 
     from jobflow import Flow, Job, JobStore, initialize_logger
     from jobflow.core.reference import OnMissing
@@ -59,6 +67,8 @@ def run_locally(
     fizzled: Set[str] = set()
     responses = {}
     stop_activities = False
+
+    root_dir = Path.cwd()
 
     def _run_job(job: jobflow.Job, parents):
         nonlocal stop_activities
@@ -116,16 +126,28 @@ def run_locally(
 
         return response
 
+    def _get_job_dir():
+        if create_folders:
+            time_now = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
+            return root_dir / f"job_{time_now}-{randint(5)}"
+        else:
+            return root_dir
+
     def _run(root_flow):
         if isinstance(root_flow, Job):
-            response = _run_job(root_flow, [])
+            job_dir = _get_job_dir()
+            with cd(job_dir):
+                response = _run_job(root_flow, [])
+
             if response is False:
                 return False
 
         else:
             job: jobflow.Job
             for job, parents in root_flow.iterflow():
-                response = _run_job(job, parents)
+                job_dir = _get_job_dir()
+                with cd(job_dir):
+                    response = _run_job(job, parents)
                 if response is False:
                     return False
 
