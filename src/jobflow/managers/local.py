@@ -67,14 +67,14 @@ def run_locally(
     stopped_parents: Set[str] = set()
     fizzled: Set[str] = set()
     responses: Dict[str, Dict[int, jobflow.Response]] = defaultdict(dict)
-    stop_activities = False
+    stop_jobflow = False
 
     root_dir = Path.cwd()
 
     def _run_job(job: jobflow.Job, parents):
-        nonlocal stop_activities
+        nonlocal stop_jobflow
 
-        if stop_activities:
+        if stop_jobflow:
             return False
 
         if len(set(parents).intersection(stopped_parents)) > 0:
@@ -109,8 +109,8 @@ def run_locally(
         if response.stop_children:
             stopped_parents.add(job.uuid)
 
-        if response.stop_flows:
-            stop_activities = True
+        if response.stop_jobflow:
+            stop_jobflow = True
             return False
 
         if response.replace is not None:

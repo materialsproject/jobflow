@@ -719,7 +719,7 @@ class Response:
         Data to be stored by the flow manager.
     stop_children
         Stop any children of the current flow.
-    stop_flows
+    stop_jobflow
         Stop executing all remaining jobs.
     """
 
@@ -729,7 +729,7 @@ class Response:
     replace: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
     stored_data: Optional[Dict[Hashable, Any]] = None
     stop_children: bool = False
-    stop_flows: bool = False
+    stop_jobflow: bool = False
 
     @classmethod
     def from_job_returns(

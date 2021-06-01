@@ -13,6 +13,12 @@ def test_simple_job(memory_jobstore, clean_dir, simple_job, capsys):
     result = memory_jobstore.query_one({"uuid": uuid})
     assert result["output"] == "12345_end"
 
+    # test run no store
+    job = simple_job("12345")
+    uuid = job.uuid
+    responses = run_locally(job)
+    assert responses[uuid][1].output == "12345_end"
+
 
 def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     from pathlib import Path
@@ -192,3 +198,77 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
 
     # assert job2 (detoured job) ran before job3
     assert result2["completed_at"] < result3["completed_at"]
+
+
+def test_stop_jobflow_flow(memory_jobstore, clean_dir, stop_jobflow_flow, capsys):
+    from jobflow import run_locally
+
+    flow = stop_jobflow_flow()
+    uuid1 = flow.jobs[0].uuid
+
+    # run with log
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled
+    assert len(responses) == 1
+    assert len(responses[uuid1]) == 1
+    assert responses[uuid1][1].output == "1234"
+    assert responses[uuid1][1].stop_jobflow is True
+
+    # check store has the activity output
+    result1 = memory_jobstore.query_one({"uuid": uuid1})
+
+    assert result1["output"] == "1234"
+
+
+def test_stop_jobflow_job(memory_jobstore, clean_dir, stop_jobflow_job, capsys):
+    from jobflow import run_locally
+
+    job = stop_jobflow_job()
+    uuid1 = job.uuid
+
+    # run with log
+    responses = run_locally(job, store=memory_jobstore)
+
+    # check responses has been filled
+    assert len(responses) == 1
+    assert len(responses[uuid1]) == 1
+    assert responses[uuid1][1].output == "1234"
+    assert responses[uuid1][1].stop_jobflow is True
+
+    # check store has the activity output
+    result1 = memory_jobstore.query_one({"uuid": uuid1})
+
+    assert result1["output"] == "1234"
+
+
+def test_stop_children_flow(memory_jobstore, clean_dir, stop_children_flow, capsys):
+    from jobflow import run_locally
+
+    flow = stop_children_flow()
+    uuid1 = flow.jobs[0].uuid
+    uuid2 = flow.jobs[1].uuid
+    uuid3 = flow.jobs[2].uuid
+
+    # run with log
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled
+    assert len(responses) == 2
+    assert len(responses[uuid1]) == 1
+    assert uuid2 not in responses
+    assert responses[uuid1][1].output == "1234"
+    assert responses[uuid1][1].stop_children is True
+    assert responses[uuid3][1].output == "12345_end"
+
+    # check store has the activity output
+    result1 = memory_jobstore.query_one({"uuid": uuid1})
+    result2 = memory_jobstore.query_one({"uuid": uuid2})
+    result3 = memory_jobstore.query_one({"uuid": uuid3})
+
+    assert result1["output"] == "1234"
+    assert result2 is None
+    assert result3["output"] == "12345_end"
+
+
+# error job

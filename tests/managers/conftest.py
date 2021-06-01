@@ -124,3 +124,54 @@ def replace_flow(replace_job, simple_job):
         return Flow([replace, simple], simple.output)
 
     return _gen
+
+
+@pytest.fixture(scope="session")
+def stop_jobflow_job():
+    from jobflow import Response, job
+
+    global stop_jobflow_func
+
+    @job
+    def stop_jobflow_func():
+        return Response(output="1234", stop_jobflow=True)
+
+    return stop_jobflow_func
+
+
+@pytest.fixture(scope="session")
+def stop_jobflow_flow(stop_jobflow_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        stop = stop_jobflow_job()
+        simple = simple_job("12345")
+        return Flow([stop, simple], simple.output)
+
+    return _gen
+
+
+@pytest.fixture(scope="session")
+def stop_children_job():
+    from jobflow import Response, job
+
+    global stop_children_func
+
+    @job
+    def stop_children_func():
+        return Response(output="1234", stop_children=True)
+
+    return stop_children_func
+
+
+@pytest.fixture(scope="session")
+def stop_children_flow(stop_children_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        stop = stop_children_job()
+        simple1 = simple_job(stop.output)
+        simple2 = simple_job("12345")
+        return Flow([stop, simple1, simple2], simple2.output)
+
+    return _gen
