@@ -133,7 +133,7 @@ def find_key_value(
     ...    "c": {"d": {"x": 3}}
     ... }
     ... find_key_value(data, "x", 3)
-    (('a', 1), ('c', 'd'))
+    (['a', 1], ['c', 'd'])
     """
     found_items = set()
 

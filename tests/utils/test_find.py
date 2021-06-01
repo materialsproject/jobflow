@@ -41,8 +41,8 @@ def test_find_key_value():
     data = {"a": [0, {"b": 1, "x": 3}], "c": {"d": {"x": 3}}}
     result = find_key_value(data, "x", 3)
     assert len(result) == 2
-    assert ("a", 1) in result
-    assert ("c", "d") in result
+    assert ["a", 1] in result
+    assert ["c", "d"] in result
 
 
 def test_update_in_dictionary():
