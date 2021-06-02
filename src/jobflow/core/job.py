@@ -493,7 +493,7 @@ class Job(MSONable):
             if response.replace is not None:
                 pass_manager_config(response.replace, self.config.manager_config)
 
-        save = "output" if self.data is True else self.data
+        # save = "output" if self.data is True else self.data
         data = {
             "uuid": self.uuid,
             "index": self.index,
@@ -501,7 +501,7 @@ class Job(MSONable):
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
         }
-        store.update(data, key=["uuid", "index"], save=save)
+        store.update(data, key=["uuid", "index"])  # , save=save)
 
         CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")

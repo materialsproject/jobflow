@@ -13,7 +13,7 @@ def memory_store():
 def test_jobstore_connect(memory_store):
     from jobflow import JobStore
 
-    store = JobStore(memory_store, memory_store)
+    store = JobStore(memory_store)
     store.connect()
     assert store
 
@@ -33,13 +33,37 @@ def test_jobstore_doc_update(memory_jobstore):
     memory_jobstore.update({"e": "abc", "d": 3, "index": 1, "uuid": 5}, key="e")
 
 
-def test_jobstore_data_update(memory_jobstore):
+def test_jobstore_data_update(memory_data_jobstore):
     d = {"index": 1, "uuid": 1, "e": 6, "d": 4, "data": [1, 2, 3, 4]}
-    memory_jobstore.update(d, save="data")
-    results = memory_jobstore.query_one(criteria={"d": {"$exists": 1}}, load="data")
+    memory_data_jobstore.update(d, save={"data": "data"})
+
+    c = {"d": {"$exists": 1}}
+    results = memory_data_jobstore.query_one(c, load={"data": "data"})
     assert results["data"] == [1, 2, 3, 4]
 
-    results = memory_jobstore.query_one(criteria={"d": {"$exists": 1}}, load=[])
+    c = {"d": {"$exists": 1}}
+    results = memory_data_jobstore.query_one(c, load={"data": ["data"]})
+    assert results["data"] == [1, 2, 3, 4]
+
+    results = memory_data_jobstore.query_one(c, load={"data": True})
+    assert results["data"] == [1, 2, 3, 4]
+
+    results = memory_data_jobstore.query_one(c, load=True)
+    assert results["data"] == [1, 2, 3, 4]
+
+    results = memory_data_jobstore.query_one(c, load={})
+    assert type(results["data"]) == dict
+    assert "@class" in results["data"]
+    assert "@module" in results["data"]
+    assert "blob_uuid" in results["data"]
+
+    results = memory_data_jobstore.query_one(c, load=False)
+    assert type(results["data"]) == dict
+    assert "@class" in results["data"]
+    assert "@module" in results["data"]
+    assert "blob_uuid" in results["data"]
+
+    results = memory_data_jobstore.query_one(c, load=None)
     assert type(results["data"]) == dict
     assert "@class" in results["data"]
     assert "@module" in results["data"]
@@ -117,34 +141,20 @@ def test_jobstore_remove_docs(memory_jobstore):
 def test_jobstore_from_db_file(test_data):
     from jobflow import JobStore
 
-    ms = JobStore.from_db_file(test_data / "db.json", admin=False)
+    ms = JobStore.from_file(test_data / "db.yaml")
     ms.connect()
     assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
-    assert ms.data_store.name() == "gridfs://localhost/jobflow_unittest/job_datastore"
+    assert ms.additional_stores == {}
 
 
 def test_jobstore_from_db_file_s3(test_data):
-    from moto import mock_s3
-
     from jobflow import JobStore
 
-    boto3 = pytest.importorskip("boto3")
-
-    with mock_s3():
-        conn = boto3.client("s3")
-        conn.create_bucket(Bucket="test_bucket")
-        ms = JobStore.from_db_file(test_data / "db_aws_prefix.json", admin=False)
-        ms.connect()
-        assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
-        assert ms.data_store.name() == "s3://test_bucket"
-
-
-def test_jobstore_from_store(memory_store):
-    from jobflow import JobStore
-
-    ms = JobStore.from_store(memory_store)
-    assert isinstance(ms.docs_store, memory_store.__class__)
-    assert isinstance(ms.data_store, memory_store.__class__)
+    ms = JobStore.from_file(test_data / "db_gridfs.yaml")
+    ms.connect()
+    data_store = ms.additional_stores["data"]
+    assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
+    assert data_store.name() == "gridfs://localhost/jobflow_unittest/outputs_blobs"
 
 
 def test_ensure_index(memory_jobstore):
@@ -176,7 +186,7 @@ def test_job_store_newer_in(memory_jobstore, memory_store):
 
     from jobflow import JobStore
 
-    target = JobStore.from_store(memory_store)
+    target = JobStore(memory_store)
     target.connect()
 
     lu_field = memory_jobstore.last_updated_field

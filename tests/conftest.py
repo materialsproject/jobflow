@@ -21,7 +21,7 @@ def mongo_jobstore(database):
 
     from jobflow import JobStore
 
-    store = JobStore.from_store(MongoStore(database, "outputs"))
+    store = JobStore(MongoStore(database, "outputs"))
     store.connect()
     return store
 
@@ -32,7 +32,19 @@ def memory_jobstore():
 
     from jobflow import JobStore
 
-    store = JobStore.from_store(MemoryStore())
+    store = JobStore(MemoryStore())
+    store.connect()
+
+    return store
+
+
+@pytest.fixture(scope="function")
+def memory_data_jobstore():
+    from maggma.stores import MemoryStore
+
+    from jobflow import JobStore
+
+    store = JobStore(MemoryStore(), additional_stores={"data": MemoryStore()})
     store.connect()
 
     return store

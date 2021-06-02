@@ -1,0 +1,6 @@
+docs_store:
+  type: MongoStore
+  database: jobflow_unittest
+  collection_name: outputs
+  host: localhost
+  port: 27017
