@@ -47,6 +47,7 @@ jobs:
         pip install .[tests]
         pip install .[fireworks]
         pip install .[vis]
+        pip install .[S3]
 
     - name: Test
       run: pytest --cov=jobflow --cov-report=xml
