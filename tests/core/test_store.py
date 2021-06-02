@@ -47,6 +47,11 @@ def test_doc_update_query(memory_jobstore):
     results = memory_jobstore.query_one(criteria={"d": {"$exists": 1}})
     assert results["d"] == 4
 
+    d = {"index": 1, "uuid": 1, "e": 6, "d": 4}
+    memory_jobstore.update(d, save=False)
+    results = memory_jobstore.query_one(criteria={"d": {"$exists": 1}})
+    assert results["d"] == 4
+
     d = [{"index": 1, "uuid": 2, "e": 7, "d": 8, "f": 9}]
     memory_jobstore.update(d, key=["d", "f"])
     result = memory_jobstore.query_one(criteria={"d": 8, "f": 9}, properties=["e"])
@@ -80,6 +85,12 @@ def test_data_update(memory_data_jobstore):
     assert results["data"] == [1, 2, 3, 4]
 
     results = memory_data_jobstore.query_one(c, load={})
+    assert type(results["data"]) == dict
+    assert "@class" in results["data"]
+    assert "@module" in results["data"]
+    assert "blob_uuid" in results["data"]
+
+    results = memory_data_jobstore.query_one(c, load={"data": False})
     assert type(results["data"]) == dict
     assert "@class" in results["data"]
     assert "@module" in results["data"]
@@ -148,6 +159,36 @@ def test_data_update(memory_data_jobstore):
     assert isinstance(results["output"]["b"], dict)
     assert results["output"]["b"]["@class"] == "MyClass"
     assert results["output"]["b"]["a"] == 5
+    assert results["x"] == 10
+
+    # test enum
+    from jobflow.utils import ValueEnum
+
+    class MyEnum(ValueEnum):
+        A = "A"
+        B = "B"
+
+    d = {"index": 1, "uuid": 3, "x": 10, "output": {"a": 1, MyEnum.B: 101}}
+    memory_data_jobstore.update(d, save={"data": ["x", MyEnum.B]})
+
+    c = {"uuid": 3}
+    results = memory_data_jobstore.query_one(c, load=False)
+    assert isinstance(results["output"]["B"], dict)
+    assert "blob_uuid" in results["output"]["B"]
+    assert isinstance(results["x"], dict)
+    assert "blob_uuid" in results["x"]
+
+    results = memory_data_jobstore.query_one(c, load=True)
+    assert results["output"]["B"] == 101
+    assert results["x"] == 10
+
+    results = memory_data_jobstore.query_one(c, load={"data": MyEnum.B})
+    assert results["output"]["B"] == 101
+    assert isinstance(results["x"], dict)
+    assert "blob_uuid" in results["x"]
+
+    results = memory_data_jobstore.query_one(c, load={"data": [MyEnum.B, "x"]})
+    assert results["output"]["B"] == 101
     assert results["x"] == 10
 
 

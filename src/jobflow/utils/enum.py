@@ -19,6 +19,10 @@ class ValueEnum(Enum):
         else:
             return str(self.value) == str(other)
 
+    def __hash__(self):
+        """Get a hash of the enum."""
+        return hash(str(self))
+
     def as_dict(self):
         """Create a serializable representation of the enum."""
         return str(self.value)
