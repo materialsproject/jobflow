@@ -26,7 +26,7 @@ def mongo_jobstore(database):
     return store
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def memory_jobstore():
     from maggma.stores import MemoryStore
 
