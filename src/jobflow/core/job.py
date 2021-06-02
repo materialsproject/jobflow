@@ -13,7 +13,6 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from enum import Enum
     from typing import (
         Any,
         Callable,
@@ -206,7 +205,6 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     return decorator(method)
 
 
-@dataclass
 class Job(MSONable):
     """
     A :obj:`Job` is a delayed function call that can be used in an :obj:`.Flow`.
@@ -278,38 +276,50 @@ class Job(MSONable):
     job, Response, .Flow
     """
 
-    function: Callable
-    function_args: Tuple[Any, ...] = field(default_factory=tuple)
-    function_kwargs: Dict[str, Any] = field(default_factory=dict)
-    output_schema: Optional[Type[jobflow.Schema]] = None
-    uuid: str = field(default_factory=suuid)
-    index: int = 1
-    name: Optional[str] = None
-    data: Union[
-        bool, str, Enum, Type[MSONable], List[Union[Enum, str, Type[MSONable]]]
-    ] = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    config: JobConfig = field(default_factory=JobConfig)
-    host: Optional[str] = None
-    output: OutputReference = field(init=False)
-
-    def __post_init__(self):
-        """Initialize the job name and check job arguments."""
+    def __init__(
+        self,
+        function: Callable,
+        function_args: Tuple[Any, ...] = None,
+        function_kwargs: Dict[str, Any] = None,
+        output_schema: Optional[Type[jobflow.Schema]] = None,
+        uuid: str = None,
+        index: int = 1,
+        name: Optional[str] = None,
+        metadata: Dict[str, Any] = None,
+        config: JobConfig = None,
+        host: Optional[str] = None,
+        **kwargs,
+    ):
         from copy import deepcopy
 
         from jobflow.utils.find import contains_flow_or_job
 
-        # make a deep copy of the function (means makers do not share the same instance)
-        self.function = deepcopy(self.function)
+        function_args = tuple() if function_args is None else function_args
+        function_kwargs = {} if function_kwargs is None else function_kwargs
+        uuid = suuid() if uuid is None else uuid
+        metadata = {} if metadata is None else metadata
+        config = JobConfig() if config is None else config
 
-        self.output = OutputReference(self.uuid, output_schema=self.output_schema)
+        # make a deep copy of the function (means makers do not share the same instance)
+        self.function = deepcopy(function)
+        self.function_args = function_args
+        self.function_kwargs = function_kwargs
+        self.output_schema = output_schema
+        self.uuid = uuid
+        self.index = index
+        self.name = name
+        self.metadata = metadata
+        self.config = config
+        self.host = host
+        self._kwargs = kwargs
+
         if self.name is None:
             if self.maker is not None:
                 self.name = self.maker.name
             else:
-                self.name = getattr(
-                    self.function, "__qualname__", self.function.__name__
-                )
+                self.name = getattr(function, "__qualname__", function.__name__)
+
+        self.output = OutputReference(self.uuid, output_schema=self.output_schema)
 
         # check to see if job or flow is included in the job args
         # this is a possible situation but likely a mistake
@@ -493,7 +503,6 @@ class Job(MSONable):
             if response.replace is not None:
                 pass_manager_config(response.replace, self.config.manager_config)
 
-        # save = "output" if self.data is True else self.data
         data = {
             "uuid": self.uuid,
             "index": self.index,
@@ -501,7 +510,7 @@ class Job(MSONable):
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
         }
-        store.update(data, key=["uuid", "index"])  # , save=save)
+        store.update(data, key=["uuid", "index"], save=self._kwargs)
 
         CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")

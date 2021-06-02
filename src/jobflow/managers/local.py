@@ -53,7 +53,7 @@ def run_locally(
     from jobflow.core.reference import OnMissing
 
     if store is None:
-        jobstore = JobStore.from_store(MemoryStore())
+        jobstore = JobStore(MemoryStore())
         jobstore.connect()
     else:
         jobstore = store
