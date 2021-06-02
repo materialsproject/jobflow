@@ -238,6 +238,9 @@ class Job(MSONable):
         The config setting for the job.
     host
         The UUID of the host flow.
+    **stores
+        Additional keyword arguments that can be used to specify  which outputs to save
+        in additional stores.
 
     Attributes
     ----------
