@@ -147,6 +147,23 @@ def job(method: Optional[Callable] = None, **job_kwargs):
     ...     new_job = compute(a, b)
     ...     return Response(replace=new_job)
 
+    By default, job outputs are stored in the :obj`.JobStore` ``docs_store``. However,
+    the :obj:`.JobStore` `additional_stores`` can also be used for job outputs. The
+    stores are specified as keyword arguments, where the argument name gives the store
+    name and the argument value is the type of data/key to store in that store. More
+    details on the accepted key types are given in the :obj:`Job` docstring. In the
+    example below, the "graph" key is stored in an additional store named "graphs" and
+    the "data" key is stored in an additional store called "large_data".
+
+    >>> @job(large_data="data", graphs="graph")
+    ... def compute(a, b):
+    ...     return {"large_data": b, "graph": a }
+
+    .. Note::
+        Using additional stores requires the :obj:`.JobStore` to be configured with
+        the required store names present. See the :obj:`.JobStore` docstring for more
+        details.
+
     See Also
     --------
     Job, .Flow, .Response
@@ -238,9 +255,13 @@ class Job(MSONable):
         The config setting for the job.
     host
         The UUID of the host flow.
-    **stores
-        Additional keyword arguments that can be used to specify  which outputs to save
-        in additional stores.
+    **kwargs
+        Additional keyword arguments that can be used to specify which outputs to save
+        in additional stores. The argument name gives the additional store name and the
+        argument value gives the type of data to store in that additional store.
+        The value can be ``True`` in which case all outputs are stored in the additional
+        store, a dictionary key (string or enum), an :obj:`.MSONable` class, or a list
+        of keys/classes.
 
     Attributes
     ----------
@@ -315,6 +336,9 @@ class Job(MSONable):
         self.config = config
         self.host = host
         self._kwargs = kwargs
+
+        if sum([v is True for v in kwargs.values()]) > 1:
+            raise ValueError("Cannot select True for multiple additional stores.")
 
         if self.name is None:
             if self.maker is not None:
@@ -506,6 +530,7 @@ class Job(MSONable):
             if response.replace is not None:
                 pass_manager_config(response.replace, self.config.manager_config)
 
+        save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
         data = {
             "uuid": self.uuid,
             "index": self.index,
@@ -513,7 +538,7 @@ class Job(MSONable):
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
         }
-        store.update(data, key=["uuid", "index"], save=self._kwargs)
+        store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")

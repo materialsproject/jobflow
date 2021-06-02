@@ -42,8 +42,24 @@ def test_job_init():
     assert test_job.uuid is not None
     assert test_job.uuid == test_job.output.value.uuid
 
+    # test init with stores
+    test_job = Job(
+        function=add,
+        function_args=(1,),
+        function_kwargs={"b": 2},
+        data="output",
+        graphs="graph",
+    )
+    assert test_job
+    assert test_job.uuid == test_job.output.value.uuid
+    assert test_job._kwargs == {"data": "output", "graphs": "graph"}
 
-def test_job_run(capsys, memory_jobstore):
+    # check giving True for multiple stores fails
+    with pytest.raises(ValueError):
+        Job(function=add, function_args=(1,), data=True, graphs=True)
+
+
+def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
     from jobflow.core.job import Job, Response
 
     # test basic run
@@ -72,6 +88,21 @@ def test_job_run(capsys, memory_jobstore):
     assert isinstance(response, Response)
     assert response.output == 3
     assert response.stop_children
+
+    # test run with outputs and data store
+    test_job = Job(add, function_args=(1,), function_kwargs={"b": 2}, data=True)
+    response = test_job.run(memory_data_jobstore)
+    assert isinstance(response, Response)
+    assert response.output == 3
+
+    # check output was not stored in the docs store
+    result = memory_data_jobstore.query_one({"uuid": test_job.uuid})
+    assert isinstance(result["output"], dict)
+    assert "blob_uuid" in result["output"]
+
+    # check the output can be resolved
+    result = memory_data_jobstore.query_one({"uuid": test_job.uuid}, load=True)
+    assert result["output"] == 3
 
 
 def test_replace_response(memory_jobstore):
