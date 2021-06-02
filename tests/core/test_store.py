@@ -10,15 +10,37 @@ def memory_store():
     return store
 
 
-def test_jobstore_connect(memory_store):
+def test_basic(memory_store):
     from jobflow import JobStore
 
     store = JobStore(memory_store)
     store.connect()
     assert store
+    assert store.name == "JobStore-mem://memory_db"
+    assert store.collection is not None
+
+    store.close()
+
+    store = JobStore(memory_store, load=None)
+    store.connect()
+    assert store
 
 
-def test_jobstore_doc_update(memory_jobstore):
+def test_additional(memory_store):
+    from copy import deepcopy
+
+    from jobflow import JobStore
+
+    store = JobStore(memory_store, additional_stores={"data": deepcopy(memory_store)})
+    store.connect()
+    assert store
+    assert store.name == "JobStore-mem://memory_db"
+    assert store.collection is not None
+
+    store.close()
+
+
+def test_doc_update_query(memory_jobstore):
     # all standard mongo updates should work fine
     d = {"index": 1, "uuid": 1, "e": 6, "d": 4}
     memory_jobstore.update(d)
@@ -30,10 +52,14 @@ def test_jobstore_doc_update(memory_jobstore):
     result = memory_jobstore.query_one(criteria={"d": 8, "f": 9}, properties=["e"])
     assert result["e"] == 7
 
-    memory_jobstore.update({"e": "abc", "d": 3, "index": 1, "uuid": 5}, key="e")
+    result = list(memory_jobstore.query(criteria={"d": 8, "f": 9}, properties=["e"]))
+    assert len(result) == 1
+
+    result = list(memory_jobstore.query(criteria={"d": 8, "f": 9}, properties={"e": 1}))
+    assert len(result) == 1
 
 
-def test_jobstore_data_update(memory_data_jobstore):
+def test_data_update(memory_data_jobstore):
     d = {"index": 1, "uuid": 1, "e": 6, "d": 4, "data": [1, 2, 3, 4]}
     memory_data_jobstore.update(d, save={"data": "data"})
 
@@ -69,8 +95,17 @@ def test_jobstore_data_update(memory_data_jobstore):
     assert "@module" in results["data"]
     assert "blob_uuid" in results["data"]
 
+    # test bad store name fails
+    results["data"]["store"] = "bad_store"
+    memory_data_jobstore.update(results)
+    with pytest.raises(ValueError):
+        memory_data_jobstore.query_one(c, load=True)
 
-def test_jobstore_count(memory_jobstore):
+    with pytest.raises(ValueError):
+        memory_data_jobstore.update(d, save={"bad_store": "data"})
+
+
+def test_count(memory_jobstore):
     d = {"index": 1, "uuid": 1, "a": 1, "b": 2, "c": 3, "data": [1, 2, 3, 4]}
     memory_jobstore.update(d)
     assert memory_jobstore.count() == 1
@@ -81,7 +116,7 @@ def test_jobstore_count(memory_jobstore):
     assert memory_jobstore.count({"a": 1}) == 1
 
 
-def test_jobstore_distinct(memory_jobstore):
+def test_distinct(memory_jobstore):
     d1 = {"a": 1, "b": 2, "c": 3, "uuid": 1, "index": 1}
     d2 = {"a": 4, "d": 5, "e": 6, "g": {"h": 1}, "uuid": 2, "index": 1}
     memory_jobstore.update(d1)
@@ -107,7 +142,7 @@ def test_jobstore_distinct(memory_jobstore):
     assert memory_jobstore.distinct("i") == [None]
 
 
-def test_jobstore_groupby(memory_jobstore):
+def test_groupby(memory_jobstore):
     memory_jobstore.update(
         [
             {"e": 7, "d": 9, "f": 9, "uuid": 1, "index": 1},
@@ -127,18 +162,67 @@ def test_jobstore_groupby(memory_jobstore):
     data = list(memory_jobstore.groupby(["e", "d"]))
     assert len(data) == 3
 
+    data = list(memory_jobstore.groupby(["e", "d"], properties={"uuid": 1}))
+    assert len(data) == 3
 
-def test_jobstore_remove_docs(memory_jobstore):
+    data = list(memory_jobstore.groupby(["e", "d"], properties=["uuid"]))
+    assert len(data) == 3
+
+
+def test_remove_docs(memory_jobstore, memory_data_jobstore):
     d1 = {"a": 1, "b": 2, "c": 3, "index": 1, "uuid": 1}
     d2 = {"a": 4, "d": 5, "e": 6, "g": {"h": 1}, "index": 1, "uuid": 2}
     memory_jobstore.update(d1)
     memory_jobstore.update(d2)
     memory_jobstore.remove_docs({"a": 1})
-    assert len(list(memory_jobstore.query({"a": 4}))) == 1
     assert len(list(memory_jobstore.query({"a": 1}))) == 0
+    assert len(list(memory_jobstore.query({"a": 4}))) == 1
+
+    d1 = {"a": 1, "b": 2, "c": 3, "index": 1, "uuid": 1}
+    d2 = {"a": 4, "d": 5, "c": 3, "g": {"h": 1}, "index": 1, "uuid": 2}
+    memory_data_jobstore.update(d1, save={"data": "c"})
+    memory_data_jobstore.update(d2, save={"data": "c"})
+    memory_data_jobstore.remove_docs({"a": 1})
+
+    data_store = memory_data_jobstore.additional_stores["data"]
+    assert len(list(memory_data_jobstore.query({"a": 1}))) == 0
+    assert len(list(memory_data_jobstore.query({"a": 4}))) == 1
+
+    assert len(list(data_store.query({"job_uuid": 1}))) == 0
+    assert len(list(data_store.query({"job_uuid": 2}))) == 1
 
 
-def test_jobstore_from_db_file(test_data):
+def test_get_output(memory_jobstore):
+    docs = [
+        {"uuid": "1", "index": 1, "output": "xyz"},
+        {"uuid": "1", "index": 2, "output": "abc"},
+        {"uuid": "1", "index": 3, "output": 123},
+        {"uuid": "1", "index": 4, "output": "a"},
+        {"uuid": "2", "index": 1, "output": "12345"},
+        {"uuid": "3", "index": 1, "output": "test"},
+    ]
+    memory_jobstore.update(docs)
+
+    output = memory_jobstore.get_output("1")
+    assert output == "a"
+
+    output = memory_jobstore.get_output("1", which="last")
+    assert output == "a"
+
+    output = memory_jobstore.get_output("1", which="first")
+    assert output == "xyz"
+
+    output = memory_jobstore.get_output("1", which="all")
+    assert output == ["xyz", "abc", 123, "a"]
+
+    with pytest.raises(ValueError):
+        memory_jobstore.get_output(1, which="first")
+
+    with pytest.raises(ValueError):
+        memory_jobstore.get_output(1, which="all")
+
+
+def test_from_db_file(test_data):
     from jobflow import JobStore
 
     ms = JobStore.from_file(test_data / "db.yaml")
@@ -146,15 +230,23 @@ def test_jobstore_from_db_file(test_data):
     assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
     assert ms.additional_stores == {}
 
-
-def test_jobstore_from_db_file_s3(test_data):
-    from jobflow import JobStore
-
+    # test gridfs
     ms = JobStore.from_file(test_data / "db_gridfs.yaml")
     ms.connect()
     data_store = ms.additional_stores["data"]
     assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
     assert data_store.name() == "gridfs://localhost/jobflow_unittest/outputs_blobs"
+
+    # test serialized
+    ms = JobStore.from_file(test_data / "db_serialized.json")
+    ms.connect()
+    data_store = ms.additional_stores["data"]
+    assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
+    assert data_store.name() == "gridfs://localhost/jobflow_unittest/outputs_blobs"
+
+    # test bad file
+    with pytest.raises(ValueError):
+        JobStore.from_file(test_data / "db_bad.yaml")
 
 
 def test_ensure_index(memory_jobstore):

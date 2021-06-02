@@ -280,7 +280,7 @@ class JobStore(Store):
         if not isinstance(docs, list):
             docs = [docs]
 
-        if key is not None:
+        if key is None:
             key = ["uuid", "index"]
 
         blob_data = defaultdict(list)
@@ -384,11 +384,13 @@ class JobStore(Store):
 
         from pydash import get, has, set_
 
-        keys = keys if isinstance(keys, list) else [keys]
+        keys = keys if isinstance(keys, (list, tuple)) else [keys]
 
         if isinstance(properties, dict):
             # make sure all keys are in properties...
             properties.update(dict(zip(keys, [1] * len(keys))))
+        elif properties is not None:
+            properties.extend(keys)
 
         docs = self.query(
             properties=properties,
@@ -446,7 +448,7 @@ class JobStore(Store):
             If there are multiple job runs, which index to use. Options are:
             - `"last"` (default): Use the last job that ran.
             - `"first"`: Use the first job that ran.
-            - `"all"`: Return all outputs.
+            - `"all"`: Return all outputs, sorted with the lowest index first.
         load
             The keys to load from the datastore.
 
@@ -459,7 +461,10 @@ class JobStore(Store):
             sort = -1 if which == "last" else 1
 
             result = self.query_one(
-                {"uuid": uuid}, ["output"], {"index": sort}, load=load
+                criteria={"uuid": uuid},
+                properties=["output"],
+                sort={"index": sort},
+                load=load,
             )
 
             if result is None:
@@ -468,7 +473,12 @@ class JobStore(Store):
             return result["output"]
         else:
             results = list(
-                self.query({"uuid": uuid}, ["output"], {"index": -1}, load=load)
+                self.query(
+                    criteria={"uuid": uuid},
+                    properties=["output"],
+                    sort={"index": 1},
+                    load=load,
+                )
             )
 
             if len(results) == 0:
@@ -562,9 +572,6 @@ def _prepare_load(
     """Standardize load types."""
     from enum import Enum
 
-    if load is None:
-        return {}
-
     if isinstance(load, bool):
         return load
 
@@ -624,13 +631,9 @@ def _filter_blobs(
             grouped[info["store"]][1].append(loc)
         return grouped
 
-    if load is True:
-        # return all blobs
+    if isinstance(load, bool):
+        # return all blobs (load has to be True to get here)
         return _group_blobs(blob_infos, locations)
-
-    if not load or isinstance(load, bool):
-        # Don't return any blobs
-        return {}
 
     new_blobs = []
     new_locations = []
