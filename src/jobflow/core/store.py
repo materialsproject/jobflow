@@ -637,21 +637,25 @@ def _filter_blobs(
 
     new_blobs = []
     new_locations = []
-    for blob, location in zip(blob_infos, locations):
-        for ltype in load:
-            if (
-                isinstance(ltype, tuple)
-                and blob.get("@class", None) == ltype[1]
-                and blob.get("@module", None) == ltype[0]
-            ):
-                pass
-            elif location[-1] == ltype:
-                pass
-            else:
+    for store_name, store_load in load.items():
+        for blob, location in zip(blob_infos, locations):
+            if store_load is True:
+                new_blobs.append(blob)
+                new_locations.append(location)
+            elif store_load is False:
                 continue
-
-            new_blobs.append(blob)
-            new_locations.append(location)
+            elif not isinstance(store_load, bool):  # need this for mypy
+                for ltype in store_load:
+                    if (
+                        isinstance(ltype, tuple)
+                        and blob.get("@class", None) == ltype[1]
+                        and blob.get("@module", None) == ltype[0]
+                    ):
+                        new_blobs.append(blob)
+                        new_locations.append(location)
+                    elif location[-1] == ltype:
+                        new_blobs.append(blob)
+                        new_locations.append(location)
 
     return _group_blobs(new_blobs, new_locations)
 
@@ -661,9 +665,9 @@ def _get_blob_info(obj: Any, store_name: str) -> Dict[str, str]:
 
     class_name = ""
     module_name = ""
-    if isinstance(obj, MSONable):
-        class_name = obj.__class__.__name__
-        module_name = obj.__class__.__module__
+    if isinstance(obj, dict) and "@class" in obj and "@module" in obj:
+        class_name = obj["@class"]
+        module_name = obj["@module"]
 
     return {
         "@class": class_name,

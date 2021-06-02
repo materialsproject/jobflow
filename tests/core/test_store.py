@@ -60,6 +60,8 @@ def test_doc_update_query(memory_jobstore):
 
 
 def test_data_update(memory_data_jobstore):
+    from monty.json import MSONable
+
     d = {"index": 1, "uuid": 1, "e": 6, "d": 4, "data": [1, 2, 3, 4]}
     memory_data_jobstore.update(d, save={"data": "data"})
 
@@ -103,6 +105,50 @@ def test_data_update(memory_data_jobstore):
 
     with pytest.raises(ValueError):
         memory_data_jobstore.update(d, save={"bad_store": "data"})
+
+    d = {"index": 2, "uuid": 2, "e": 6, "x": 4, "data2": [1, 2, 3]}
+    memory_data_jobstore.update(d, save={"data": ["data2", "data1", "data"]})
+
+    c = {"x": {"$exists": 1}}
+    results = memory_data_jobstore.query_one(c, load={"data": "data2"})
+    assert results["data2"] == [1, 2, 3]
+
+    # test msonable store and load
+
+    global MyClass
+
+    class MyClass(MSONable):
+        def __init__(self, a):
+            self.a = a
+
+    d = {"index": 1, "uuid": 3, "x": 10, "output": {"a": 1, "b": MyClass(5)}}
+    memory_data_jobstore.update(d, save={"data": ["x", MyClass]})
+
+    c = {"uuid": 3}
+    results = memory_data_jobstore.query_one(c, load=False)
+    assert isinstance(results["output"]["b"], dict)
+    assert "blob_uuid" in results["output"]["b"]
+    assert isinstance(results["x"], dict)
+    assert "blob_uuid" in results["x"]
+
+    results = memory_data_jobstore.query_one(c, load=True)
+    assert isinstance(results["output"]["b"], dict)
+    assert results["output"]["b"]["@class"] == "MyClass"
+    assert results["output"]["b"]["a"] == 5
+    assert results["x"] == 10
+
+    results = memory_data_jobstore.query_one(c, load={"data": MyClass})
+    assert isinstance(results["output"]["b"], dict)
+    assert results["output"]["b"]["@class"] == "MyClass"
+    assert results["output"]["b"]["a"] == 5
+    assert isinstance(results["x"], dict)
+    assert "blob_uuid" in results["x"]
+
+    results = memory_data_jobstore.query_one(c, load={"data": [MyClass, "x"]})
+    assert isinstance(results["output"]["b"], dict)
+    assert results["output"]["b"]["@class"] == "MyClass"
+    assert results["output"]["b"]["a"] == 5
+    assert results["x"] == 10
 
 
 def test_count(memory_jobstore):
