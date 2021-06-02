@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
     from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
 
     from maggma.core import Sort
-    from maggma.stores import GridFSStore, MongoStore, MongoURIStore, S3Store
+    from maggma.stores import MongoStore, MongoURIStore
 
     save_type = Optional[
         Union[str, Enum, Type[MSONable], List[Union[Enum, str, Type[MSONable]]]]
@@ -245,6 +245,7 @@ class JobStore(Store):
         save
             List of keys to save in the data store when uploading documents.
         """
+        from copy import deepcopy
         from enum import Enum
 
         from monty.json import jsanitize
@@ -270,7 +271,7 @@ class JobStore(Store):
         blob_data = []
         dict_docs = []
         for doc in docs:
-            doc = jsanitize(doc, strict=True)
+            doc = jsanitize(doc, strict=True, allow_bson=True)
             dict_docs.append(doc)
 
             if save_keys:
@@ -284,7 +285,7 @@ class JobStore(Store):
 
                 # Now format blob data for saving in the data_store
                 for loc, data in object_map.items():
-                    blob = object_info[loc]
+                    blob = deepcopy(object_info[loc])
                     blob.update(
                         {
                             "data": data,
@@ -379,7 +380,7 @@ class JobStore(Store):
         for vals, group in groupby(sorted(data, key=grouping_keys), key=grouping_keys):
             doc: Dict[str, Any] = {}
             for k, v in zip(keys, vals):
-                set_(doc, k, get(v, k))
+                set_(doc, k, v)
             yield doc, list(group)
 
     def remove_docs(self, criteria: Dict):
@@ -496,8 +497,6 @@ class JobStore(Store):
         - host (str): The hostname of the database.
         - port (int): The port used to access the database.
         - collection (str): The collection in which to store documents.
-        - authsource (str, optional): Authorization source for connecting to the
-          database.
         - host_uri (str, optional): URI string specifying the database and login
           details. If this is specified, any other authentication information will be
           ignored.
@@ -578,6 +577,8 @@ def _get_data_store(credentials: Dict[str, Any], admin: bool) -> Store:
 
     See JobStore.from_db_file for supported store types and connection arguments.
     """
+    from maggma.stores.gridfs import GridFSStore
+
     data_store_prefix = credentials.get("data_store_prefix", "job")
     collection_name = f"{data_store_prefix}_datastore"
 
@@ -594,6 +595,8 @@ def _get_data_store(credentials: Dict[str, Any], admin: bool) -> Store:
 
     data_store_kwargs = credentials.get("data_store_kwargs", {})
     if "bucket" in data_store_kwargs:
+        from maggma.stores.aws import S3Store
+
         # Store is a S3 bucket
         index_collection_name = f"{collection_name}_index"
         index_store = _get_mongo_like_store(index_collection_name, credentials, admin)
@@ -609,6 +612,8 @@ def _get_mongo_like_store(
     collection_name: str, credentials: Dict[str, Any], admin: bool
 ) -> Union[MongoStore, MongoURIStore]:
     """Get either a MongoStore or MongoURIStore from a collection and credentials."""
+    from maggma.stores.mongolike import MongoStore
+
     mongo_store_kwargs = credentials.get("mongo_store_kwargs", {})
 
     if "host_uri" in credentials:
@@ -634,18 +639,17 @@ def _get_mongo_auth(credentials: Dict[str, Any], admin: bool) -> Dict[str, Any]:
         )
 
     if admin:
-        auth["user"] = credentials.get("admin_user", "")
+        auth["username"] = credentials.get("admin_user", "")
         auth["password"] = credentials.get("admin_password", "")
     else:
-        auth["user"] = credentials.get("readonly_user", "")
+        auth["username"] = credentials.get("readonly_user", "")
         auth["password"] = credentials.get("readonly_password", "")
 
     # this way, we won't override the MongoStore defaults
     for key in ("host", "port"):
         if key in credentials:
-            auth[key] = credentials["key"]
+            auth[key] = credentials[key]
 
-    auth["authsource"] = credentials.get("authsource", credentials["database"])
     return auth
 
 
