@@ -1,0 +1,12 @@
+{
+    "aliases": {},
+    "collection": "outputs",
+    "database": "jobflow_unittest",
+    "host": "localhost",
+    "port": 27017,
+    "data_store_kwargs": {
+        "bucket" : "test_bucket",
+        "compress" : true
+    },
+    "maggma_store_prefix": "new_prefix"
+}

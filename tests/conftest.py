@@ -2,6 +2,15 @@ import pytest
 
 
 @pytest.fixture(scope="session")
+def test_data():
+    from pathlib import Path
+
+    module_dir = Path(__file__).resolve().parent
+    test_dir = module_dir / "test_data"
+    return test_dir.resolve()
+
+
+@pytest.fixture(scope="session")
 def database():
     return "jobflow_test"
 
