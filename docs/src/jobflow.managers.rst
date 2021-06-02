@@ -14,5 +14,4 @@ jobflow.managers.fireworks
 
 .. automodule:: jobflow.managers.fireworks
    :members:
-   :undoc-members:
    :show-inheritance:

@@ -6,7 +6,7 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, List, Optional, Set, Union
+    from typing import Dict, List, Optional, Set, Union
 
     import jobflow
 
@@ -20,7 +20,7 @@ def run_locally(
     log: bool = True,
     store: Optional[jobflow.JobStore] = None,
     create_folders: bool = False,
-) -> Dict[str, Any]:
+) -> Dict[str, Dict[int, jobflow.Response]]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
 
@@ -38,8 +38,8 @@ def run_locally(
 
     Returns
     -------
-    dict[str, Any]
-        The responses of the jobs, as a dict of ``{uuid: response}``.
+    Dict[str, Dict[int, Response]]
+        The responses of the jobs, as a dict of ``{uuid: {index: response}}``.
     """
     from collections import defaultdict
     from datetime import datetime

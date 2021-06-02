@@ -95,7 +95,7 @@ def job_to_firework(
     from jobflow.core.reference import OnMissing
 
     if (parents is None) is not (parent_mapping is None):
-        raise ValueError("Both of neither of parents and parent_mapping must be set.")
+        raise ValueError("Both or neither of parents and parent_mapping must be set.")
 
     task = JobFiretask(job=job, store=store)
 
