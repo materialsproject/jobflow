@@ -46,11 +46,9 @@ In the example below, we define a job to add two numbers.
 ```python
 from jobflow import job, Flow
 
-
 @job
 def add(a, b):
     return a + b
-
 
 add_first = add(1, 5)
 add_second = add(add_first.output, 5)
