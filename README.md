@@ -128,4 +128,4 @@ Jobflow was designed and developed by Alex Ganose while in the group of Anubhav 
 [creating-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/3-creating-flows.html
 [dynamic-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/4-dynamic-flows.html
 [jobflow-database]: https://hackingmaterials.lbl.gov/jobflow/tutorials/5-jobflow-database.html
-[jobflow-fireworks]: https://hackingmaterials.lbl.gov/jobflow/tutorials/6-jobflow-fireworks.html
+[jobflow-fireworks]: https://hackingmaterials.lbl.gov/jobflow/tutorials/6-fireworks.html
