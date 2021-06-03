@@ -4,6 +4,11 @@ Change log
 [Unreleased]
 ------------
 
+v0.0.2
+------
+
+Testing automated releases.
+
 v0.0.1
 ------
 
