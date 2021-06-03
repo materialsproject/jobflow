@@ -85,12 +85,12 @@ pip install jobflow
 To get a first glimpse of jobflow, we suggest that you follow our quickstart tutorial.
 Later tutorials delve into the advanced features of jobflow.
 
-- 5-minute quickstart tutorial
-- Defining Jobs using jobflow
-- Creating Flows
-- Dynamic and nested Flows
-- Configuring the jobflow database
-- Running Flows with FireWorks
+- [5-minute quickstart tutorial][quickstart]
+- [Defining Jobs using jobflow][defining-jobs]
+- [Creating Flows][creating-flows]
+- [Dynamic and nested Flows][dynamic-flows]
+- [Configuring the jobflow database][jobflow-database]
+- [Running Flows with FireWork][jobflow-fireworks]
 
 ## Need help?
 
@@ -119,7 +119,13 @@ Jobflow was designed and developed by Alex Ganose while in the group of Anubhav 
 [fireworks]: https://materialsproject.github.io/fireworks/
 [help-forum]: https://matsci.org/c/fireworks
 [issues]: https://github.com/hackingmaterials/jobflow/issues
-[changelog]: https://hackingmaterials.github.io/jobflow/changelog.html
-[contributing]: https://hackingmaterials.github.io/jobflow/contributing.html
-[contributors]: https://hackingmaterials.github.io/jobflow/contributors.html
+[changelog]: https://hackingmaterials.lbl.gov/jobflow/changelog.html
+[contributing]: https://hackingmaterials.lbl.gov/jobflow/contributing.html
+[contributors]: https://hackingmaterials.lbl.gov/jobflow/contributors.html
 [license]: https://raw.githubusercontent.com/hackingmaterials/jobflow/main/LICENSE
+[quickstart]: https://hackingmaterials.lbl.gov/jobflow/tutorials/1-quickstart.html
+[defining-jobs]: https://hackingmaterials.lbl.gov/jobflow/tutorials/2-defining-jobs.html
+[creating-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/3-creating-flows.html
+[dynamic-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/4-dynamic-flows.html
+[jobflow-database]: https://hackingmaterials.lbl.gov/jobflow/tutorials/5-jobflow-database.html
+[jobflow-fireworks]: https://hackingmaterials.lbl.gov/jobflow/tutorials/6-jobflow-fireworks.html
