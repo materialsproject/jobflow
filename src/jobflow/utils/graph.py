@@ -15,6 +15,8 @@ except ImportError:
 import typing
 
 if typing.TYPE_CHECKING:
+    from typing import Tuple
+
     import jobflow
 
 __all__ = ["itergraph", "draw_graph", "to_pydot"]
@@ -55,7 +57,11 @@ def itergraph(graph: nx.DiGraph):
 
 
 @requires(matplotlib, "matplotlib must be installed to plot flow graphs.")
-def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
+def draw_graph(
+    graph: nx.DiGraph,
+    layout_function: typing.Callable = None,
+    figsize: Tuple[float, float] = (12, 8),
+):
     """
     Draw a networkx graph.
 
@@ -66,6 +72,8 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     layout_function
         A networkx layout function to use as the graph layout. For example,
         :obj:`.planar_layout`.
+    figsize
+        The figure size as a tuple of ``(width, height)``.
 
     Returns
     -------
@@ -83,7 +91,7 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
     else:
         pos = layout_function(graph)
 
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=figsize)
 
     nodes = graph.nodes()
     labels = nx.get_node_attributes(graph, "label")
@@ -96,6 +104,8 @@ def draw_graph(graph: nx.DiGraph, layout_function: typing.Callable = None):
 
     edge_labels = nx.get_edge_attributes(graph, "properties")
     nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, rotate=False)
+
+    plt.gca().axis("off")
 
     return plt
 

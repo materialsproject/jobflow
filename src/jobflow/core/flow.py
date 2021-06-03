@@ -236,7 +236,7 @@ class Flow(MSONable):
             graph.add_edges_from(edges)
         return graph
 
-    def draw_graph(self):
+    def draw_graph(self, **kwargs):
         """
         Draw the flow graph using matplotlib.
 
@@ -246,10 +246,12 @@ class Flow(MSONable):
         -------
         pyplot
             The matplotlib pyplot state.
+        kwargs
+            keyword arguments that are passed to :obj:`jobflow.utils.graph.draw_graph`.
         """
         from jobflow.utils.graph import draw_graph
 
-        return draw_graph(self.graph)
+        return draw_graph(self.graph, **kwargs)
 
     def iterflow(self):
         """
