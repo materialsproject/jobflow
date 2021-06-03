@@ -3,6 +3,8 @@
    :hidden:
 
    Introduction <self>
+   Install jobflow <install>
+   Tutorials <tutorials>
 
 .. toctree::
    :caption: User Interface

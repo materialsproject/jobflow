@@ -1,5 +1,5 @@
-API
-===
+Flow API
+========
 
 The main interface for constructing workflows is the :obj:`Flow` object.
 

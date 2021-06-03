@@ -1,5 +1,5 @@
-API
-===
+Job API
+=======
 
 The main interface for constructing jobs is the :obj:`job` function.
 

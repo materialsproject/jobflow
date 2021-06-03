@@ -1,5 +1,5 @@
-API
-===
+Maker API
+=========
 
 :obj:`Maker` objects are powerful generator classes for containing and customising
 keyword arguments, particularly for dynamic job creation.

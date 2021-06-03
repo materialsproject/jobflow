@@ -90,7 +90,7 @@ Later tutorials delve into the advanced features of jobflow.
 - Creating Flows
 - Dynamic and nested Flows
 - Configuring the jobflow database
-- Using jobflow with FireWorks
+- Running Flows with FireWorks
 
 ## Need help?
 
