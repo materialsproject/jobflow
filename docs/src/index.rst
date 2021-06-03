@@ -2,7 +2,7 @@
    :caption: Getting Started
    :hidden:
 
-   Introduction <introduction>
+   Introduction <self>
 
 .. toctree::
    :caption: User Interface
@@ -31,4 +31,9 @@
    API reference <jobflow>
    genindex
 
-.. include:: introduction.rst
+============
+Introduction
+============
+
+.. mdinclude:: ../../README.md
+   :start-line: 5

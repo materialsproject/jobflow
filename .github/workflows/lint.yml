@@ -10,7 +10,7 @@ on:
       - main
 
 jobs:
-  docs:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
