@@ -57,6 +57,7 @@ def run_locally(
         jobstore.connect()
     else:
         jobstore = store
+        jobstore.connect()
 
     if log:
         initialize_logger()

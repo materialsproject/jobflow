@@ -613,7 +613,6 @@ def _prepare_save(
         new_save[store_name] = [
             o.value if isinstance(o, Enum) else o for o in store_save
         ]
-        print(new_save)
     return new_save
 
 
