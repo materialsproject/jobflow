@@ -58,7 +58,9 @@ flow = Flow([add_first, add_second])
 flow.draw_graph().show()
 ```
 
-![simple job graph](https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png)
+<p align="center">
+<img alt="simple flow graph" src="https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png" width=50% height=50%>
+</p>
 
 The output of the job can be accessed using the `output` attribute. If the job has not
 yet been run, `output` will be a reference to a future output. Outputs can be used
