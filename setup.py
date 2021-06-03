@@ -36,6 +36,8 @@ setup(
             "sphinx==3.5.3",
             "furo==2021.3.20b30",
             "m2r2==0.2.7",
+            "nbsphinx",
+            "nbsphinx-link",
         ],
         "tests": ["pytest", "pytest-cov==2.11.1"],
         "vis": ["matplotlib", "pydot"],

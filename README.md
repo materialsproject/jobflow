@@ -26,8 +26,9 @@ Some of its features include:
   way to build complex workflows.
 - Integration with multiple databases (MongoDB, S3, GridFS, and more) through the
   [Maggma][maggma] package.
-- Support for the [FireWorks][fireworks] workflow management system, allowing workflow execution on
-  multicore machines or through a queue, on a single machine or multiple machines.
+- Support for the [FireWorks][fireworks] workflow management system, allowing workflow
+  execution on multicore machines or through a queue, on a single machine or multiple
+  machines.
 - Support for dynamic workflows — workflows that modify themselves or create new ones
   based on what happens during execution.
 
@@ -85,7 +86,8 @@ pip install jobflow
 To get a first glimpse of jobflow, we suggest that you follow our quickstart tutorial.
 Later tutorials delve into the advanced features of jobflow.
 
-- [5-minute quickstart tutorial][quickstart]
+- [Five-minute quickstart tutorial][quickstart]
+- [Introduction to jobflow][introduction]
 - [Defining Jobs using jobflow][defining-jobs]
 - [Creating Flows][creating-flows]
 - [Dynamic and nested Flows][dynamic-flows]
@@ -124,8 +126,9 @@ Jobflow was designed and developed by Alex Ganose while in the group of Anubhav 
 [contributors]: https://hackingmaterials.lbl.gov/jobflow/contributors.html
 [license]: https://raw.githubusercontent.com/hackingmaterials/jobflow/main/LICENSE
 [quickstart]: https://hackingmaterials.lbl.gov/jobflow/tutorials/1-quickstart.html
-[defining-jobs]: https://hackingmaterials.lbl.gov/jobflow/tutorials/2-defining-jobs.html
-[creating-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/3-creating-flows.html
-[dynamic-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/4-dynamic-flows.html
-[jobflow-database]: https://hackingmaterials.lbl.gov/jobflow/tutorials/5-jobflow-database.html
-[jobflow-fireworks]: https://hackingmaterials.lbl.gov/jobflow/tutorials/6-fireworks.html
+[introduction]: https://hackingmaterials.lbl.gov/jobflow/tutorials/2-introduction.html
+[defining-jobs]: https://hackingmaterials.lbl.gov/jobflow/tutorials/3-defining-jobs.html
+[creating-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/4-creating-flows.html
+[dynamic-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/5-dynamic-flows.html
+[jobflow-database]: https://hackingmaterials.lbl.gov/jobflow/tutorials/6-jobflow-database.html
+[jobflow-fireworks]: https://hackingmaterials.lbl.gov/jobflow/tutorials/7-fireworks.html

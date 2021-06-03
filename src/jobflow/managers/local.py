@@ -158,4 +158,4 @@ def run_locally(
     logger.info("Started executing jobs locally")
     _run(flow)
     logger.info("Finished executing jobs locally")
-    return responses
+    return dict(responses)

@@ -9,11 +9,6 @@ html {
     }
 }
 
-/* Hide nbsphinx prompt numbers */
-.prompt {
-    display: none;
-}
-
 /* Hide link icons in external links*/
 .rst-content.style-external-links a.reference.external:after {
     display: none;
@@ -63,3 +58,8 @@ h3 {
   font-style: italic;
   font-display: block;
  }
+
+/* Hide nbsphinx prompt numbers */
+div.nbinput div.prompt {
+    display: none;
+}
