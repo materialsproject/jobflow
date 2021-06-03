@@ -150,3 +150,7 @@ def test_apply_mod():
     mod = {"_abcd": {"a": "b"}}
     with pytest.raises(ValueError):
         apply_mod(mod, d)
+
+    mod = {"_set": {"": ""}}
+    with pytest.raises(TypeError):
+        apply_mod(mod, d)

@@ -181,7 +181,7 @@ def _get_nested_dict(
 ) -> Optional[Tuple[Dict[str, Any], str]]:
     """Get nested dicts using a key."""
     current = input_dict
-    toks = key.split("->")
+    toks = [t for t in key.split("->") if t != ""]
     n = len(toks)
     for i, tok in enumerate(toks):
         if tok not in current and i < n - 1:

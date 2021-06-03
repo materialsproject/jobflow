@@ -340,8 +340,8 @@ def test_job_input_references():
     assert test_job.input_references_grouped == {"12345": (ref1,), "54321": (ref2,)}
 
     # test using reference attributes
-    ref1 = OutputReference("12345", attributes=("name",))
-    ref2 = OutputReference("12345", attributes=("value",))
+    ref1 = OutputReference("12345", attributes=(("i", "name"),))
+    ref2 = OutputReference("12345", attributes=(("i", "value"),))
     test_job = Job(add, function_args=(ref1,), function_kwargs={"b": ref2})
     assert set(test_job.input_references) == {ref1, ref2}
     assert set(test_job.input_uuids) == {"12345"}
@@ -612,7 +612,9 @@ def test_graph():
     graph = test_job.graph
     assert len(graph.nodes) == 2
     assert len(graph.edges) == 1
-    assert graph.get_edge_data(test_job1.uuid, test_job.uuid)["properties"] == ["value"]
+    assert graph.get_edge_data(test_job1.uuid, test_job.uuid)["properties"] == [
+        ".value"
+    ]
 
     # test arg and kwargs inputs
     test_job1 = Job(add, function_args=(1,), function_kwargs={"b": 2})
@@ -635,8 +637,8 @@ def test_graph():
     assert len(graph.nodes) == 2
     assert len(graph.edges) == 1
     assert set(graph.get_edge_data(test_job1.uuid, test_job.uuid)["properties"]) == {
-        "value",
-        "name",
+        ".value",
+        ".name",
     }
 
 

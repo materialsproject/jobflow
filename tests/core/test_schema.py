@@ -61,7 +61,7 @@ def test_creation_with_reference():
     from jobflow import OutputReference, Schema
 
     ref1 = OutputReference("123")
-    ref2 = OutputReference("1234", ("a",))
+    ref2 = OutputReference("1234", (("a", "a"),))
 
     class MySchema(Schema):
         a: int

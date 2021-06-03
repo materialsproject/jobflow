@@ -643,9 +643,10 @@ def _filter_blobs(
             if store_load is True:
                 new_blobs.append(blob)
                 new_locations.append(location)
-            elif store_load is False:
+            elif isinstance(store_load, bool):
+                # could just write "elif store_load is False" but need this for mypy
                 continue
-            elif not isinstance(store_load, bool):  # need this for mypy
+            else:
                 for ltype in store_load:
                     if (
                         isinstance(ltype, tuple)

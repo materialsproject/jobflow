@@ -8,36 +8,35 @@ def test_access():
     ref = OutputReference("123")
     assert ref.attributes == tuple()
 
+    # test bad init
+    with pytest.raises(ValueError):
+        OutputReference("123", (("x", 1),))
+
     new_ref = ref.a
-    assert new_ref.attributes == ("a",)
+    assert new_ref.attributes == (("a", "a"),)
     assert new_ref.uuid == "123"
     assert isinstance(new_ref, OutputReference)
 
     new_ref = ref["a"]
-    assert new_ref.attributes == ("a",)
+    assert new_ref.attributes == (("i", "a"),)
     assert new_ref.uuid == "123"
     assert isinstance(new_ref, OutputReference)
 
     new_ref = ref[1]
-    assert new_ref.attributes == (1,)
+    assert new_ref.attributes == (("i", 1),)
     assert new_ref.uuid == "123"
     assert isinstance(new_ref, OutputReference)
 
     # test filled
-    ref = OutputReference("123", ("b",))
+    ref = OutputReference("123", (("a", "b"),))
 
     new_ref = ref.a
-    assert new_ref.attributes == ("b", "a")
+    assert new_ref.attributes == (("a", "b"), ("a", "a"))
     assert new_ref.uuid == "123"
     assert isinstance(new_ref, OutputReference)
 
     new_ref = ref["a"]
-    assert new_ref.attributes == ("b", "a")
-    assert new_ref.uuid == "123"
-    assert isinstance(new_ref, OutputReference)
-
-    new_ref = ref[1]
-    assert new_ref.attributes == ("b", 1)
+    assert new_ref.attributes == (("a", "b"), ("i", "a"))
     assert new_ref.uuid == "123"
     assert isinstance(new_ref, OutputReference)
 
@@ -73,18 +72,26 @@ def test_repr():
     ref = OutputReference("123")
     assert str(ref) == "OutputReference(123)"
 
-    ref = OutputReference("123", ("a",))
-    assert str(ref) == "OutputReference(123, 'a')"
+    ref = OutputReference("123", (("a", "a"),))
+    assert str(ref) == "OutputReference(123, .a)"
 
-    ref = OutputReference("123", ("a", 1))
-    assert str(ref) == "OutputReference(123, 'a', 1)"
+    ref = OutputReference("123", (("a", "a"), ("i", 1)))
+    assert str(ref) == "OutputReference(123, .a, [1])"
 
 
 def test_hash():
     from jobflow import OutputReference
 
     assert hash(OutputReference("123")) == hash(OutputReference("123"))
-    assert hash(OutputReference("123", (1, 2))) == hash(OutputReference("123", (1, 2)))
+    assert hash(OutputReference("123", (("i", 1), ("i", 2)))) == hash(
+        OutputReference("123", (("i", 1), ("i", 2)))
+    )
+    assert hash(OutputReference("123", (("a", "b"), ("i", 2)))) == hash(
+        OutputReference("123", (("a", "b"), ("i", 2)))
+    )
+    assert hash(OutputReference("123", (("a", "b"), ("i", "2")))) == hash(
+        OutputReference("123", (("a", "b"), ("i", "2")))
+    )
 
 
 def test_eq():
@@ -92,11 +99,22 @@ def test_eq():
 
     assert OutputReference("123") == OutputReference("123")
     assert OutputReference("123") != OutputReference("1234")
-    assert OutputReference("123", (1,)) == OutputReference("123", (1,))
-    assert OutputReference("123", (1,)) != OutputReference("1234", (1,))
-    assert OutputReference("123", (1,)) != OutputReference("123", (2,))
-    assert OutputReference("123", (1,)) != OutputReference("123", (2, 3, 4))
-    assert OutputReference("123", (1,)) != "OutputReference(123, 1)"
+    assert OutputReference("123", (("i", 1),)) == OutputReference("123", (("i", 1),))
+    assert OutputReference("123", (("i", "a"),)) == OutputReference(
+        "123", (("i", "a"),)
+    )
+    assert OutputReference("123", (("a", "a"),)) == OutputReference(
+        "123", (("a", "a"),)
+    )
+    assert OutputReference("123", (("a", "a"), ("i", "b"))) == OutputReference(
+        "123", (("a", "a"), ("i", "b"))
+    )
+    assert OutputReference("123", (("i", 1),)) != OutputReference("1234", (("i", 1),))
+    assert OutputReference("123", (("i", 1),)) != OutputReference("123", (("i", 2),))
+    assert OutputReference("123", (("i", 1),)) != OutputReference(
+        "123", (("i", 2), ("i", 3), ("i", 4))
+    )
+    assert OutputReference("123", (("i", 1),)) != "OutputReference(123, [1])"
 
 
 def test_as_dict():
@@ -108,12 +126,12 @@ def test_as_dict():
     assert d["@module"] == "jobflow.core.reference"
     assert d["uuid"] == "123"
 
-    ref = OutputReference("123", ("a", "b"))
+    ref = OutputReference("123", (("a", "a"), ("i", "b")))
     d = ref.as_dict()
     assert d["@class"] == "OutputReference"
     assert d["@module"] == "jobflow.core.reference"
     assert d["uuid"] == "123"
-    assert d["attributes"] == ("a", "b")
+    assert d["attributes"] == (("a", "a"), ("i", "b"))
 
 
 def test_set_uuid():
@@ -193,20 +211,28 @@ def test_resolve(memory_jobstore):
     assert ref.resolve(store=memory_jobstore, cache=cache) == "xyz"
     assert cache["123"] == "xyz"
 
-    # test attributes
-    ref = OutputReference("123", ("a", 1))
+    # test indexing
+    ref = OutputReference("123", (("i", "a"), ("i", 1)))
     cache = {"123": {"a": [5, 6, 7]}}
     assert ref.resolve(cache=cache) == 6
 
-    ref = OutputReference("123", ("__module__",))
+    # test attribute access
+    ref = OutputReference("123", (("a", "__module__"),))
     cache = {"123": OutputReference}
     assert ref.resolve(cache=cache) == "jobflow.core.reference"
 
     # test missing attribute throws error
-    ref = OutputReference("123", ("b",))
+    ref = OutputReference("123", (("a", "b"),))
 
     cache = {"123": [1234]}
     with pytest.raises(AttributeError):
+        ref.resolve(cache=cache)
+
+    # test missing index throws error
+    ref = OutputReference("123", (("i", "b"),))
+
+    cache = {"123": [1234]}
+    with pytest.raises(TypeError):
         ref.resolve(cache=cache)
 
 
@@ -231,8 +257,8 @@ def test_resolve_references(memory_jobstore):
     assert output[ref2] == 101
 
     # resolve group using cache
-    ref1 = OutputReference("123", ("a",))
-    ref2 = OutputReference("123", ("b",))
+    ref1 = OutputReference("123", (("i", "a"),))
+    ref2 = OutputReference("123", (("i", "b"),))
     ref3 = OutputReference("1234")
     cache = {"123": {"a": "xyz", "b": "abc"}, "1234": 101}
     output = resolve_references([ref1, ref2, ref3], cache=cache)
@@ -278,12 +304,12 @@ def test_resolve_references(memory_jobstore):
     assert output[ref] == 101
 
     # test attributes
-    ref = OutputReference("123", ("a", 1))
+    ref = OutputReference("123", (("i", "a"), ("i", 1)))
     cache = {"123": {"a": [5, 6, 7]}}
     output = resolve_references([ref], cache=cache)
     assert output[ref] == 6
 
-    ref = OutputReference("123", ("__module__",))
+    ref = OutputReference("123", (("a", "__module__"),))
     cache = {"123": OutputReference}
     output = resolve_references([ref], cache=cache)
     assert output[ref] == "jobflow.core.reference"
@@ -293,7 +319,7 @@ def test_find_and_get_references():
     from jobflow.core.reference import OutputReference, find_and_get_references
 
     ref1 = OutputReference("123")
-    ref2 = OutputReference("1234", ("a",))
+    ref2 = OutputReference("1234", (("a", "a"),))
 
     # test single reference
     assert find_and_get_references(ref1) == (ref1,)
@@ -320,7 +346,7 @@ def test_find_and_resolve_references(memory_jobstore):
     )
 
     ref1 = OutputReference("123")
-    ref2 = OutputReference("1234", ("a",))
+    ref2 = OutputReference("1234", (("i", "a"),))
     cache = {"123": 101, "1234": {"a": "xyz", "b": 5}}
 
     # test no reference

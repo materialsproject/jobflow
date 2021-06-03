@@ -61,7 +61,8 @@ class OutputReference(MSONable):
         The job uuid to which the output belongs.
     attributes :
         A tuple of attributes or indexes that have been performed on the
-        output.
+        output. Attributes are specified by a tuple of ``("a", attr)``, whereas
+        indexes are specified as a tuple of ``("i", index)``.
     output_schema
         An output schema for the output that will be used to validate any attribute
         accesses or indexes. Note, schemas can only be used to validate the first
@@ -77,12 +78,12 @@ class OutputReference(MSONable):
     Attribute accesses return new references.
 
     >>> ref.my_attribute
-    OutputReference(1234, 'my_attribute')
+    OutputReference(1234, .my_attribute)
 
     Attribute accesses and indexing can be chained.
 
     >>> ref["key"][0].value
-    OutputReference(1234, 'key', 0, 'value')
+    OutputReference(1234, ['key'], [0], .value)
     """
 
     __slots__ = ("uuid", "attributes", "output_schema")
@@ -90,13 +91,19 @@ class OutputReference(MSONable):
     def __init__(
         self,
         uuid: str,
-        attributes: Tuple[Any, ...] = tuple(),
+        attributes: Tuple[Tuple[str, Any], ...] = tuple(),
         output_schema: Optional[Any] = None,
     ):
         super().__init__()
         self.uuid = uuid
         self.attributes = attributes
         self.output_schema = output_schema
+
+        for attr_type, attr in attributes:
+            if attr_type not in ("a", "i"):
+                raise ValueError(
+                    f"Unrecognised attribute type '{attr_type}' for attribute '{attr}'"
+                )
 
     def resolve(
         self,
@@ -172,11 +179,13 @@ class OutputReference(MSONable):
         # re-cache data in case other references need it
         cache[self.uuid] = data
 
-        for attribute in self.attributes:
-            try:
-                data = data[attribute]
-            except (KeyError, TypeError):
-                data = getattr(data, attribute)
+        for attr_type, attr in self.attributes:
+            if attr_type == "i":
+                # index
+                data = data[attr]
+            else:
+                # attribute access
+                data = getattr(data, attr)
 
         return data
 
@@ -212,7 +221,7 @@ class OutputReference(MSONable):
         if self.output_schema is not None:
             validate_schema_access(self.output_schema, item)
 
-        return OutputReference(self.uuid, self.attributes + (item,))
+        return OutputReference(self.uuid, self.attributes + (("i", item),))
 
     def __getattr__(self, item) -> OutputReference:
         """Attribute access of the reference."""
@@ -225,7 +234,7 @@ class OutputReference(MSONable):
         if self.output_schema is not None:
             validate_schema_access(self.output_schema, item)
 
-        return OutputReference(self.uuid, self.attributes + (item,))
+        return OutputReference(self.uuid, self.attributes + (("a", item),))
 
     def __setattr__(self, attr, val):
         """Set attribute."""
@@ -243,7 +252,7 @@ class OutputReference(MSONable):
     def __repr__(self) -> str:
         """Get a string representation of the reference and attributes."""
         if len(self.attributes) > 0:
-            attribute_str = ", " + ", ".join(map(repr, self.attributes))
+            attribute_str = ", " + ", ".join(self.attributes_formatted)
         else:
             attribute_str = ""
 
@@ -259,9 +268,21 @@ class OutputReference(MSONable):
             return (
                 self.uuid == other.uuid
                 and len(self.attributes) == len(other.attributes)
-                and all([a == b for a, b in zip(self.attributes, other.attributes)])
+                and all(
+                    [
+                        a[0] == b[0] and a[1] == b[1]
+                        for a, b in zip(self.attributes, other.attributes)
+                    ]
+                )
             )
         return False
+
+    @property
+    def attributes_formatted(self):
+        """Get a formatted description of the attributes."""
+        return [
+            f".{x[1]}" if x[0] == "a" else f"[{repr(x[1])}]" for x in self.attributes
+        ]
 
     def as_dict(self):
         """Serialize the reference as a dict."""

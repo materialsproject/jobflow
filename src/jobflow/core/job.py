@@ -439,7 +439,9 @@ class Job(MSONable):
         edges = []
         for uuid, refs in self.input_references_grouped.items():
             properties = [
-                ".".join(map(str, ref.attributes)) for ref in refs if ref.attributes
+                ".".join(map(str, ref.attributes_formatted))
+                for ref in refs
+                if ref.attributes
             ]
             properties = properties if len(properties) > 0 else ["output"]
             edges.append((uuid, self.uuid, {"properties": properties}))
