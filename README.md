@@ -69,7 +69,7 @@ the jobs is determined automatically (the order doesn't matter) and can be visua
 using the flow graph.
 
 <p align="center">
-<img alt="simple flow graph" src="https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png" width="50%" height="50%">
+<img alt="simple flow graph" src="https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png" width="30%" height="30%">
 </p>
 
 ## Installation
