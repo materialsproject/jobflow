@@ -2,6 +2,8 @@
 
 <a href="https://codecov.io/gh/hackingmaterials/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/hackingmaterials/jobflow"> </a>
 <a href="https://github.com/hackingmaterials/jobflow/actions?query=workflow%3Atesting"><img alt="code coverage" src="https://img.shields.io/github/workflow/status/hackingmaterials/jobflow/testing"> </a>
+<a href="https://pypi.org/project/jobflow"><img alt="pypi version" src="https://img.shields.io/pypi/v/jobflow?color=blue">
+<img alt="supported python versions" src="https://img.shields.io/pypi/pyversions/jobflow">
 
 Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
@@ -11,7 +13,7 @@ Some features that distinguish jobflow are dynamic workflows, easy compositing a
 connecting of workflows, and the ability to store workflow outputs across multiple
 databases.
 
-## Is jobflow for me?
+## Is jobflow for me
 
 jobflow is intended to be a friendly workflow software that is easy to get started with,
 but flexible enough to handle complicated use cases.
