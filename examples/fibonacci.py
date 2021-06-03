@@ -1,8 +1,14 @@
+"""A dynamic workflow that calculates the Fibonacci sequence."""
 from jobflow import Response, job, run_locally
 
 
 @job
-def fibonacci(smaller: int, larger: int, stop_point: int = 1000):
+def fibonacci(smaller, larger, stop_point=1000):
+    """Calculate the next number in the Fibonacci sequence.
+
+    If the number is larger than stop_point, the job will stop the workflow
+    execution, otherwise, a new job will be submitted to calculate the next number.
+    """
     total = smaller + larger
 
     if total > stop_point:
