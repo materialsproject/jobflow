@@ -3,7 +3,7 @@
 <a href="https://codecov.io/gh/hackingmaterials/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/hackingmaterials/jobflow"> </a>
 <a href="https://github.com/hackingmaterials/jobflow/actions?query=workflow%3ARun%20tests"><img alt="code coverage" src="https://img.shields.io/github/workflow/status/hackingmaterials/jobflow/Run%20tests"> </a>
 
-Jobflow is a free, open-source code for writing and executing workflows. Complex
+Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
 arbitrary computing resources using the [FireWorks][fireworks] workflow manager.
 
@@ -19,13 +19,14 @@ but flexible enough to handle complicated use cases.
 Some of its features include:
 
 - A clean and flexible Python API.
-- A powerful approach to compositing and connecting workflows – information passing
-  between jobs is a key goal of jobflow. Furthermore, workflows can be nested allowing
-  for a natural way to build complex workflows.
-- Integration with multiple databases (MongoDB, S3, GridFS) through the [Maggma][maggma] package.
+- A powerful approach to compositing and connecting workflows — information passing
+  between jobs is a key goal of jobflow. Workflows can be nested allowing for a natural
+  way to build complex workflows.
+- Integration with multiple databases (MongoDB, S3, GridFS, and more) through the
+  [Maggma][maggma] package.
 - Support for the [FireWorks][fireworks] workflow management system, allowing workflow execution on
   multicore machines or through a queue, on a single machine or multiple machines.
-- Support for dynamic workflows - workflows that modify themselves or create new ones
+- Support for dynamic workflows — workflows that modify themselves or create new ones
   based on what happens during execution.
 
 ## Workflow model
@@ -47,7 +48,7 @@ from jobflow import job, Flow
 
 
 @job
-def add(a: float, b: float):
+def add(a, b):
     return a + b
 
 
@@ -58,18 +59,18 @@ flow = Flow([add_first, add_second])
 flow.draw_graph().show()
 ```
 
-<p align="center">
-<img alt="simple flow graph" src="https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png" width=50% height=50%>
-</p>
-
-The output of the job can be accessed using the `output` attribute. If the job has not
-yet been run, `output` will be a reference to a future output. Outputs can be used
-as inputs to other jobs. They will be automatically "resolved" before the job is
+The output of the job is accessed using the `output` attribute. As the job has not
+yet been run, `output` contains be a reference to a future output. Outputs can be used
+as inputs to other jobs and will be automatically "resolved" before the job is
 executed.
 
-Finally, we can created a flow using the two `Job` objects. The connectivity between
+Finally, we created a flow using the two `Job` objects. The connectivity between
 the jobs is determined automatically (the order doesn't matter) and can be visualised
 using the flow graph.
+
+<p align="center">
+<img alt="simple flow graph" src="https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png" width="50%" height="50%">
+</p>
 
 ## Installation
 
