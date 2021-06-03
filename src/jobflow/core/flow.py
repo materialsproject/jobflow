@@ -168,7 +168,7 @@ class Flow(MSONable):
         if self.output is not None:
             if contains_flow_or_job(self.output):
                 warnings.warn(
-                    f"Flow '{self.name}' contains an Flow or Job as an output. "
+                    f"Flow '{self.name}' contains a Flow or Job as an output. "
                     f"Usually the Flow output should be the output of a Job or "
                     f"another Flow (e.g. job.output). If this message is "
                     f"unexpected then double check the outputs of your Flow."
@@ -264,9 +264,18 @@ class Flow(MSONable):
             The Job and the uuids of any parent jobs (not to be confused with the host
             flow).
         """
+        from networkx import is_directed_acyclic_graph
+
         from jobflow.utils.graph import itergraph
 
         graph = self.graph
+
+        if not is_directed_acyclic_graph(graph):
+            raise ValueError(
+                "Job connectivity contains cycles therefore job execution order "
+                "cannot be determined."
+            )
+
         for node in itergraph(graph):
             parents = [u for u, v in graph.in_edges(node)]
             job = graph.nodes[node]["job"]

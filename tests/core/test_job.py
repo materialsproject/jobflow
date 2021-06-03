@@ -5,6 +5,10 @@ def add(a, b=5):
     return a + b
 
 
+def bad_output():
+    return {1, 2, 3}
+
+
 def test_job_init():
     from jobflow.core.job import Job
 
@@ -103,6 +107,11 @@ def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
     # check the output can be resolved
     result = memory_data_jobstore.query_one({"uuid": test_job.uuid}, load=True)
     assert result["output"] == 3
+
+    # test non MSONable output
+    test_job = Job(bad_output)
+    with pytest.raises(RuntimeError):
+        test_job.run(memory_jobstore)
 
 
 def test_replace_response(memory_jobstore):

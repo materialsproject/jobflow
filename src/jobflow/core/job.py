@@ -530,11 +530,19 @@ class Job(MSONable):
             if response.replace is not None:
                 pass_manager_config(response.replace, self.config.manager_config)
 
+        try:
+            output = jsanitize(response.output, strict=True)
+        except AttributeError:
+            raise RuntimeError(
+                "Job output contained an object that is not MSONable and therefore "
+                "could not be serialized."
+            )
+
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
         data = {
             "uuid": self.uuid,
             "index": self.index,
-            "output": jsanitize(response.output, strict=True),
+            "output": output,
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
         }
