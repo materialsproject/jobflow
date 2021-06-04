@@ -450,7 +450,9 @@ class JobStore(Store):
             - `"first"`: Use the first job that ran.
             - `"all"`: Return all outputs, sorted with the lowest index first.
         load
-            The keys to load from the datastore.
+            Which items to load from additional stores. Setting to ``True`` will load
+            all items stored in additional stores. See the ``JobStore`` constructor for
+            more details.
 
         Returns
         -------
