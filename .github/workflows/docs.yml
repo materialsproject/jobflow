@@ -1,34 +1,23 @@
 name: docs
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [testing]
+    branches: [main]
+    types:
+      - completed
 
 jobs:
 
-  docs-build:
+  docs:
 
     runs-on: ubuntu-latest
 
+    # only run if commit is a push to master and the testing finished
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'}}
+
     steps:
       - uses: actions/checkout@v2
-
-      - name: wait on tests
-        uses: lewagon/wait-on-check-action@v0.2
-        with:
-          ref: ${{ github.ref }}
-          check-name: test
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 20
-
-      - name: wait on lint
-        uses: lewagon/wait-on-check-action@v0.2
-        with:
-          ref: ${{ github.ref }}
-          check-name: lint
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 20
 
       - name: Install pandoc
         run: sudo apt-get install pandoc
