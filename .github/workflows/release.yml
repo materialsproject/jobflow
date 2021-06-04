@@ -17,7 +17,7 @@ jobs:
       - name: wait on tests
         uses: lewagon/wait-on-check-action@v0.2
         with:
-          ref: main
+          ref: ${{ github.ref }}
           check-name: testing
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
@@ -25,7 +25,7 @@ jobs:
       - name: wait on docs
         uses: lewagon/wait-on-check-action@v0.2
         with:
-          ref: main
+          ref: ${{ github.ref }}
           check-name: docs
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
