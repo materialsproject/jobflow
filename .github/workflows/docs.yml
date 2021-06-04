@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # only run if commit is a push to master and the testing finished
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'}}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
     steps:
       - uses: actions/checkout@v2
