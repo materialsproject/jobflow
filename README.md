@@ -66,7 +66,7 @@ as inputs to other jobs and will be automatically "resolved" before the job is
 executed.
 
 Finally, we created a flow using the two `Job` objects. The connectivity between
-the jobs is determined automatically (the order doesn't matter) and can be visualised
+the jobs is determined automatically and can be visualised
 using the flow graph.
 
 <p align="center">
@@ -89,10 +89,6 @@ Later tutorials delve into the advanced features of jobflow.
 - [Five-minute quickstart tutorial][quickstart]
 - [Introduction to jobflow][introduction]
 - [Defining Jobs using jobflow][defining-jobs]
-- [Creating Flows][creating-flows]
-- [Dynamic and nested Flows][dynamic-flows]
-- [Configuring the jobflow database][jobflow-database]
-- [Running Flows with FireWorks][jobflow-fireworks]
 
 ## Need help?
 

@@ -61,6 +61,29 @@ napoleon_use_ivar = True
 # The suffix(es) of source filenames.
 source_suffix = [".rst", ".md"]
 
+# Config nbsphinx
+
+# Ensure env.metadata[env.docname]['nbsphinx-link-target'] points relative to repo root:
+nbsphinx_link_target_root = os.path.join(__file__, "..", "..")
+
+nbsphinx_prolog = r"""
+{% if env.metadata[env.docname]['nbsphinx-link-target'] %}
+{% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
+{% else %}
+{% set docpath = env.doc2path(env.docname, base='docs/source/') %}
+{% endif %}
+
+.. only:: html
+
+    .. role:: raw-html(raw)
+        :format: html
+
+    .. nbinfo::
+        This page is available as a Jupyter notebook: `{{ docpath }}`__.
+
+    __ https://github.com/hackingmaterials/jobflow/tree/main/{{ docpath }}"""
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for

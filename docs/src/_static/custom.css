@@ -63,3 +63,8 @@ h3 {
 div.nbinput div.prompt {
     display: none;
 }
+
+/* Hide nbsphinx prompt numbers */
+div.nboutput div.prompt {
+    display: none;
+}

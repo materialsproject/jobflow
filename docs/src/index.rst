@@ -7,14 +7,6 @@
    Tutorials <tutorials>
 
 .. toctree::
-   :caption: User Interface
-   :hidden:
-
-   Job <job>
-   Flow <flow>
-   Maker <maker>
-
-.. toctree::
    :caption: Information
    :hidden:
 
