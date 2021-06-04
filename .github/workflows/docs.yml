@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  docs:
+  docs-build:
 
     runs-on: ubuntu-latest
 
@@ -18,7 +18,15 @@ jobs:
         uses: lewagon/wait-on-check-action@v0.2
         with:
           ref: ${{ github.ref }}
-          check-name: testing
+          check-name: test
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 20
+
+      - name: wait on lint
+        uses: lewagon/wait-on-check-action@v0.2
+        with:
+          ref: ${{ github.ref }}
+          check-name: lint
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
 
