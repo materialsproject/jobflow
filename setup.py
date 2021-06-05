@@ -9,7 +9,7 @@ with open(module_dir / "README.md") as f:
 
 setup(
     name="jobflow",
-    description="",
+    description="jobflow is library for writing computational workflows",
     long_description=long_desc,
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
@@ -48,9 +48,9 @@ setup(
             "matplotlib==3.4.2",
             "pydot==1.4.2",
         ],
+        "dev": ["pre-commit>=2.12.1"],
         "vis": ["matplotlib", "pydot"],
         "fireworks": ["fireworks"],
-        "dev": ["pre-commit>=2.12.1"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
