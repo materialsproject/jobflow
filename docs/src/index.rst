@@ -18,11 +18,11 @@
 
 
 .. toctree::
-   :caption: Function Reference
+   :caption: Reference
    :maxdepth: -1
    :hidden:
 
-   API reference <jobflow>
+   API <jobflow>
    genindex
 
 ============

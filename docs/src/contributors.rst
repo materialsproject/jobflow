@@ -2,7 +2,7 @@ Contributors
 ============
 
 jobflow was designed and developed by **Alex Ganose** |utf| |0000-0002-4486-3321|.
-The project was led by **Anubhav Jain** |0000-0001-5893-9967| at Lawrence
+The project was led by **Anubhav Jain** |computron| |0000-0001-5893-9967| at Lawrence
 Berkeley National Laboratory.
 
 .. |computron| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
