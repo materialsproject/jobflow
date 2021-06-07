@@ -4,6 +4,12 @@ Change log
 [Unreleased]
 ------------
 
+Schema related fixes:
+
+- Better schema support for ``typing.Any``.
+- ``Schema`` no longer subclasses ``MSONable``. This improves the schema description
+  and fixes a number of bugs.
+
 v0.0.2
 ------
 
