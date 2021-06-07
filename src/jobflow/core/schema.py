@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import typing
 
-from monty.json import MSONable
 from pydantic import BaseModel, create_model
 
 if typing.TYPE_CHECKING:
@@ -33,6 +32,9 @@ def with_reference(atype: Type):
     from pydantic.typing import get_args
 
     from jobflow import OutputReference
+
+    if atype is typing.Any:
+        return atype
 
     args = tuple([with_reference(a) for a in get_args(atype)])
 
@@ -77,13 +79,17 @@ def allow_references(model: Type[BaseModel]):
     )
 
 
-class _BaseSchema(MSONable, BaseModel):
+class _BaseSchema(BaseModel):
     class Config:
         arbitrary_types_allowed = True
         extra = "allow"
 
     def as_dict(self):
         return self.dict()
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(**d)
 
 
 class Schema(_BaseSchema):

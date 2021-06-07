@@ -54,7 +54,7 @@ def test_creation():
 
 
 def test_creation_with_reference():
-    from typing import Dict, List, Tuple
+    from typing import Any, Dict, List, Tuple
 
     from pydantic import Field
 
@@ -102,3 +102,28 @@ def test_creation_with_reference():
     # test double nested list replacement with reference
     schema = MySchema(a=(1, 2, 4), b={"a": "5"}, c=["1", 2, 3, ["1", ref2]], d=1)
     assert schema.c == (1, "2", 3.0, [1, ref2])
+
+    # Test None in dict
+    class Test(Schema):
+        e: Dict[str, Any] = Field(None)
+
+    schema = Test(e={"a": None})
+    assert schema.e == {"a": None}
+
+    # Pydantic is broken with union and Any, keeping this here in case I run into this
+    # bug again
+
+    # from pydantic import BaseModel
+    #
+    # class Test(BaseModel):
+    #     e: Dict[Union[int, str], Union[str, Any]] = Field(None)
+    #
+    #     class Config:
+    #         arbitrary_types_allowed = True
+    #         extra = "allow"
+    #
+    #     def as_dict(self):
+    #         return self.dict()
+    #
+    # schema = Test(e={'a': None})
+    # assert schema.e == {"a": None}
