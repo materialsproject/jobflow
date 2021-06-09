@@ -33,14 +33,6 @@ jobflow.core.reference
    :show-inheritance:
    :exclude-members: uuid, attributes, output_schema
 
-jobflow.core.schema
--------------------
-
-.. automodule:: jobflow.core.schema
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 jobflow.core.state
 ------------------
 
