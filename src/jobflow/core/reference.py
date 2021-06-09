@@ -11,6 +11,8 @@ from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
 
+    from pydantic import BaseModel
+
     import jobflow
 
 __all__ = [
@@ -64,9 +66,9 @@ class OutputReference(MSONable):
         output. Attributes are specified by a tuple of ``("a", attr)``, whereas
         indexes are specified as a tuple of ``("i", index)``.
     output_schema
-        An output schema for the output that will be used to validate any attribute
-        accesses or indexes. Note, schemas can only be used to validate the first
-        attribute/index access.
+        A pydantic model that defines the schema of the output and that will be used to
+        validate any attribute accesses or indexes. Note, schemas can only be used to
+        validate the first attribute/index access.
 
     Examples
     --------
@@ -92,7 +94,7 @@ class OutputReference(MSONable):
         self,
         uuid: str,
         attributes: Tuple[Tuple[str, Any], ...] = tuple(),
-        output_schema: Optional[Any] = None,
+        output_schema: Optional[Type[BaseModel]] = None,
     ):
         super().__init__()
         self.uuid = uuid
@@ -458,14 +460,14 @@ def find_and_resolve_references(
     return MontyDecoder().process_decoded(encoded_arg)
 
 
-def validate_schema_access(schema: Type[jobflow.Schema], item: str):
+def validate_schema_access(schema: Type[BaseModel], item: str):
     """
-    Validate that an attribute or index access is supported by a Schema.
+    Validate that an attribute or index access is supported by a model.
 
     Parameters
     ----------
     schema
-        A schema class.
+        A pydantic model to use as the schema.
     item
         An attribute or key to access.
 

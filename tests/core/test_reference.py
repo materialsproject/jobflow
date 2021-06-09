@@ -149,9 +149,11 @@ def test_set_uuid():
 
 
 def test_schema():
-    from jobflow import OutputReference, Schema
+    from pydantic import BaseModel
 
-    class MySchema(Schema):
+    from jobflow import OutputReference
+
+    class MySchema(BaseModel):
         number: int
         name: str
 

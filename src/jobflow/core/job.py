@@ -27,6 +27,7 @@ if typing.TYPE_CHECKING:
     )
 
     from networkx import DiGraph
+    from pydantic import BaseModel
 
     import jobflow
 
@@ -242,7 +243,7 @@ class Job(MSONable):
     function_kwargs
         The keyword arguments to the function call.
     output_schema
-        A :obj:`Schema` object that defines the schema of the output.
+        A pydantic model that defines the schema of the output.
     uuid
         A unique identifier for the job. Generated automatically.
     index
@@ -305,7 +306,7 @@ class Job(MSONable):
         function: Callable,
         function_args: Tuple[Any, ...] = None,
         function_kwargs: Dict[str, Any] = None,
-        output_schema: Optional[Type[jobflow.Schema]] = None,
+        output_schema: Optional[Type[BaseModel]] = None,
         uuid: str = None,
         index: int = 1,
         name: Optional[str] = None,
@@ -790,7 +791,7 @@ class Response:
     def from_job_returns(
         cls,
         job_returns: Optional[Any],
-        output_schema: Optional[Type[jobflow.Schema]] = None,
+        output_schema: Optional[Type[BaseModel]] = None,
     ) -> Response:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
@@ -802,9 +803,8 @@ class Response:
             will be applied to the response outputs and the response returned.
             Otherwise, the ``job_returns`` will be put into the ``outputs`` of a new
             :obj:`Response` object.
-
         output_schema
-            The outputs class associated with the job. Used to enforce a schema for the
+            A pydantic model associated with the job. Used to enforce a schema for the
             outputs.
 
         Raises
@@ -835,7 +835,7 @@ class Response:
         return cls(output=apply_schema(job_returns, output_schema))
 
 
-def apply_schema(output: Any, schema: Optional[Type[jobflow.Schema]]):
+def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
     """
     Apply schema to job outputs.
 
@@ -844,7 +844,7 @@ def apply_schema(output: Any, schema: Optional[Type[jobflow.Schema]]):
     output
         The job outputs.
     schema
-        The schema to apply.
+        A pydantic model that defines the schema to apply.
 
     Raises
     ------
@@ -855,17 +855,10 @@ def apply_schema(output: Any, schema: Optional[Type[jobflow.Schema]]):
 
     Returns
     -------
-    Schema or Any
+    BaseModel or Any
         Returns an instance of the schema if the schema is set or the original output.
     """
-    from pydantic import BaseModel
-
-    # comparing schema instance is surprisingly fickle.
-    if schema is None or (
-        isinstance(output, BaseModel)
-        and output.__class__.__name__ == schema.__name__
-        and output.__module__ == schema.__module__
-    ):
+    if schema is None or isinstance(output, schema):
         return output
 
     if output is None:

@@ -5,7 +5,6 @@ from jobflow.core.flow import Flow, JobOrder
 from jobflow.core.job import Job, JobConfig, Response, job
 from jobflow.core.maker import Maker
 from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.core.schema import Schema
 from jobflow.core.state import CURRENT_JOB
 from jobflow.core.store import JobStore
 from jobflow.managers.local import run_locally

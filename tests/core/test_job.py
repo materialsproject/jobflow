@@ -448,7 +448,8 @@ def test_job_decorator():
 def test_response():
     # no need to test init as it is just a dataclass, instead test from_job_returns
     # test no job returns
-    from jobflow import Schema
+    from pydantic import BaseModel
+
     from jobflow.core.job import Response
 
     response = Response.from_job_returns(None)
@@ -480,7 +481,7 @@ def test_response():
         Response.from_job_returns([response_original, 5])
 
     # test schema
-    class MySchema(Schema):
+    class MySchema(BaseModel):
         number: int
         name: str
 
@@ -744,9 +745,11 @@ def test_update_maker_kwargs():
 
 
 def test_output_schema(memory_jobstore):
-    from jobflow import Job, Response, Schema, job
+    from pydantic import BaseModel
 
-    class AddSchema(Schema):
+    from jobflow import Job, Response, job
+
+    class AddSchema(BaseModel):
         result: int
 
     @job(output_schema=AddSchema)
