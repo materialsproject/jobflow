@@ -68,7 +68,7 @@ def clean_dir():
 
 @pytest.fixture(scope="session")
 def debug_mode():
-    return True
+    return False
 
 
 @pytest.fixture(scope="session")

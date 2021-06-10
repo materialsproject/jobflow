@@ -534,7 +534,7 @@ class Job(MSONable):
                 pass_manager_config(response.replace, self.config.manager_config)
 
         try:
-            output = jsanitize(response.output, strict=True)
+            output = jsanitize(response.output, strict=True, allow_bson=True)
         except AttributeError:
             raise RuntimeError(
                 "Job output contained an object that is not MSONable and therefore "

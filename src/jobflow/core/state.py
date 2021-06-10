@@ -32,4 +32,4 @@ class State:
         self.store = None
 
 
-CURRENT_JOB = State()
+CURRENT_JOB: State = State()
