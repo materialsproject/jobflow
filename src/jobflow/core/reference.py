@@ -379,7 +379,7 @@ def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
         # argument is a primitive, we won't find a reference here
         return tuple()
 
-    arg = jsanitize(arg, strict=True)
+    arg = jsanitize(arg, strict=True, enum_values=True)
 
     # recursively find any reference classes
     locations = find_key_value(arg, "@class", "OutputReference")
@@ -432,7 +432,7 @@ def find_and_resolve_references(
         return arg
 
     # serialize the argument to a dictionary
-    encoded_arg = jsanitize(arg, strict=True)
+    encoded_arg = jsanitize(arg, strict=True, enum_values=True)
 
     # recursively find any reference classes
     locations = find_key_value(encoded_arg, "@class", "OutputReference")
