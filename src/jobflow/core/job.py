@@ -584,13 +584,13 @@ class Job(MSONable):
         cache: Dict[str, Any] = {}
         resolved_args = find_and_resolve_references(
             self.function_args,
-            store=store,
+            store,
             cache=cache,
             on_missing=self.config.on_missing_references,
         )
         resolved_kwargs = find_and_resolve_references(
             self.function_kwargs,
-            store=store,
+            store,
             cache=cache,
             on_missing=self.config.on_missing_references,
         )
