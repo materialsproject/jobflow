@@ -28,7 +28,7 @@ repos:
     additional_dependencies: [black==21.5b0]
     exclude: README.md
 - repo: https://github.com/pycqa/isort
-  rev: 5.9.1
+  rev: 5.9.2
   hooks:
   - id: isort
     name: isort (python)
