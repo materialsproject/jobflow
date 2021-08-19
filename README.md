@@ -66,8 +66,7 @@ as inputs to other jobs and will be automatically "resolved" before the job is
 executed.
 
 Finally, we created a flow using the two `Job` objects. The connectivity between
-the jobs is determined automatically and can be visualised
-using the flow graph.
+the jobs is determined automatically and can be visualised using the flow graph.
 
 <p align="center">
 <img alt="simple flow graph" src="https://raw.githubusercontent.com/materialsproject/jobflow/main/docs/src/_static/img/simple_flow.png" width="30%" height="30%">
