@@ -14,7 +14,7 @@ setup(
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     long_description_content_type="text/markdown",
-    url="https://github.com/hackingmaterials/jobflow",
+    url="https://materialsproject.github.io/jobflow",
     author="Alex Ganose",
     author_email="alexganose@googlemail.com",
     license="modified BSD",
