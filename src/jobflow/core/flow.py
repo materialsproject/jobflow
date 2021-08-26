@@ -140,16 +140,6 @@ class Flow(MSONable):
         self.uuid = uuid
         self.host = host
 
-        # ensure that we have all the jobs needed to resolve the reference connections
-        job_references = find_and_get_references(self.jobs)
-        job_reference_uuids = {ref.uuid for ref in job_references}
-        missing_jobs = job_reference_uuids.difference(set(self.job_uuids))
-        if len(missing_jobs) > 0:
-            raise ValueError(
-                "The following jobs were not found in the jobs array and are needed to "
-                f"resolve output references:\n{list(missing_jobs)}"
-            )
-
         job_ids = set()
         for job in self.jobs:
             if job.host is not None and job.host != self.uuid:

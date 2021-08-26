@@ -42,14 +42,12 @@ def flow_to_workflow(
     """
     from fireworks.core.firework import Firework, Workflow
 
-    from jobflow.core.flow import Flow
+    from jobflow.managers.utils import get_flow
 
     parent_mapping: Dict[str, Firework] = {}
     fireworks = []
 
-    if not isinstance(flow, Flow):
-        # a list of jobs has been provided; make dummy flow to contain them
-        flow = Flow(jobs=flow)
+    flow = get_flow(flow)
 
     for job, parents in flow.iterflow():
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
