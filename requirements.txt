@@ -1,5 +1,6 @@
 monty==2021.6.10
 networkx==2.5.1
 pydash==5.0.0
-maggma==0.26.0
+maggma==0.31.0
 pydantic==1.8.2
+PyYAML==5.4.1

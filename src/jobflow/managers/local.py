@@ -49,7 +49,8 @@ def run_locally(
     from maggma.stores import MemoryStore
     from monty.os import cd
 
-    from jobflow import Flow, Job, JobStore, initialize_logger
+    from jobflow import Job, JobStore, initialize_logger
+    from jobflow.core.flow import get_flow
     from jobflow.core.reference import OnMissing
 
     if store is None:
@@ -62,8 +63,7 @@ def run_locally(
     if log:
         initialize_logger()
 
-    if not isinstance(flow, Flow):
-        flow = Flow(jobs=flow)
+    flow = get_flow(flow)
 
     stopped_parents: Set[str] = set()
     fizzled: Set[str] = set()

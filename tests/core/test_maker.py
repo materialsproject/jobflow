@@ -64,6 +64,24 @@ def test_flow_maker():
     assert add_job.name == "add"
     assert len(add_job.jobs) == 2
 
+    @dataclass
+    class DoubleAddMaker(Maker):
+        name: str = "add_add"
+        add1: AddMaker = AddMaker()
+        add2: AddMaker = AddMaker()
+
+        def make(self, a, b):
+            first = self.add1.make(a, b)
+            second = self.add2.make(first.output, b)
+            return Flow([first, second], second.output, name=self.name)
+
+    maker = DoubleAddMaker()
+    double_add_flow = maker.make(1, 2)
+    assert double_add_flow.name == "add_add"
+    assert len(double_add_flow.jobs) == 2
+    assert isinstance(double_add_flow.jobs[0], Flow)
+    assert isinstance(double_add_flow.jobs[1], Flow)
+
 
 def test_update_kwargs():
     from dataclasses import dataclass
