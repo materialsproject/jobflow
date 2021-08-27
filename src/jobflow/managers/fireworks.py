@@ -42,7 +42,7 @@ def flow_to_workflow(
     """
     from fireworks.core.firework import Firework, Workflow
 
-    from jobflow.managers.utils import get_flow
+    from jobflow.core.flow import get_flow
 
     parent_mapping: Dict[str, Firework] = {}
     fireworks = []

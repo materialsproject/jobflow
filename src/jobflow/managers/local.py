@@ -50,8 +50,8 @@ def run_locally(
     from monty.os import cd
 
     from jobflow import Job, JobStore, initialize_logger
+    from jobflow.core.flow import get_flow
     from jobflow.core.reference import OnMissing
-    from jobflow.managers.utils import get_flow
 
     if store is None:
         jobstore = JobStore(MemoryStore())
