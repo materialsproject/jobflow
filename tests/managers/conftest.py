@@ -115,6 +115,25 @@ def replace_job(simple_job):
 
 
 @pytest.fixture(scope="session")
+def replace_job_with_flow(simple_job):
+    from jobflow import Flow, Response, job
+
+    global replace_func_flow
+
+    @job
+    def replace_func_flow(a, b):
+        first_job = simple_job(str(a + b))
+        second_job = simple_job(str(a + b) + first_job.output)
+        flow = Flow(
+            [first_job, second_job],
+            {"first": first_job.output, "second": second_job.output},
+        )
+        return Response(output=a + b, replace=flow)
+
+    return replace_func
+
+
+@pytest.fixture(scope="session")
 def replace_flow(replace_job, simple_job):
     from jobflow import Flow, JobOrder
 

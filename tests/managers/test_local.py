@@ -184,7 +184,7 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
     assert len(responses[uuid1]) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].replace is not None
-    assert responses[uuid1][2].output == "11_end"
+    assert responses[uuid1][2].output == {"a": "11_end"}
     assert responses[uuid2][1].output == "12345_end"
 
     # check store has the activity output
@@ -193,7 +193,7 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
     result3 = memory_jobstore.query_one({"uuid": uuid2, "index": 1})
 
     assert result1["output"] == 11
-    assert result2["output"] == "11_end"
+    assert result2["output"] == {"a": "11_end"}
     assert result3["output"] == "12345_end"
 
     # assert job2 (replaced job) ran before job3
