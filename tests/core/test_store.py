@@ -322,14 +322,14 @@ def test_from_db_file(test_data):
     ms.connect()
     data_store = ms.additional_stores["data"]
     assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
-    assert data_store.name == "gridfs://localhost/jobflow_unittest/outputs_blobs"
+    assert data_store.name() == "gridfs://localhost/jobflow_unittest/outputs_blobs"
 
     # test serialized
     ms = JobStore.from_file(test_data / "db_serialized.json")
     ms.connect()
     data_store = ms.additional_stores["data"]
     assert ms.docs_store.name == "mongo://localhost/jobflow_unittest/outputs"
-    assert data_store.name == "gridfs://localhost/jobflow_unittest/outputs_blobs"
+    assert data_store.name() == "gridfs://localhost/jobflow_unittest/outputs_blobs"
 
     # test bad file
     with pytest.raises(ValueError):
