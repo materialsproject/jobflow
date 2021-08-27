@@ -428,8 +428,8 @@ class Flow(MSONable):
 
 
 def get_flow(
-    flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
-) -> jobflow.Flow:
+    flow: Union[Flow, jobflow.Job, List[jobflow.Job]],
+) -> Flow:
     """
     Check dependencies and return flow object.
 
@@ -443,8 +443,8 @@ def get_flow(
     Flow
         A :obj:`Flow` object where connections have been checked.
     """
-    if not isinstance(flow, jobflow.Flow):
-        flow = jobflow.Flow(jobs=flow)
+    if not isinstance(flow, Flow):
+        flow = Flow(jobs=flow)
 
     # ensure that we have all the jobs needed to resolve the reference connections
     job_references = find_and_get_references(flow.jobs)
