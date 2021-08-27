@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath("../../"))
 # -- Project information -----------------------------------------------------
 
 project = "jobflow"
-copyright = "2021, hackingmaterials"
+copyright = "2021, materialsproject"
 author = "Alex Ganose"
 
 # The short X.Y version
@@ -81,7 +81,7 @@ nbsphinx_prolog = r"""
     .. nbinfo::
         This page is available as a Jupyter notebook: `{{ docpath }}`__.
 
-    __ https://github.com/hackingmaterials/jobflow/tree/main/{{ docpath }}"""
+    __ https://github.com/materialsproject/jobflow/tree/main/{{ docpath }}"""
 
 
 # -- Options for HTML output -------------------------------------------------

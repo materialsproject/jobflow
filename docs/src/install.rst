@@ -24,9 +24,9 @@ Install from source
 -------------------
 
 To install jobflow from source, clone the repository from `github
-<https://github.com/hackingmaterials/jobflow>`_::
+<https://github.com/materialsproject/jobflow>`_::
 
-    git clone https://github.com/hackingmaterials/jobflow.git
+    git clone https://github.com/materialsproject/jobflow.git
     cd jobflow
     pip install .
 

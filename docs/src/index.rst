@@ -14,7 +14,7 @@
    contributors
    contributing
    license
-   jobflow on GitHub <https://github.com/hackingmaterials/jobflow>
+   jobflow on GitHub <https://github.com/materialsproject/jobflow>
 
 
 .. toctree::

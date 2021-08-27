@@ -1,7 +1,7 @@
 # jobflow
 
-<a href="https://github.com/hackingmaterials/jobflow/actions?query=workflow%3Atesting"><img alt="code coverage" src="https://img.shields.io/github/workflow/status/hackingmaterials/jobflow/testing?label=tests"></a>
-<a href="https://codecov.io/gh/hackingmaterials/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/hackingmaterials/jobflow"></a>
+<a href="https://github.com/materialsproject/jobflow/actions?query=workflow%3Atesting"><img alt="code coverage" src="https://img.shields.io/github/workflow/status/materialsproject/jobflow/testing?label=tests"></a>
+<a href="https://codecov.io/gh/materialsproject/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/materialsproject/jobflow"></a>
 <a href="https://pypi.org/project/jobflow"><img alt="pypi version" src="https://img.shields.io/pypi/v/jobflow?color=blue"></a>
 <img alt="supported python versions" src="https://img.shields.io/pypi/pyversions/jobflow">
 
@@ -66,11 +66,10 @@ as inputs to other jobs and will be automatically "resolved" before the job is
 executed.
 
 Finally, we created a flow using the two `Job` objects. The connectivity between
-the jobs is determined automatically and can be visualised
-using the flow graph.
+the jobs is determined automatically and can be visualised using the flow graph.
 
 <p align="center">
-<img alt="simple flow graph" src="https://raw.githubusercontent.com/hackingmaterials/jobflow/main/docs/src/_static/img/simple_flow.png" width="30%" height="30%">
+<img alt="simple flow graph" src="https://raw.githubusercontent.com/materialsproject/jobflow/main/docs/src/_static/img/simple_flow.png" width="30%" height="30%">
 </p>
 
 ## Installation
@@ -116,15 +115,15 @@ Jobflow was designed and developed by Alex Ganose while in the group of Anubhav 
 [maggma]: https://materialsproject.github.io/maggma/
 [fireworks]: https://materialsproject.github.io/fireworks/
 [help-forum]: https://matsci.org/c/fireworks
-[issues]: https://github.com/hackingmaterials/jobflow/issues
-[changelog]: https://hackingmaterials.lbl.gov/jobflow/changelog.html
-[contributing]: https://hackingmaterials.lbl.gov/jobflow/contributing.html
-[contributors]: https://hackingmaterials.lbl.gov/jobflow/contributors.html
-[license]: https://raw.githubusercontent.com/hackingmaterials/jobflow/main/LICENSE
-[quickstart]: https://hackingmaterials.lbl.gov/jobflow/tutorials/1-quickstart.html
-[introduction]: https://hackingmaterials.lbl.gov/jobflow/tutorials/2-introduction.html
-[defining-jobs]: https://hackingmaterials.lbl.gov/jobflow/tutorials/3-defining-jobs.html
-[creating-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/4-creating-flows.html
-[dynamic-flows]: https://hackingmaterials.lbl.gov/jobflow/tutorials/5-dynamic-flows.html
-[jobflow-database]: https://hackingmaterials.lbl.gov/jobflow/tutorials/6-jobflow-database.html
-[jobflow-fireworks]: https://hackingmaterials.lbl.gov/jobflow/tutorials/7-fireworks.html
+[issues]: https://github.com/materialsproject/jobflow/issues
+[changelog]: https://materialsproject.github.io/jobflow/changelog.html
+[contributing]: https://materialsproject.github.io/jobflow/contributing.html
+[contributors]: https://materialsproject.github.io/jobflow/contributors.html
+[license]: https://raw.githubusercontent.com/materialsproject/jobflow/main/LICENSE
+[quickstart]: https://materialsproject.github.io/jobflow/tutorials/1-quickstart.html
+[introduction]: https://materialsproject.github.io/jobflow/tutorials/2-introduction.html
+[defining-jobs]: https://materialsproject.github.io/jobflow/tutorials/3-defining-jobs.html
+[creating-flows]: https://materialsproject.github.io/jobflow/tutorials/4-creating-flows.html
+[dynamic-flows]: https://materialsproject.github.io/jobflow/tutorials/5-dynamic-flows.html
+[jobflow-database]: https://materialsproject.github.io/jobflow/tutorials/6-jobflow-database.html
+[jobflow-fireworks]: https://materialsproject.github.io/jobflow/tutorials/7-fireworks.html
