@@ -236,7 +236,7 @@ class Flow(MSONable):
         Returns
         -------
         pyplot
-            The matplotlib pyplot state.
+            The matplotlib pyplot state object.
         kwargs
             keyword arguments that are passed to :obj:`jobflow.utils.graph.draw_graph`.
         """
