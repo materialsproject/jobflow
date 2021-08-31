@@ -316,12 +316,6 @@ def test_get_output(memory_jobstore):
     with pytest.raises(ValueError):
         memory_jobstore.get_output(1, which="all")
 
-    # test catching circular reference
-    r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "5"}
-    memory_jobstore.update({"uuid": "5", "index": 1, "output": r})
-    with pytest.raises(RuntimeError):
-        memory_jobstore.get_output("5")
-
     # test resolving reference in output of job
     r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "10"}
     docs = [
@@ -341,6 +335,17 @@ def test_get_output(memory_jobstore):
 
     assert memory_jobstore.get_output("8", on_missing=OnMissing.NONE) is None
     assert memory_jobstore.get_output("8", on_missing=OnMissing.PASS).uuid == r["uuid"]
+
+    # test catching circular reference
+    r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "5"}
+    memory_jobstore.update({"uuid": "5", "index": 1, "output": r})
+    with pytest.raises(RuntimeError):
+        memory_jobstore.get_output("5")
+
+    r1 = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "5"}
+    memory_jobstore.update({"uuid": "5", "index": 1, "output": [r1, 123]})
+    with pytest.raises(RuntimeError):
+        memory_jobstore.get_output("5")
 
 
 def test_from_db_file(test_data):
