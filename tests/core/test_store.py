@@ -343,9 +343,10 @@ def test_get_output(memory_jobstore):
         memory_jobstore.get_output("5")
 
     r1 = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "5"}
-    memory_jobstore.update({"uuid": "5", "index": 1, "output": [r1, 123]})
+    memory_jobstore.update({"uuid": "5", "index": 1, "output": r1})
+    memory_jobstore.update({"uuid": "5", "index": 2, "output": r1})
     with pytest.raises(RuntimeError):
-        memory_jobstore.get_output("5")
+        memory_jobstore.get_output("5", which="all")
 
 
 def test_from_db_file(test_data):
