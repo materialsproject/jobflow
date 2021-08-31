@@ -13,6 +13,30 @@ def test_bad_subclass():
     with pytest.raises(NotImplementedError):
         BadMaker().make()
 
+    @dataclass
+    class BadMaker(Maker):
+
+        a = 1
+
+    with pytest.raises(NotImplementedError):
+        BadMaker().name()
+
+
+def test_required_arguments_works():
+    from dataclasses import dataclass
+
+    @dataclass
+    class MyMaker:
+
+        a: int
+        name = "123"
+
+    m = MyMaker(1)
+    assert m.a == 1
+
+    with pytest.raises(TypeError):
+        MyMaker()
+
 
 def test_job_maker():
     from dataclasses import dataclass
