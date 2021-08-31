@@ -534,7 +534,7 @@ class Job(MSONable):
                 pass_manager_config(response.replace, self.config.manager_config)
 
         try:
-            output = jsanitize(response.output, strict=True, allow_bson=True)
+            output = jsanitize(response.output, strict=True, enum_values=True)
         except AttributeError:
             raise RuntimeError(
                 "Job output contained an object that is not MSONable and therefore "
@@ -584,13 +584,13 @@ class Job(MSONable):
         cache: Dict[str, Any] = {}
         resolved_args = find_and_resolve_references(
             self.function_args,
-            store=store,
+            store,
             cache=cache,
             on_missing=self.config.on_missing_references,
         )
         resolved_kwargs = find_and_resolve_references(
             self.function_kwargs,
-            store=store,
+            store,
             cache=cache,
             on_missing=self.config.on_missing_references,
         )

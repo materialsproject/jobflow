@@ -1,14 +1,24 @@
 Change log
 ==========
 
-[Unreleased]
-------------
+v0.1.0
+------
 
-Schema related fixes:
+Major changes:
+- ``Schema`` class removed. Any pydantic model can now be an output schema.
 
-- Better schema support for ``typing.Any``.
-- ``Schema`` no longer subclasses ``MSONable``. This improves the schema description
-  and fixes a number of bugs.
+Enhancements:
+
+- ``JobStore.get_output`` now resolves references in the output of other jobs.
+- ``JobStore.get_output``: ``which`` now supports specifying a specific job index.
+- Better support for circular and missing references in ``JobStore.get_output`` and
+  ``OutputReference.resolve``.
+- Update dependencies to use latest jsanitize features.
+
+Bug fixes:
+- Fixed issue with references in flow of flows (@davidwaroquiers, #18).
+- Makes now allows non-default parameters (fixes: #13).
+- Fix reference cache with multiple indexes.
 
 v0.0.2
 ------

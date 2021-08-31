@@ -109,7 +109,7 @@ class OutputReference(MSONable):
 
     def resolve(
         self,
-        store: Optional[jobflow.JobStore] = None,
+        store: Optional[jobflow.JobStore],
         cache: Optional[Dict[str, Any]] = None,
         on_missing: OnMissing = OnMissing.ERROR,
     ) -> Any:
@@ -118,6 +118,11 @@ class OutputReference(MSONable):
 
         This function will query the job store for the reference value and perform any
         attribute accesses/indexing.
+
+        .. Note::
+            When resolving multiple references simultaneously it is more efficient to
+            use :obj:`.resolve_references` as it will minimize the number of database
+            requests.
 
         Parameters
         ----------
@@ -141,45 +146,41 @@ class OutputReference(MSONable):
             The resolved reference if it can be found. If the reference cannot be found,
             the returned value will depend on the value of ``on_missing``.
         """
-        # when resolving multiple references simultaneously it is more efficient
-        # to use resolve_references as it will minimize the number of database requests
-        if store is None and cache is None and on_missing == OnMissing.ERROR:
-            raise ValueError("At least one of store and cache must be set.")
-
         if cache is None:
             cache = {}
 
-        if store and self.uuid not in cache:
+        if self.uuid not in cache:
+            cache[self.uuid] = {}
+
+        # get the latest index for the output
+        result = store.query_one({"uuid": self.uuid}, ["index"], sort={"index": -1})
+        index = None if result is None else result["index"]
+
+        if index is not None and index not in cache[self.uuid]:
             try:
-                cache[self.uuid] = store.get_output(self.uuid, which="last", load=True)
+                cache[self.uuid][index] = store.get_output(
+                    self.uuid, which="last", load=True, on_missing=on_missing
+                )
             except ValueError:
                 pass
 
-        if on_missing == OnMissing.ERROR and self.uuid not in cache:
+        if on_missing == OnMissing.ERROR and index not in cache[self.uuid]:
+            istr = f" ({index})" if index is not None else ""
             raise ValueError(
-                f"Could not resolve reference - {self.uuid} not in store or cache"
+                f"Could not resolve reference - {self.uuid}{istr} not in store or cache"
             )
+        elif on_missing == OnMissing.NONE and index not in cache[self.uuid]:
+            return None
+        elif on_missing == OnMissing.PASS and index not in cache[self.uuid]:
+            return self
 
-        try:
-            data = cache[self.uuid]
-        except KeyError:
-            # if we get to here, that means the reference cannot be resolved
-            if on_missing == OnMissing.NONE:
-                return None
-            else:
-                # only other option is OnMissing.PASS
-                return self
-
-        # resolve nested references
-        data = find_and_resolve_references(
-            data, store=store, cache=cache, on_missing=on_missing
-        )
+        data = cache[self.uuid][index]
 
         # decode objects before attribute access
         data = MontyDecoder().process_decoded(data)
 
         # re-cache data in case other references need it
-        cache[self.uuid] = data
+        cache[self.uuid][index] = data
 
         for attr_type, attr in self.attributes:
             if attr_type == "i":
@@ -303,7 +304,7 @@ class OutputReference(MSONable):
 
 def resolve_references(
     references: Sequence[OutputReference],
-    store: Optional[jobflow.JobStore] = None,
+    store: jobflow.JobStore,
     cache: Optional[Dict[str, Any]] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Dict[OutputReference, Any]:
@@ -336,15 +337,21 @@ def resolve_references(
         cache = {}
 
     for uuid, ref_group in groupby(references, key=lambda x: x.uuid):
-        if uuid not in cache and store is not None:
-            try:
-                cache[uuid] = store.get_output(uuid, load=True)
-            except ValueError:
-                pass
+        # get latest index
+        result = store.query_one({"uuid": uuid}, ["index"], sort={"index": -1})
+        index = None if result is None else result["index"]
+
+        if uuid not in cache:
+            cache[uuid] = {}
+
+        if index is not None and index not in cache[uuid]:
+            cache[uuid][index] = store.get_output(
+                uuid, load=True, on_missing=on_missing
+            )
 
         for ref in ref_group:
             resolved_references[ref] = ref.resolve(
-                store=store, cache=cache, on_missing=on_missing
+                store, cache=cache, on_missing=on_missing
             )
 
     return resolved_references
@@ -379,7 +386,7 @@ def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
         # argument is a primitive, we won't find a reference here
         return tuple()
 
-    arg = jsanitize(arg, strict=True)
+    arg = jsanitize(arg, strict=True, enum_values=True)
 
     # recursively find any reference classes
     locations = find_key_value(arg, "@class", "OutputReference")
@@ -390,7 +397,7 @@ def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
 
 def find_and_resolve_references(
     arg: Any,
-    store: Optional[jobflow.JobStore] = None,
+    store: jobflow.JobStore,
     cache: Optional[Dict[str, Any]] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Any:
@@ -423,16 +430,20 @@ def find_and_resolve_references(
 
     from jobflow.utils.find import find_key_value
 
+    if isinstance(arg, dict) and arg.get("@class") == "OutputReference":
+        # if arg is a deserialized reference, serialize it
+        arg = OutputReference.from_dict(arg)
+
     if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
-        return arg.resolve(store=store, cache=cache, on_missing=on_missing)
+        return arg.resolve(store, cache=cache, on_missing=on_missing)
 
     elif isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
         return arg
 
     # serialize the argument to a dictionary
-    encoded_arg = jsanitize(arg, strict=True)
+    encoded_arg = jsanitize(arg, strict=True, enum_values=True)
 
     # recursively find any reference classes
     locations = find_key_value(encoded_arg, "@class", "OutputReference")
@@ -445,14 +456,15 @@ def find_and_resolve_references(
         OutputReference.from_dict(get(encoded_arg, list(loc))) for loc in locations
     ]
     resolved_references = resolve_references(
-        references,
-        store=store,
-        cache=cache,
-        on_missing=on_missing,
+        references, store, cache=cache, on_missing=on_missing
     )
 
     # replace the references in the arg dict
     for location, reference in zip(locations, references):
+        # skip references that have not been resolved, e.g., on missing is PASS
+        if reference == resolved_references[reference]:
+            continue
+
         resolved_reference = resolved_references[reference]
         set_(encoded_arg, list(location), resolved_reference)
 

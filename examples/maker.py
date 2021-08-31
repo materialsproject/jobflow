@@ -5,7 +5,7 @@ from jobflow import Flow, Maker, job, run_locally
 
 @dataclass
 class AddMaker(Maker):
-    name: str = "Add"
+    name: str = "add"
     c: int = 10
 
     @job

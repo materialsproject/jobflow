@@ -20,13 +20,9 @@ class Maker(MSONable):
     """
     Base maker (factory) class for constructing :obj:`Job` and :obj:`Flow` objects.
 
-    Note, this class is only an abstract implementation. To create a functioning Maker
-    subclass :obj:`Maker` and define the ``make`` method. See examples below.
-
-    Parameters
-    ----------
-    name
-        The name of jobs or flows created from this maker.
+    Note, this class is only an abstract implementation. To create a functioning Maker,
+    one should  subclass :obj:`Maker`, define the ``make`` method and add a name field
+    with a default value. See examples below.
 
     See Also
     --------
@@ -35,7 +31,9 @@ class Maker(MSONable):
     Examples
     --------
     Below we define a simple maker that generates a job to add two numbers. Next, we
-    make a job using the maker.
+    make a job using the maker. When creating a new maker it is essential to: 1)
+    Add a name field with a default value (this controls the name of jobs produced
+    by the maker) and 2) override the ``make`` method with a concrete implementation.
 
     >>> from dataclasses import dataclass
     >>> from jobflow import Maker, job
@@ -83,6 +81,7 @@ class Maker(MSONable):
     >>> from jobflow import Response
     >>> @dataclass
     ... class SquareThenAddMaker(Maker):
+    ...     name: str = "square then add"
     ...     add_maker: Maker = AddMaker()
     ...
     ...     @job
@@ -110,6 +109,7 @@ class Maker(MSONable):
     >>> from jobflow import Flow
     >>> @dataclass
     ... class DoubleAddMaker(Maker):
+    ...     name: str = "double add"
     ...     add_maker: Maker = AddMaker()
     ...
     ...     def make(self, a, b):
@@ -120,10 +120,13 @@ class Maker(MSONable):
     >>> double_add_job = maker.make(1, 2)
     """
 
-    name: str = "Maker"
-
     def make(self, *args, **kwargs) -> Union[jobflow.Flow, jobflow.Job]:
         """Make a job or a flow - must be overridden with a concrete implementation."""
+        raise NotImplementedError
+
+    @property
+    def name(self):
+        """Name of the Maker - must be overridden with a dataclass field."""
         raise NotImplementedError
 
     def update_kwargs(
@@ -165,6 +168,7 @@ class Maker(MSONable):
         >>> from jobflow import job, Maker
         >>> @dataclass
         ... class AddMaker(Maker):
+        ...     name: str = "add"
         ...     number: float = 10
         ...
         ...     @job
@@ -183,6 +187,7 @@ class Maker(MSONable):
         >>> from jobflow import Response
         >>> @dataclass
         ... class SquareThenAddMaker(Maker):
+        ...     name: str = "square then add"
         ...     add_maker: Maker = AddMaker()
         ...
         ...     @job

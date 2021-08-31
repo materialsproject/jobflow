@@ -280,6 +280,8 @@ def test_remove_docs(memory_jobstore, memory_data_jobstore):
 
 
 def test_get_output(memory_jobstore):
+    from jobflow import OnMissing
+
     docs = [
         {"uuid": "1", "index": 1, "output": "xyz"},
         {"uuid": "1", "index": 2, "output": "abc"},
@@ -302,11 +304,49 @@ def test_get_output(memory_jobstore):
     output = memory_jobstore.get_output("1", which="all")
     assert output == ["xyz", "abc", 123, "a"]
 
+    output = memory_jobstore.get_output("1", which=1)
+    assert output == "xyz"
+
+    output = memory_jobstore.get_output("1", which=3)
+    assert output == 123
+
     with pytest.raises(ValueError):
         memory_jobstore.get_output(1, which="first")
 
     with pytest.raises(ValueError):
         memory_jobstore.get_output(1, which="all")
+
+    # test resolving reference in output of job
+    r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "10"}
+    docs = [
+        {"uuid": "5", "index": 1, "output": r},
+        {"uuid": "6", "index": 1, "output": {"a": r, "b": 5}},
+        {"uuid": "10", "index": 1, "output": "xyz"},
+    ]
+    memory_jobstore.update(docs)
+    assert memory_jobstore.get_output("5") == "xyz"
+    assert memory_jobstore.get_output("6") == {"a": "xyz", "b": 5}
+
+    # test missing reference in output of job
+    r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "a"}
+    memory_jobstore.update({"uuid": "8", "index": 1, "output": r})
+    with pytest.raises(ValueError):
+        memory_jobstore.get_output("8", on_missing=OnMissing.ERROR)
+
+    assert memory_jobstore.get_output("8", on_missing=OnMissing.NONE) is None
+    assert memory_jobstore.get_output("8", on_missing=OnMissing.PASS).uuid == r["uuid"]
+
+    # test catching circular reference
+    r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "5"}
+    memory_jobstore.update({"uuid": "5", "index": 1, "output": r})
+    with pytest.raises(RuntimeError):
+        memory_jobstore.get_output("5")
+
+    r1 = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "5"}
+    memory_jobstore.update({"uuid": "5", "index": 1, "output": r1})
+    memory_jobstore.update({"uuid": "5", "index": 2, "output": r1})
+    with pytest.raises(RuntimeError):
+        memory_jobstore.get_output("5", which="all")
 
 
 def test_from_db_file(test_data):

@@ -172,6 +172,7 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[-1].uuid == test_job.uuid
     assert response.replace.jobs[-1].metadata == metadata
     assert response.replace.jobs[-1].output_schema == "123"
+    assert response.replace.output is not None
 
     # replace with flow with multi outputs
     test_job = Job(replace_flow_multioutput, metadata=metadata, output_schema="123")
@@ -181,6 +182,7 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[-1].uuid == test_job.uuid
     assert response.replace.jobs[-1].metadata == metadata
     assert response.replace.jobs[-1].output_schema == "123"
+    assert response.replace.output is not None
 
     # replace with list of flow
     test_job = Job(replace_list_flow, metadata=metadata, output_schema="123")
