@@ -1,4 +1,4 @@
-def test_simple_job(memory_jobstore, clean_dir, simple_job, capsys):
+def test_simple_job(memory_jobstore, clean_dir, simple_job):
     from jobflow import run_locally
 
     # run with log
@@ -60,7 +60,7 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     assert len(folders) == 1
 
 
-def test_connected_flow(memory_jobstore, clean_dir, connected_flow, capsys):
+def test_connected_flow(memory_jobstore, clean_dir, connected_flow):
     from jobflow import run_locally
 
     flow = connected_flow()
@@ -83,7 +83,7 @@ def test_connected_flow(memory_jobstore, clean_dir, connected_flow, capsys):
     assert result2["output"] == "12345_end_end"
 
 
-def test_nested_flow(memory_jobstore, clean_dir, nested_flow, capsys):
+def test_nested_flow(memory_jobstore, clean_dir, nested_flow):
     from jobflow import run_locally
 
     flow = nested_flow()
@@ -114,7 +114,7 @@ def test_nested_flow(memory_jobstore, clean_dir, nested_flow, capsys):
     assert result4["output"] == "12345_end_end_end_end"
 
 
-def test_addition_flow(memory_jobstore, clean_dir, addition_flow, capsys):
+def test_addition_flow(memory_jobstore, clean_dir, addition_flow):
     from jobflow import run_locally
 
     flow = addition_flow()
@@ -138,7 +138,7 @@ def test_addition_flow(memory_jobstore, clean_dir, addition_flow, capsys):
     assert result2["output"] == "11_end"
 
 
-def test_detour_flow(memory_jobstore, clean_dir, detour_flow, capsys):
+def test_detour_flow(memory_jobstore, clean_dir, detour_flow):
     from jobflow import run_locally
 
     flow = detour_flow()
@@ -169,7 +169,7 @@ def test_detour_flow(memory_jobstore, clean_dir, detour_flow, capsys):
     assert result2["completed_at"] < result3["completed_at"]
 
 
-def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
+def test_replace_flow(memory_jobstore, clean_dir, replace_flow):
     from jobflow import run_locally
 
     flow = replace_flow()
@@ -184,7 +184,7 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
     assert len(responses[uuid1]) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].replace is not None
-    assert responses[uuid1][2].output == {"a": "11_end"}
+    assert responses[uuid1][2].output == "11_end"
     assert responses[uuid2][1].output == "12345_end"
 
     # check store has the activity output
@@ -193,14 +193,45 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow, capsys):
     result3 = memory_jobstore.query_one({"uuid": uuid2, "index": 1})
 
     assert result1["output"] == 11
-    assert result2["output"] == {"a": "11_end"}
+    assert result2["output"] == "11_end"
     assert result3["output"] == "12345_end"
 
     # assert job2 (replaced job) ran before job3
     assert result2["completed_at"] < result3["completed_at"]
 
 
-def test_stop_jobflow_flow(memory_jobstore, clean_dir, stop_jobflow_flow, capsys):
+def test_replace_flow_nested(memory_jobstore, clean_dir, replace_flow_nested):
+    from jobflow import run_locally
+
+    flow = replace_flow_nested()
+    uuid1 = flow.jobs[0].uuid
+    uuid2 = flow.jobs[1].uuid
+
+    # run with log
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled
+    assert len(responses) == 4
+    assert len(responses[uuid1]) == 2
+    assert responses[uuid1][1].output == 11
+    assert responses[uuid1][1].replace is not None
+    assert responses[uuid1][2].output["first"].__class__.__name__ == "OutputReference"
+    assert responses[uuid2][1].output == "12345_end"
+
+    # check store has the activity output
+    result1 = memory_jobstore.query_one({"uuid": uuid1, "index": 1})
+    result2 = memory_jobstore.query_one({"uuid": uuid1, "index": 2})
+    result3 = memory_jobstore.query_one({"uuid": uuid2, "index": 1})
+
+    assert result1["output"] == 11
+    assert result2["output"]["first"]["@class"] == "OutputReference"
+    assert result3["output"] == "12345_end"
+
+    # assert job2 (replaced job) ran before job3
+    assert result2["completed_at"] < result3["completed_at"]
+
+
+def test_stop_jobflow_flow(memory_jobstore, clean_dir, stop_jobflow_flow):
     from jobflow import run_locally
 
     flow = stop_jobflow_flow()
@@ -221,7 +252,7 @@ def test_stop_jobflow_flow(memory_jobstore, clean_dir, stop_jobflow_flow, capsys
     assert result1["output"] == "1234"
 
 
-def test_stop_jobflow_job(memory_jobstore, clean_dir, stop_jobflow_job, capsys):
+def test_stop_jobflow_job(memory_jobstore, clean_dir, stop_jobflow_job):
     from jobflow import run_locally
 
     job = stop_jobflow_job()
@@ -242,7 +273,7 @@ def test_stop_jobflow_job(memory_jobstore, clean_dir, stop_jobflow_job, capsys):
     assert result1["output"] == "1234"
 
 
-def test_stop_children_flow(memory_jobstore, clean_dir, stop_children_flow, capsys):
+def test_stop_children_flow(memory_jobstore, clean_dir, stop_children_flow):
     from jobflow import run_locally
 
     flow = stop_children_flow()
@@ -299,7 +330,7 @@ def test_stored_data_flow(memory_jobstore, clean_dir, stored_data_flow, capsys):
     assert "Response.stored_data is not supported" in captured.out
 
 
-def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow, capsys):
+def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
     from jobflow import run_locally
 
     flow = detour_stop_flow()
