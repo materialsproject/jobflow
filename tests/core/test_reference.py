@@ -397,3 +397,37 @@ def test_find_and_resolve_references(memory_jobstore):
         find_and_resolve_references(
             [ref1, ref3], memory_jobstore, on_missing=OnMissing.ERROR
         )
+
+
+def test_circular_resolve(memory_jobstore):
+    from jobflow.core.reference import OutputReference
+
+    # test catching circular resolve failure
+    ref1 = OutputReference("12345")
+    task_data = {"uuid": ref1.uuid, "index": 1, "output": ref1}
+    memory_jobstore.update(task_data)
+    with pytest.raises(RuntimeError):
+        ref1.resolve(memory_jobstore)
+
+
+def test_reference_in_output(memory_jobstore):
+    from jobflow.core.reference import OnMissing, OutputReference
+
+    # test resolvable reference in job output
+    ref1 = OutputReference("12345")
+    ref2 = OutputReference("56789")
+    task_data1 = {"uuid": ref1.uuid, "index": 1, "output": ref2}
+    task_data2 = {"uuid": ref2.uuid, "index": 1, "output": "xyz"}
+    memory_jobstore.update(task_data1)
+    memory_jobstore.update(task_data2)
+    assert "xyz" == ref1.resolve(memory_jobstore)
+
+    # test missing reference in output
+    ref1 = OutputReference("12345")
+    ref2 = OutputReference("999")
+    task_data = {"uuid": ref1.uuid, "index": 1, "output": ref2}
+    memory_jobstore.update(task_data)
+    assert ref1.resolve(memory_jobstore, on_missing=OnMissing.NONE) is None
+    assert ref1.resolve(memory_jobstore, on_missing=OnMissing.PASS) == ref2
+    with pytest.raises(ValueError):
+        ref1.resolve(memory_jobstore, on_missing=OnMissing.ERROR)
