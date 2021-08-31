@@ -159,7 +159,7 @@ class OutputReference(MSONable):
         if index is not None and index not in cache[self.uuid]:
             try:
                 cache[self.uuid][index] = store.get_output(
-                    self.uuid, which="last", load=True
+                    self.uuid, which="last", load=True, on_missing=on_missing
                 )
             except ValueError:
                 pass
@@ -175,11 +175,6 @@ class OutputReference(MSONable):
             return self
 
         data = cache[self.uuid][index]
-
-        # resolve nested references
-        data = find_and_resolve_references(
-            data, store, cache=cache, on_missing=on_missing
-        )
 
         # decode objects before attribute access
         data = MontyDecoder().process_decoded(data)
@@ -342,7 +337,6 @@ def resolve_references(
         cache = {}
 
     for uuid, ref_group in groupby(references, key=lambda x: x.uuid):
-
         # get latest index
         result = store.query_one({"uuid": uuid}, ["index"], sort={"index": -1})
         index = None if result is None else result["index"]
@@ -437,6 +431,10 @@ def find_and_resolve_references(
 
     from jobflow.utils.find import find_key_value
 
+    if isinstance(arg, dict) and arg.get("@class") == "OutputReference":
+        # if arg is a deserialized reference, serialize it
+        arg = OutputReference.from_dict(arg)
+
     if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
         return arg.resolve(store, cache=cache, on_missing=on_missing)
@@ -464,6 +462,10 @@ def find_and_resolve_references(
 
     # replace the references in the arg dict
     for location, reference in zip(locations, references):
+        # skip references that have not been resolved, e.g., on missing is PASS
+        if reference == resolved_references[reference]:
+            continue
+
         resolved_reference = resolved_references[reference]
         set_(encoded_arg, list(location), resolved_reference)
 

@@ -7,6 +7,8 @@ import typing
 from maggma.core import Store
 from monty.json import MSONable
 
+from jobflow.core.reference import OnMissing
+
 if typing.TYPE_CHECKING:
     from enum import Enum
     from pathlib import Path
@@ -434,11 +436,16 @@ class JobStore(Store):
     def get_output(
         self,
         uuid: str,
-        which: str = "last",
+        which: Union[str, int] = "last",
         load: load_type = False,
+        cache: Optional[Dict[str, Any]] = None,
+        on_missing: OnMissing = OnMissing.ERROR,
     ):
         """
-        Get the output from of a job UUID.
+        Get the output of a job UUID.
+
+        Note that, unlike :obj:`JobStore.query`, this function will automatically
+        try to resolve any output references in the job outputs.
 
         Parameters
         ----------
@@ -446,33 +453,63 @@ class JobStore(Store):
             A job UUID.
         which
             If there are multiple job runs, which index to use. Options are:
-            - `"last"` (default): Use the last job that ran.
-            - `"first"`: Use the first job that ran.
-            - `"all"`: Return all outputs, sorted with the lowest index first.
+
+            - ``"last"`` (default): Use the last job that ran.
+            - ``"first"``: Use the first job that ran.
+            - ``"all"``: Return all outputs, sorted with the lowest index first.
+            - Alternatively, if an integer is specified, the output for this specific
+              index will be queried.
+
         load
             Which items to load from additional stores. Setting to ``True`` will load
             all items stored in additional stores. See the ``JobStore`` constructor for
             more details.
+        cache
+            A dictionary cache to use for resolving of reference values.
+        on_missing
+            What to do if the output contains a reference and the reference cannot
+            be resolved.
 
         Returns
         -------
         Any
             The output(s) for the job UUID.
         """
-        if which in ("last", "first"):
+        from jobflow.core.reference import (
+            find_and_get_references,
+            find_and_resolve_references,
+        )
+
+        # TODO: Currently, OnMissing is not respected if a reference cycle is detected
+        #       this could be fixed but wil require more complicated logic just to catch
+        #       a very unlikely event.
+
+        if isinstance(which, int) or which in ("last", "first"):
             sort = -1 if which == "last" else 1
 
+            criteria: Dict[str, Any] = {"uuid": uuid}
+            if isinstance(which, int):
+                # handle specific index specified
+                criteria["index"] = which
+
             result = self.query_one(
-                criteria={"uuid": uuid},
+                criteria=criteria,
                 properties=["output"],
                 sort={"index": sort},
                 load=load,
             )
 
             if result is None:
-                raise ValueError(f"{uuid} has not outputs.")
+                istr = f" (index: {which})" if isinstance(which, int) else ""
+                raise ValueError(f"UUID: {uuid}{istr} has no outputs.")
 
-            return result["output"]
+            refs = find_and_get_references(result["output"])
+            if any([ref.uuid == uuid for ref in refs]):
+                raise RuntimeError("Reference cycle detected - aborting.")
+
+            return find_and_resolve_references(
+                result["output"], self, cache=cache, on_missing=on_missing
+            )
         else:
             results = list(
                 self.query(
@@ -484,9 +521,17 @@ class JobStore(Store):
             )
 
             if len(results) == 0:
-                raise ValueError(f"{uuid} has not outputs.")
+                raise ValueError(f"UUID: {uuid} has no outputs.")
 
-            return [r["output"] for r in results]
+            results = [r["output"] for r in results]
+
+            refs = find_and_get_references(results)
+            if any([ref.uuid == uuid for ref in refs]):
+                raise RuntimeError("Reference cycle detected - aborting.")
+
+            return find_and_resolve_references(
+                results, self, cache=cache, on_missing=on_missing
+            )
 
     @classmethod
     def from_file(cls: Type[T], db_file: Union[str, Path], **kwargs) -> T:
