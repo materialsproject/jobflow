@@ -345,10 +345,9 @@ def resolve_references(
             cache[uuid] = {}
 
         if index is not None and index not in cache[uuid]:
-            try:
-                cache[uuid][index] = store.get_output(uuid, load=True)
-            except ValueError:
-                pass
+            cache[uuid][index] = store.get_output(
+                uuid, load=True, on_missing=on_missing
+            )
 
         for ref in ref_group:
             resolved_references[ref] = ref.resolve(
