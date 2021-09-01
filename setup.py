@@ -35,7 +35,7 @@ setup(
         "docs": [
             "sphinx==3.5.3",
             "furo==2021.3.20b30",
-            "m2r2==0.2.7",
+            "m2r2==0.3.1",
             "ipython==7.24.1",
             "nbsphinx==0.8.6",
             "nbsphinx-link==1.3.0",
