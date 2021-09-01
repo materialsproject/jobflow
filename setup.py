@@ -42,7 +42,7 @@ setup(
             "FireWorks==1.9.7",
         ],
         "tests": [
-            "pytest==6.2.4",
+            "pytest==6.2.5",
             "pytest-cov==2.11.1",
             "FireWorks==1.9.7",
             "matplotlib==3.4.2",
