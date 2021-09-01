@@ -17,8 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: echo ${{ github.event.workflow_run.ref }}
-      - run: echo ${{ github.event.workflow_run.head_ref }}
+      - run: echo ${{ github.event.workflow_run.head_branch }}
 
       - name: Install pandoc
         run: sudo apt-get install pandoc
