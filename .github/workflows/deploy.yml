@@ -65,9 +65,6 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_PASSWORD }}
 
-      - name: Write release info
-        run: awk 'BEGIN {p = 0} {a = 0 }; /^v\d*.\d*.\d*./ { p += 1; a = 1}; p + a == 1 { print } ' docs/src/changelog.rst | sed -e '1,1d' | sed  -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' > release_info.txt
-
   deploy-github:
 
     runs-on: ubuntu-latest
@@ -75,6 +72,9 @@ jobs:
       - deploy-pypi
 
     steps:
+      - name: Write release info
+        run: awk 'BEGIN {p = 0} {a = 0 }; /^v\d*.\d*.\d*./ { p += 1; a = 1}; p + a == 1 { print } ' docs/src/changelog.rst | sed -e '1,1d' | sed  -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' > release_info.txt
+
       - name: Release
         uses: actions/create-release@v1
         id: create_release
