@@ -45,7 +45,7 @@ setup(
             "pytest==6.2.5",
             "pytest-cov==2.11.1",
             "FireWorks==1.9.7",
-            "matplotlib==3.4.2",
+            "matplotlib==3.4.3",
             "pydot==1.4.2",
         ],
         "dev": ["pre-commit>=2.12.1"],
