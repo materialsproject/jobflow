@@ -18,8 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: echo ${{ github.ref }}
-
       - name: Install pandoc
         run: sudo apt-get install pandoc
 
