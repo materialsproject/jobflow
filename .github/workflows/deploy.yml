@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Build packages
+      - name: Build
         run: |
           pip install setuptools setuptools_scm wheel
           python setup.py sdist bdist_wheel
