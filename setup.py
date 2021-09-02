@@ -11,7 +11,7 @@ setup(
     name="jobflow",
     description="jobflow is library for writing computational workflows",
     long_description=long_desc,
-    use_scm_version=True,
+    use_scm_version={"version_scheme": "python-simplified-semver"},
     setup_requires=["setuptools_scm"],
     long_description_content_type="text/markdown",
     url="https://materialsproject.github.io/jobflow",
