@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Install pandoc
         run: sudo apt-get install pandoc
@@ -50,6 +52,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - uses: actions/setup-python@v2
         with:
@@ -82,8 +86,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: github.event.workflow_run.head_branch
+          release_name: github.event.workflow_run.head_branch
           body_path: release_info.txt
           draft: false
           prerelease: false
