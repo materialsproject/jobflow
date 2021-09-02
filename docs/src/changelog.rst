@@ -5,6 +5,7 @@ v0.1.0
 ------
 
 Major changes:
+
 - ``Schema`` class removed. Any pydantic model can now be an output schema.
 
 Enhancements:
@@ -16,6 +17,7 @@ Enhancements:
 - Update dependencies to use latest jsanitize features.
 
 Bug fixes:
+
 - Fixed issue with references in flow of flows (@davidwaroquiers, #18).
 - Makes now allows non-default parameters (fixes: #13).
 - Fix reference cache with multiple indexes.

@@ -77,6 +77,10 @@ jobs:
       - deploy-pypi
 
     steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
       - name: Write release info
         run: awk 'BEGIN {p = 0} {a = 0 }; /^v\d*.\d*.\d*./ { p += 1; a = 1}; p + a == 1 { print } ' docs/src/changelog.rst | sed -e '1,1d' | sed  -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' > release_info.txt
 
@@ -86,8 +90,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: github.event.workflow_run.head_branch
-          release_name: github.event.workflow_run.head_branch
+          tag_name: ${{ github.event.workflow_run.head_branch }}
+          release_name: ${{ github.event.workflow_run.head_branch }}
           body_path: release_info.txt
           draft: false
           prerelease: false
