@@ -439,12 +439,16 @@ class Job(MSONable):
 
         edges = []
         for uuid, refs in self.input_references_grouped.items():
-            properties = [
-                ".".join(map(str, ref.attributes_formatted))
+            properties: Union[List[str], str] = [
+                ref.attributes_formatted[-1]
+                .replace("[", "")
+                .replace("]", "")
+                .replace(".", "")
                 for ref in refs
                 if ref.attributes
             ]
-            properties = properties if len(properties) > 0 else ["output"]
+            properties = properties[0] if len(properties) == 1 else properties
+            properties = properties if len(properties) > 0 else "output"
             edges.append((uuid, self.uuid, {"properties": properties}))
 
         graph = DiGraph()

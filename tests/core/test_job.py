@@ -615,9 +615,7 @@ def test_graph():
     graph = test_job.graph
     assert len(graph.nodes) == 2
     assert len(graph.edges) == 1
-    assert graph.get_edge_data(test_job1.uuid, test_job.uuid)["properties"] == [
-        ".value"
-    ]
+    assert graph.get_edge_data(test_job1.uuid, test_job.uuid)["properties"] == "value"
 
     # test arg and kwargs inputs
     test_job1 = Job(add, function_args=(1,), function_kwargs={"b": 2})
@@ -640,8 +638,8 @@ def test_graph():
     assert len(graph.nodes) == 2
     assert len(graph.edges) == 1
     assert set(graph.get_edge_data(test_job1.uuid, test_job.uuid)["properties"]) == {
-        ".value",
-        ".name",
+        "value",
+        "name",
     }
 
 

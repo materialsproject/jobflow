@@ -169,10 +169,11 @@ def to_pydot(flow: jobflow.Flow):
         cluster = pydot.Cluster(nested_flow.uuid)
         cluster.set_label(nested_flow.name)
         for job in nested_flow.jobs:
-            for sub_node in job.graph.nodes:
-                cluster.add_node(pydot_graph.get_node(f'"{sub_node}"')[0])
             if isinstance(job, Flow):
                 add_cluster(job, cluster)
+            else:
+                cluster.add_node(pydot_graph.get_node(f'"{job.uuid}"')[0])
+
         outer_graph.add_subgraph(cluster)
 
     add_cluster(flow, pydot_graph)
