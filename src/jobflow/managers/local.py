@@ -20,6 +20,7 @@ def run_locally(
     log: bool = True,
     store: Optional[jobflow.JobStore] = None,
     create_folders: bool = False,
+    ensure_success: bool = False,
 ) -> Dict[str, Dict[int, jobflow.Response]]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
@@ -35,6 +36,8 @@ def run_locally(
         be used while the job is executed and deleted once the job is finished.
     create_folders
         Whether to run each job in a new folder.
+    ensure_success
+        Raise an error if the flow was not executed successfully.
 
     Returns
     -------
@@ -66,7 +69,7 @@ def run_locally(
     flow = get_flow(flow)
 
     stopped_parents: Set[str] = set()
-    fizzled: Set[str] = set()
+    errored: Set[str] = set()
     responses: Dict[str, Dict[int, jobflow.Response]] = defaultdict(dict)
     stop_jobflow = False
 
@@ -87,10 +90,10 @@ def run_locally(
             return
 
         if (
-            len(set(parents).intersection(fizzled)) > 0
+            len(set(parents).intersection(errored)) > 0
             and job.config.on_missing_references == OnMissing.ERROR
         ):
-            fizzled.add(job.uuid)
+            errored.add(job.uuid)
             return
 
         try:
@@ -99,7 +102,7 @@ def run_locally(
             import traceback
 
             logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
-            fizzled.add(job.uuid)
+            errored.add(job.uuid)
             return
 
         responses[job.uuid][job.index] = response
@@ -155,7 +158,13 @@ def run_locally(
                 if response is False:
                     return False
 
+        return True
+
     logger.info("Started executing jobs locally")
-    _run(flow)
+    finished_successfully = _run(flow)
     logger.info("Finished executing jobs locally")
+
+    if ensure_success and not finished_successfully:
+        raise RuntimeError("Flow did not finish running successfully")
+
     return dict(responses)
