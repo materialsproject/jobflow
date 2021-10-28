@@ -16,7 +16,7 @@ def test_itergraph():
     # test branched
     graph = DiGraph([("a", "b"), ("b", "c"), ("a", "c"), ("d", "b")])
     result = list(itergraph(graph))
-    assert result == ["d", "a", "b", "c"] or result == ["d", "a", "b", "c"]
+    assert result == ["a", "d", "b", "c"] or result == ["d", "a", "b", "c"]
 
     # test non-connected
     graph = DiGraph([("a", "b"), ("c", "d")])
