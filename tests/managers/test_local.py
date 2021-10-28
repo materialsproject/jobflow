@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_simple_job(memory_jobstore, clean_dir, simple_job):
     from jobflow import run_locally
 
@@ -315,6 +318,9 @@ def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
 
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
 
 
 def test_stored_data_flow(memory_jobstore, clean_dir, stored_data_flow, capsys):
