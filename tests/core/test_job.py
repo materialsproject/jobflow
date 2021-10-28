@@ -62,6 +62,14 @@ def test_job_init():
     with pytest.raises(ValueError):
         Job(function=add, function_args=(1,), data=True, graphs=True)
 
+    # test changing job name (test needed due to setattr override
+    test_job = Job(function=add, function_args=("I am a job",))
+    test_job.name = "abc"
+    assert test_job.name == "abc"
+
+    test_job.name += "xyz"
+    assert test_job.name == "abcxyz"
+
 
 def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
     from jobflow.core.job import Job, Response
@@ -589,6 +597,15 @@ def test_maker():
     maker = AddMaker()
     test_job = maker.make(2)
     assert test_job.maker == maker
+
+    # test setting job name; should also update the maker name
+    test_job.name = "abc"
+    assert test_job.name == "abc"
+    assert test_job.maker.name == "abc"
+
+    test_job.name += "xyz"
+    assert test_job.name == "abcxyz"
+    assert test_job.maker.name == "abcxyz"
 
 
 def test_graph():
