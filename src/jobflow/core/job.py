@@ -759,6 +759,17 @@ class Job(MSONable):
         d["function"] = jsanitize(d["function"])
         return d
 
+    def __setattr__(self, key, value):
+        """Handle setting attributes. Implements a special case for job name."""
+        if key == "name" and value is not None and self.maker is not None:
+            # have to be careful and also update the name of the bound maker
+            # the ``value is not None`` in the if statement is needed otherwise the name
+            # of the maker will get set to None during class init
+            self.__dict__[key] = value
+            self.maker.name = value
+        else:
+            super().__setattr__(key, value)
+
 
 @dataclass
 class Response:
