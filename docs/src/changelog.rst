@@ -1,6 +1,17 @@
 Change log
 ==========
 
+v0.1.2
+------
+
+New features:
+
+- ``ensure_success`` option added to ``run_locally``.
+- Better graph visualisation.
+- Updating the name of a job from a maker now propogates the name change to the maker.
+- ``Job.update_maker_kwargs`` with ``nested=True`` now applies the updates to makers
+  in the kwargs or args of the job.
+
 v0.1.1
 ------
 
