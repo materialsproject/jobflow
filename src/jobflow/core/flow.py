@@ -352,7 +352,7 @@ class Flow(MSONable):
             subclasses.
         nested
             Whether to apply the updates to Maker objects that are themselves kwargs
-            of a Maker object. See examples for more details.
+            of Maker, job, or flow objects. See examples for more details.
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.

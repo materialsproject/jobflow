@@ -686,7 +686,7 @@ class Job(MSONable):
             subclasses.
         nested
             Whether to apply the updates to Maker objects that are themselves kwargs
-            of a Maker object. See examples for more details.
+            of Maker, job, or flow objects. See examples for more details.
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
@@ -741,6 +741,8 @@ class Job(MSONable):
         ...     {"number": 10}, function_filter=AddMaker, nested=False
         ... )
         """
+        from jobflow import Maker
+
         if self.maker is not None:
             maker = self.maker.update_kwargs(
                 update,
@@ -750,6 +752,32 @@ class Job(MSONable):
                 dict_mod=dict_mod,
             )
             setattr(self, "function", getattr(maker, self.function.__name__))
+        elif nested:
+            # also look for makers in job args and kwargs
+            new_args = []
+            for arg in self.function_args:
+                if isinstance(arg, Maker):
+                    new_arg = arg.update_kwargs(
+                        update,
+                        name_filter=name_filter,
+                        class_filter=class_filter,
+                        nested=nested,
+                        dict_mod=dict_mod,
+                    )
+                    new_args.append(new_arg)
+                else:
+                    new_args.append(arg)
+            self.function_args = tuple(new_args)
+
+            for name, kwarg in self.function_kwargs.items():
+                if isinstance(kwarg, Maker):
+                    self.function_kwargs[name] = kwarg.update_kwargs(
+                        update,
+                        name_filter=name_filter,
+                        class_filter=class_filter,
+                        nested=nested,
+                        dict_mod=dict_mod,
+                    )
 
     def as_dict(self) -> Dict:
         """Serialize the job as a dictionary."""

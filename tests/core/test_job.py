@@ -715,6 +715,10 @@ def test_update_maker_kwargs():
         def make(self, a):
             return a + self.b
 
+    @job
+    def outer_job(maker1, maker2=None):
+        pass
+
     # test no maker
     test_job = Job(add, function_args=(1,), function_kwargs={"b": 2})
     test_job.update_maker_kwargs({"b": 5})
@@ -759,6 +763,14 @@ def test_update_maker_kwargs():
     test_job = add_maker.make(5)
     test_job.update_maker_kwargs({"_inc": {"b": 10}}, dict_mod=True)
     assert test_job.maker.b == 13
+
+    # test makers in job args and kwargs
+    maker1 = AddMaker(b=1)
+    maker2 = AddMaker(b=2)
+    test_job = outer_job(maker1, maker2=maker2)
+    test_job.update_maker_kwargs({"_inc": {"b": 10}}, dict_mod=True)
+    assert test_job.function_args[0].b == 11
+    assert test_job.function_kwargs["maker2"].b == 12
 
 
 def test_output_schema(memory_jobstore):
