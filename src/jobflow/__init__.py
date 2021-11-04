@@ -8,4 +8,5 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.core.state import CURRENT_JOB
 from jobflow.core.store import JobStore
 from jobflow.managers.local import run_locally
+from jobflow.settings import settings
 from jobflow.utils.log import initialize_logger
