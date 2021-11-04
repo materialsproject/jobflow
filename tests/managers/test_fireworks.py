@@ -18,6 +18,15 @@ def test_flow_to_workflow(
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
 
+    # test simple job no store
+    flow = simple_job()
+    wf = flow_to_workflow(flow)
+
+    assert type(wf) == Workflow
+    assert wf.name == "Flow"
+    assert len(wf.fws) == 1
+    assert wf.fws[0].name == "func"
+
     # test simple flow
     flow = simple_flow()
     wf = flow_to_workflow(flow, memory_jobstore)

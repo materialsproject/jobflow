@@ -772,6 +772,11 @@ def test_update_maker_kwargs():
     assert test_job.function_args[0].b == 11
     assert test_job.function_kwargs["maker2"].b == 12
 
+    # test nested=False does not impact the jobs
+    test_job.update_maker_kwargs({"_inc": {"b": 20}}, dict_mod=True, nested=False)
+    assert test_job.function_args[0].b == 11
+    assert test_job.function_kwargs["maker2"].b == 12
+
 
 def test_output_schema(memory_jobstore):
     from pydantic import BaseModel
