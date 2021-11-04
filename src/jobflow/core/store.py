@@ -544,7 +544,7 @@ class JobStore(Store):
         The simplest format is a monty dumped version of the store, generated using:
 
         >>> from monty.serialization import dumpfn
-        >>> dumpfn("job_store.json", job_store)
+        >>> dumpfn("job_store.yaml", job_store)
 
         Alternatively, the file can contain the keys docs_store, additional_stores and
         any other keyword arguments supported by the :obj:`JobStore` constructor. The
@@ -576,13 +576,14 @@ class JobStore(Store):
             Path to the file containing the credentials.
         **kwargs
             Additional keyword arguments that get passed to the JobStore constructor.
+            These arguments are ignored if the file contains a monty serialised
+            JobStore.
 
         Returns
         -------
         JobStore
             A JobStore.
         """
-        import maggma.stores  # required to enable subclass searching
         from monty.serialization import loadfn
 
         store_info = loadfn(db_file)
@@ -590,7 +591,56 @@ class JobStore(Store):
         if isinstance(store_info, JobStore):
             return store_info
 
-        if "docs_store" not in store_info:
+        return cls.from_dict_spec(store_info, **kwargs)
+
+    @classmethod
+    def from_dict_spec(cls, spec: dict, **kwargs) -> T:
+        """
+        Create an JobStore from a dict specification.
+
+        .. note::
+            This function is different to ``JobStore.from_dict`` which is used to load
+            the monty serialised representation of the claas.
+
+        The dictionary should contain the keys "docs_store", "additional_stores" and
+        any other keyword arguments supported by the :obj:`JobStore` constructor. The
+        docs_store and additional stores are specified by the ``type`` key which must
+        match a Maggma ``Store`` subclass, and the remaining keys are passed to
+        the store constructor. For example, the following file would  create a
+        :obj:`JobStore` with a ``MongoStore`` for docs and a ``GridFSStore`` as an
+        additional store for data.
+
+        .. code-block:: yaml
+
+            docs_store:
+              type: MongoStore
+              database: jobflow_unittest
+              collection_name: outputs
+              host: localhost
+              port: 27017
+            additional_stores:
+              data:
+                type: GridFSStore
+                database: jobflow_unittest
+                collection_name: outputs_blobs
+                host: localhost
+                port: 27017
+
+        Parameters
+        ----------
+        spec
+            The dictionary specification.
+        **kwargs
+            Additional keyword arguments that get passed to the JobStore constructor.
+
+        Returns
+        -------
+        JobStore
+            A JobStore.
+        """
+        import maggma.stores  # required to enable subclass searching
+
+        if "docs_store" not in spec:
             raise ValueError("Unrecognised database file format.")
 
         def all_subclasses(cl):
@@ -600,13 +650,13 @@ class JobStore(Store):
 
         all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
 
-        docs_store_info = store_info["docs_store"]
+        docs_store_info = spec["docs_store"]
         docs_store_type = docs_store_info.pop("type")
         docs_store = all_stores[docs_store_type](**docs_store_info)
 
         additional_stores = {}
-        if "additional_stores" in store_info:
-            for store_name, info in store_info["additional_stores"].items():
+        if "additional_stores" in spec:
+            for store_name, info in spec["additional_stores"].items():
                 store_type = info.pop("type")
                 additional_stores[store_name] = all_stores[store_type](**info)
 
