@@ -16,7 +16,7 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 def flow_to_workflow(
     flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
-    store: jobflow.JobStore,
+    store: Optional[jobflow.JobStore] = None,
     **kwargs,
 ) -> Workflow:
     """
@@ -31,7 +31,10 @@ def flow_to_workflow(
     flow
         A flow or job.
     store
-        A job store.
+        A job store. Alternatively, if set to None, :obj:`settings.JOB_STORE` will
+        be used. Note, this could be different on the computer that submits the workflow
+        and the computer which runs the workflow. The value of ``JOB_STORE`` on the
+        computer that runs the workflow will be used.
     **kwargs
         Keyword arguments passed to Workflow init method.
 
@@ -58,7 +61,7 @@ def flow_to_workflow(
 
 def job_to_firework(
     job: jobflow.Job,
-    store: jobflow.JobStore,
+    store: Optional[jobflow.JobStore] = None,
     parents: Optional[Sequence[str]] = None,
     parent_mapping: Optional[Dict[str, Firework]] = None,
     **kwargs,
@@ -75,7 +78,10 @@ def job_to_firework(
     job
         A job.
     store
-        A job store.
+        A job store. Alternatively, if set to None, :obj:`settings.JOB_STORE` will
+        be used. Note, this could be different on the computer that submits the workflow
+        and the computer which runs the workflow. The value of ``JOB_STORE`` on the
+        computer that runs the workflow will be used.
     parents
         The parent uuids of the job.
     parent_mapping
@@ -126,18 +132,24 @@ class JobFiretask(FiretaskBase):
     job : Dict
         A serialized job.
     store : JobStore
-        A job store.
+        A job store. Alternatively, if set to None, :obj:`settings.JOB_STORE` will
+        be used. Note, this could be different on the computer that submits the workflow
+        and the computer which runs the workflow. The value of ``JOB_STORE`` on the
+        computer that runs the workflow will be used.
     """
 
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
         """Run the job and handle any dynamic firework submissions."""
-        from jobflow import initialize_logger
+        from jobflow import initialize_logger, settings
         from jobflow.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")
+
+        if store is None:
+            store = settings.JOB_STORE
         store.connect()
 
         if hasattr(self, "fw_id"):
@@ -149,14 +161,14 @@ class JobFiretask(FiretaskBase):
         detours = None
         additions = None
         if response.replace is not None:
-            # create a workflow from the new additions
-            detours = [flow_to_workflow(response.replace, store)]
+            # create a workflow from the new additions; be sure to use original store
+            detours = [flow_to_workflow(response.replace, self.get("store"))]
 
         if response.addition is not None:
-            additions = [flow_to_workflow(response.addition, store)]
+            additions = [flow_to_workflow(response.addition, self.get("store"))]
 
         if response.detour is not None:
-            detour_wf = flow_to_workflow(response.detour, store)
+            detour_wf = flow_to_workflow(response.detour, self.get("store"))
             if detours is not None:
                 detours.append(detour_wf)
             else:

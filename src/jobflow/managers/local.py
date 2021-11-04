@@ -32,8 +32,9 @@ def run_locally(
     log
         Whether to print log messages.
     store
-        A job store. If a job store is not specified then a maggma ``MemoryStore`` will
-        be used while the job is executed and deleted once the job is finished.
+        A job store. If a job store is not specified then settings.JOB_STORE will be
+        used. By default is a maggma ``MemoryStore`` but can customised by setting
+        the jobflow configuration file.
     create_folders
         Whether to run each job in a new folder.
     ensure_success
@@ -49,19 +50,16 @@ def run_locally(
     from pathlib import Path
     from random import randint
 
-    from maggma.stores import MemoryStore
     from monty.os import cd
 
-    from jobflow import Job, JobStore, initialize_logger
+    from jobflow import Job, initialize_logger, settings
     from jobflow.core.flow import get_flow
     from jobflow.core.reference import OnMissing
 
     if store is None:
-        jobstore = JobStore(MemoryStore())
-        jobstore.connect()
-    else:
-        jobstore = store
-        jobstore.connect()
+        store = settings.JOB_STORE
+
+    store.connect()
 
     if log:
         initialize_logger()
@@ -97,7 +95,7 @@ def run_locally(
             return
 
         try:
-            response = job.run(store=jobstore)
+            response = job.run(store=store)
         except Exception:
             import traceback
 
