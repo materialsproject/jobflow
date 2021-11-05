@@ -126,6 +126,37 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     assert "INFO Finished job - func" in captured.out
 
 
+def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
+    from fireworks.core.rocket_launcher import rapidfire
+
+    from jobflow import settings
+    from jobflow.managers.fireworks import flow_to_workflow
+
+    flow = simple_flow()
+    uuid = flow.jobs[0].uuid
+
+    wf = flow_to_workflow(flow)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = list(fw_ids.values())[0]
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+
+    # check store has the activity output
+    result = settings.JOB_STORE.query_one({"uuid": uuid})
+    assert result["output"] == "12345_end"
+
+    # check logs printed
+    captured = capsys.readouterr()
+    assert "INFO Starting job - func" in captured.out
+    assert "INFO Finished job - func" in captured.out
+
+
 def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
