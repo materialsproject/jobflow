@@ -417,6 +417,8 @@ def test_stop_jobflow_job(lpad, mongo_jobstore, fw_dir, stop_jobflow_job, capsys
 
 
 def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, capsys):
+    from collections import Counter
+
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -436,7 +438,9 @@ def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, ca
     fw_id = list(fw_ids.values())[0]
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert list(wf.fw_states.values()) == ["COMPLETED", "DEFUSED", "COMPLETED"]
+    states = Counter(wf.fw_states.values())
+    assert states["COMPLETED"] == 2
+    assert states["DEFUSED"] == 1
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
