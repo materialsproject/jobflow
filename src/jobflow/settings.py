@@ -7,21 +7,57 @@ from pydantic import BaseSettings, Field, root_validator
 
 from jobflow import JobStore
 
-DEFAULT_CONFIG_FILE_PATH = str(Path.home() / ".jobflow.yaml")
+DEFAULT_CONFIG_FILE_PATH = "~/.jobflow.yaml"
 
-__all__ = ["Settings", "settings"]
+__all__ = ["JobflowSettings"]
 
 
-class Settings(BaseSettings):
+class JobflowSettings(BaseSettings):
     """
     Settings for jobflow.
 
     The default way to modify these is to modify ~/.jobflow.yaml. Alternatively,
-    the environment variable JOBFLOW_CONFIG_FILE can be set to point to a yaml file with
-    jobflow settings.
+    the environment variable ``JOBFLOW_CONFIG_FILE`` can be set to point to a yaml file
+    with jobflow settings.
 
     Lastly, the variables can be modified directly though environment variables by
-    using the "JOBFLOW" prefix. E..g., JOBFLOW_JOB_STORE = path/to/jobstore.file.
+    using the "JOBFLOW" prefix. E..g., ``JOBFLOW_JOB_STORE=path/to/jobstore.file``.
+
+    **Allowed JOB_STORE formats**
+
+    If the store is not supplied, a ``MemoryStore`` will be used. Can be specified in
+    multiple formats.
+
+    The simplest format is the yaml dumped version of the store, generated using:
+
+    >>> import yaml
+    >>> yaml.dump(store.as_dict())
+
+    Alternatively, the store can be specified as the keys docs_store, additional_stores
+    and any other keyword arguments supported by the :obj:`JobStore` constructor. The
+    docs_store and additional stores are specified by the ``type`` key which must match
+    a Maggma ``Store`` subclass, and the remaining keys are passed to the store
+    constructor. For example, the following file would  create a :obj:`JobStore` with a
+    ``MongoStore`` for docs and a ``GridFSStore`` as an additional store for data.
+
+    .. code-block:: yaml
+
+        docs_store:
+          type: MongoStore
+          database: jobflow_unittest
+          collection_name: outputs
+          host: localhost
+          port: 27017
+        additional_stores:
+          data:
+            type: GridFSStore
+            database: jobflow_unittest
+            collection_name: outputs_blobs
+            host: localhost
+            port: 27017
+
+    Lastly, the store can be specified as a file name that points to a file containing
+    the credentials in any format supported by :obj:`.JobStore.from_file`.
     """
 
     CONFIG_FILE: str = Field(
@@ -31,41 +67,9 @@ class Settings(BaseSettings):
     # general settings
     JOB_STORE: JobStore = Field(
         default_factory=lambda: JobStore(MemoryStore()),
-        description="""Default JobStore to use when running locally or using FireWorks.
-If the store is not supplied, a ``MemoryStore`` will be used. Can be specified in
-multiple formats.
-
-The simplest format is the yaml dumped version of the store, generated using:
-
->>> import yaml
->>> yaml.dump(store.as_dict())
-
-Alternatively, the store can be specified as the keys docs_store, additional_stores and
-any other keyword arguments supported by the :obj:`JobStore` constructor. The docs_store
-and additional stores are specified by the ``type`` key which must match a Maggma
-``Store`` subclass, and the remaining keys are passed to the store constructor. For
-example, the following file would  create a :obj:`JobStore` with a ``MongoStore`` for
-docs and a ``GridFSStore`` as an additional store for data.
-
-.. code-block:: yaml
-
-    docs_store:
-      type: MongoStore
-      database: jobflow_unittest
-      collection_name: outputs
-      host: localhost
-      port: 27017
-    additional_stores:
-      data:
-        type: GridFSStore
-        database: jobflow_unittest
-        collection_name: outputs_blobs
-        host: localhost
-        port: 27017
-
-Lastly, the store can be specified as a file name that points to a file containing
-the credentials in any format supported by :obj:`.JobStore.from_file`.
-""",
+        description="Default JobStore to use when running locally or using FireWorks. "
+        "See the :obj:`JobflowSettings` docstring for more details on the "
+        "accepted formats.",
     )
 
     class Config:
@@ -101,6 +105,3 @@ the credentials in any format supported by :obj:`.JobStore.from_file`.
 
         new_values.update(values)
         return new_values
-
-
-settings = Settings()

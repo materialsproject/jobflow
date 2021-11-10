@@ -481,8 +481,8 @@ class JobStore(Store):
         )
 
         # TODO: Currently, OnMissing is not respected if a reference cycle is detected
-        #       this could be fixed but wil require more complicated logic just to catch
-        #       a very unlikely event.
+        #       this could be fixed but will require more complicated logic just to
+        #       catch a very unlikely event.
 
         if isinstance(which, int) or which in ("last", "first"):
             sort = -1 if which == "last" else 1

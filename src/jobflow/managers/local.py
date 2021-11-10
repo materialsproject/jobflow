@@ -32,9 +32,9 @@ def run_locally(
     log
         Whether to print log messages.
     store
-        A job store. If a job store is not specified then settings.JOB_STORE will be
-        used. By default is a maggma ``MemoryStore`` but can customised by setting
-        the jobflow configuration file.
+        A job store. If a job store is not specified then
+        :obj:`JobflowSettings.JOB_STORE` will be used. By default this is a maggma
+        ``MemoryStore`` but can customised by setting the jobflow configuration file.
     create_folders
         Whether to run each job in a new folder.
     ensure_success
@@ -52,12 +52,12 @@ def run_locally(
 
     from monty.os import cd
 
-    from jobflow import Job, initialize_logger, settings
+    from jobflow import SETTINGS, Job, initialize_logger
     from jobflow.core.flow import get_flow
     from jobflow.core.reference import OnMissing
 
     if store is None:
-        store = settings.JOB_STORE
+        store = SETTINGS.JOB_STORE
 
     store.connect()
 

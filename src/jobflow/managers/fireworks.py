@@ -31,10 +31,10 @@ def flow_to_workflow(
     flow
         A flow or job.
     store
-        A job store. Alternatively, if set to None, :obj:`settings.JOB_STORE` will
-        be used. Note, this could be different on the computer that submits the workflow
-        and the computer which runs the workflow. The value of ``JOB_STORE`` on the
-        computer that runs the workflow will be used.
+        A job store. Alternatively, if set to None, :obj:`JobflowSettings.JOB_STORE`
+        will be used. Note, this could be different on the computer that submits the
+        workflow and the computer which runs the workflow. The value of ``JOB_STORE`` on
+        the computer that runs the workflow will be used.
     **kwargs
         Keyword arguments passed to Workflow init method.
 
@@ -78,10 +78,10 @@ def job_to_firework(
     job
         A job.
     store
-        A job store. Alternatively, if set to None, :obj:`settings.JOB_STORE` will
-        be used. Note, this could be different on the computer that submits the workflow
-        and the computer which runs the workflow. The value of ``JOB_STORE`` on the
-        computer that runs the workflow will be used.
+        A job store. Alternatively, if set to None, :obj:`JobflowSettings.JOB_STORE`
+        will be used. Note, this could be different on the computer that submits the
+        workflow and the computer which runs the workflow. The value of ``JOB_STORE`` on
+        the computer that runs the workflow will be used.
     parents
         The parent uuids of the job.
     parent_mapping
@@ -132,24 +132,24 @@ class JobFiretask(FiretaskBase):
     job : Dict
         A serialized job.
     store : JobStore
-        A job store. Alternatively, if set to None, :obj:`settings.JOB_STORE` will
-        be used. Note, this could be different on the computer that submits the workflow
-        and the computer which runs the workflow. The value of ``JOB_STORE`` on the
-        computer that runs the workflow will be used.
+        A job store. Alternatively, if set to None, :obj:`JobflowSettings.JOB_STORE`
+        will be used. Note, this could be different on the computer that submits the
+        workflow and the computer which runs the workflow. The value of ``JOB_STORE`` on
+        the computer that runs the workflow will be used.
     """
 
     required_params = ["job", "store"]
 
     def run_task(self, fw_spec):
         """Run the job and handle any dynamic firework submissions."""
-        from jobflow import initialize_logger, settings
+        from jobflow import SETTINGS, initialize_logger
         from jobflow.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")
 
         if store is None:
-            store = settings.JOB_STORE
+            store = SETTINGS.JOB_STORE
         store.connect()
 
         if hasattr(self, "fw_id"):
