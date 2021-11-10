@@ -6,4 +6,5 @@ jobflow
 
    jobflow.core
    jobflow.managers
+   jobflow.settings
    jobflow.utils
