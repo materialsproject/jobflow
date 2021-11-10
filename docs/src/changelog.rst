@@ -1,6 +1,14 @@
 Change log
 ==========
 
+v0.1.3
+------
+
+Jobflow now uses pydantic to handle settings. Currently, there is only a single setting
+``JOB_STORE`` which controls the default store used by ``run_locally`` and the fireworks
+manager. You can update the default store by writing a ``~/.jobflow.yaml`` settings
+file. See the API documentation for more details.
+
 v0.1.2
 ------
 
