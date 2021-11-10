@@ -129,7 +129,7 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
 def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
-    from jobflow import settings
+    from jobflow import SETTINGS
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = simple_flow()
@@ -148,7 +148,7 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     assert all([s == "COMPLETED" for s in wf.fw_states.values()])
 
     # check store has the activity output
-    result = settings.JOB_STORE.query_one({"uuid": uuid})
+    result = SETTINGS.JOB_STORE.query_one({"uuid": uuid})
     assert result["output"] == "12345_end"
 
     # check logs printed
