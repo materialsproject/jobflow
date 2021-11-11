@@ -28,7 +28,7 @@ setup(
         "monty>=2021.5.9",
         "pydash",
         "networkx",
-        "maggma>=0.31.0",
+        "maggma>=0.32.1",
         "pydantic",
     ],
     extras_require={
