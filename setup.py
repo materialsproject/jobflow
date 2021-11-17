@@ -34,7 +34,7 @@ setup(
     extras_require={
         "docs": [
             "sphinx==4.3.0",
-            "furo==2021.11.15",
+            "furo==2021.11.16",
             "m2r2==0.3.1",
             "ipython==7.29.0",
             "nbsphinx==0.8.7",
