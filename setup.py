@@ -34,7 +34,7 @@ setup(
     extras_require={
         "docs": [
             "sphinx==4.3.0",
-            "furo==2021.11.15",
+            "furo==2021.11.16",
             "m2r2==0.3.1",
             "ipython==7.29.0",
             "nbsphinx==0.8.7",
@@ -46,7 +46,7 @@ setup(
             "pytest==6.2.5",
             "pytest-cov==3.0.0",
             "FireWorks==1.9.7",
-            "matplotlib==3.4.3",
+            "matplotlib==3.5.0",
             "pydot==1.4.2",
         ],
         "dev": ["pre-commit>=2.12.1"],
