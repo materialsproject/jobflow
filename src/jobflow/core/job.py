@@ -779,6 +779,22 @@ class Job(MSONable):
                         dict_mod=dict_mod,
                     )
 
+    def append_name(self, append_str: str, prepend: bool = False):
+        """
+        Append a string to the name of the job.
+
+        Parameters
+        ----------
+        append_str
+            A string to append.
+        prepend
+            Prepend the name rather than appending it.
+        """
+        if prepend:
+            self.name = append_str + self.name
+        else:
+            self.name += append_str
+
     def as_dict(self) -> Dict:
         """Serialize the job as a dictionary."""
         d = super().as_dict()

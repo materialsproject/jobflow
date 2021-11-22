@@ -1,6 +1,12 @@
 Change log
 ==========
 
+Unreleased
+----------
+
+Add ``append_name`` option to ``Job`` and ``Flow`` that allow easy modification of all
+job names in a flow.
+
 v0.1.3
 ------
 

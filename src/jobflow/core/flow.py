@@ -426,6 +426,25 @@ class Flow(MSONable):
                 dict_mod=dict_mod,
             )
 
+    def append_name(self, append_str: str, prepend: bool = False):
+        """
+        Append a string to the name of the flow and all jobs contained in it.
+
+        Parameters
+        ----------
+        append_str
+            A string to append.
+        prepend
+            Prepend the name rather than appending it.
+        """
+        if prepend:
+            self.name = append_str + self.name
+        else:
+            self.name += append_str
+
+        for job in self.jobs:
+            job.append_name(append_str, prepend=prepend)
+
 
 def get_flow(
     flow: Union[Flow, jobflow.Job, List[jobflow.Job]],

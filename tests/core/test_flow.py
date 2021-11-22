@@ -532,6 +532,27 @@ def test_update_maker_kwargs():
     assert flow.jobs[1].maker.b == 14
 
 
+def test_append_name():
+    from jobflow import Flow
+
+    # test append
+    flow = get_test_flow()
+    flow.append_name(" test")
+    assert flow.name == "Flow test"
+    assert flow.jobs[0].name == "add test"
+
+    # test prepend
+    flow = get_test_flow()
+    flow.append_name("test ", prepend=True)
+    assert flow.name == "test Flow"
+    assert flow.jobs[0].name == "test add"
+
+    # test empty Flow
+    flow = Flow([], name="abc")
+    flow.append_name(" test")
+    assert flow.name == "abc test"
+
+
 def test_get_flow():
     import jobflow
     from jobflow import Job

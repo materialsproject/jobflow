@@ -778,6 +778,20 @@ def test_update_maker_kwargs():
     assert test_job.function_kwargs["maker2"].b == 12
 
 
+def test_append_name():
+    from jobflow import Job
+
+    # test append
+    test_job = Job(function=add)
+    test_job.append_name(" test")
+    assert test_job.name == "add test"
+
+    # test prepend
+    test_job = Job(function=add)
+    test_job.append_name("test ", prepend=True)
+    assert test_job.name == "test add"
+
+
 def test_output_schema(memory_jobstore):
     from pydantic import BaseModel
 
