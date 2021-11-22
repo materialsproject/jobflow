@@ -1,7 +1,7 @@
 # jobflow
 
 <a href="https://github.com/materialsproject/jobflow/actions?query=workflow%3Atesting"><img alt="code coverage" src="https://img.shields.io/github/workflow/status/materialsproject/jobflow/testing?label=tests"></a>
-<a href="https://codecov.io/gh/materialsproject/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/materialsproject/jobflow"></a>
+<a href="https://codecov.io/gh/materialsproject/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/materialsproject/jobflow/main"></a>
 <a href="https://pypi.org/project/jobflow"><img alt="pypi version" src="https://img.shields.io/pypi/v/jobflow?color=blue"></a>
 <img alt="supported python versions" src="https://img.shields.io/pypi/pyversions/jobflow">
 
