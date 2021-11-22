@@ -33,14 +33,14 @@ setup(
     ],
     extras_require={
         "docs": [
-            "sphinx==4.2.0",
-            "furo==2021.10.9",
+            "sphinx==4.3.0",
+            "furo==2021.11.15",
             "m2r2==0.3.1",
             "ipython==7.29.0",
             "nbsphinx==0.8.7",
             "nbsphinx-link==1.3.0",
             "FireWorks==1.9.7",
-            "autodoc_pydantic==1.5.0",
+            "autodoc_pydantic==1.5.1",
         ],
         "tests": [
             "pytest==6.2.5",
