@@ -530,12 +530,16 @@ class Job(MSONable):
         if self.config.pass_manager_config:
             if response.addition is not None:
                 pass_manager_config(
-                    response.addition, self.config.manager_config, self.metadata,
+                    response.addition,
+                    self.config.manager_config,
+                    self.metadata,
                 )
 
             if response.detour is not None:
                 pass_manager_config(
-                    response.detour, self.config.manager_config, self.metadata,
+                    response.detour,
+                    self.config.manager_config,
+                    self.metadata,
                 )
 
             if response.replace is not None:
