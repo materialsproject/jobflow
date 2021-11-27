@@ -1,11 +1,20 @@
 Change log
 ==========
 
-Unreleased
-----------
 
-Add ``append_name`` option to ``Job`` and ``Flow`` that allow easy modification of all
-job names in a flow.
+v0.1.4
+------
+
+New features:
+
+- Add ``append_name`` option to ``Job`` and ``Flow`` that allow easy modification of all
+  job names in a flow.
+- Add ``JobConfig.pass_metadata`` (defaults to True) that can be used to pass job metadata
+  on to dynamically added jobs.
+
+Bug fixes:
+
+- Fireworks manager now adds metadata to FireWork spec. Fixes #21.
 
 v0.1.3
 ------
