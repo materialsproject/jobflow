@@ -799,9 +799,9 @@ class Job(MSONable):
         """Serialize the job as a dictionary."""
         d = super().as_dict()
 
-        # fireworks can't serialize functions, so explicitly serialize to avoid issues
-        d["function"] = jsanitize(d["function"])
-        return d
+        # fireworks can't serialize functions and classes, so explicitly serialize to
+        # the job recursively using monty to avoid issues
+        return jsanitize(d, strict=True, enum_values=True)
 
     def __setattr__(self, key, value):
         """Handle setting attributes. Implements a special case for job name."""
