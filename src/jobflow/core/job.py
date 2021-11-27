@@ -55,7 +55,7 @@ class JobConfig(MSONable):
     expose_store
         Whether to expose the store in :obj:`.CURRENT_JOB`` when the job is running.
     pass_manager_config
-        Whether to pass the manager configuration on to detour, addition, and
+        Whether to pass the manager configuration and metadata on to detour, addition, and
         replacement jobs.
 
     Returns
@@ -529,13 +529,19 @@ class Job(MSONable):
 
         if self.config.pass_manager_config:
             if response.addition is not None:
-                pass_manager_config(response.addition, self.config.manager_config)
+                pass_manager_config(
+                    response.addition, self.config.manager_config, self.metadata,
+                )
 
             if response.detour is not None:
-                pass_manager_config(response.detour, self.config.manager_config)
+                pass_manager_config(
+                    response.detour, self.config.manager_config, self.metadata,
+                )
 
             if response.replace is not None:
-                pass_manager_config(response.replace, self.config.manager_config)
+                pass_manager_config(
+                    response.replace, self.config.manager_config, self.metadata
+                )
 
         try:
             output = jsanitize(response.output, strict=True, enum_values=True)
@@ -1007,9 +1013,10 @@ def prepare_replace(
 def pass_manager_config(
     jobs: Union[Job, jobflow.Flow, List[Union[Job, jobflow.Flow]]],
     manager_config: Dict[str, Any],
+    metadata: Dict[str, Any],
 ):
     """
-    Pass the manager config on to any jobs in the jobs array.
+    Pass the manager config and job metadata on to any jobs in the jobs array.
 
     Parameters
     ----------
@@ -1017,6 +1024,8 @@ def pass_manager_config(
         A job, flow, or list of jobs/flows.
     manager_config
         A manager config to pass on.
+    metadata
+        Metadata to pass on.
     """
     from copy import deepcopy
 
@@ -1041,3 +1050,4 @@ def pass_manager_config(
     # update manager config
     for ajob in all_jobs:
         ajob.config.manager_config = deepcopy(manager_config)
+        ajob.metadata = deepcopy(metadata)

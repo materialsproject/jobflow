@@ -891,27 +891,33 @@ def test_pass_manager_config():
     from jobflow.core.job import pass_manager_config
 
     manager_config = {"abc": 1}
+    metadata = {"tags": ["mytag"]}
 
     # test single job
     test_job1 = Job(add, function_args=(1,))
-    pass_manager_config(test_job1, manager_config)
+    pass_manager_config(test_job1, manager_config, metadata)
     assert test_job1.config.manager_config == manager_config
+    assert test_job1.metadata == metadata
 
     # test list job
     test_job1 = Job(add, function_args=(1,))
     test_job2 = Job(add, function_args=(1,))
-    pass_manager_config([test_job1, test_job2], manager_config)
+    pass_manager_config([test_job1, test_job2], manager_config, metadata)
     assert test_job1.config.manager_config == manager_config
     assert test_job2.config.manager_config == manager_config
+    assert test_job1.metadata == metadata
+    assert test_job2.metadata == metadata
 
     # test flow
     test_job1 = Job(add, function_args=(1,))
     test_job2 = Job(add, function_args=(1,))
     flow = Flow([test_job1, test_job2])
-    pass_manager_config(flow, manager_config)
+    pass_manager_config(flow, manager_config, metadata)
     assert test_job1.config.manager_config == manager_config
     assert test_job2.config.manager_config == manager_config
+    assert test_job1.metadata == metadata
+    assert test_job2.metadata == metadata
 
     # test bad input
     with pytest.raises(ValueError):
-        pass_manager_config(["str"], manager_config)
+        pass_manager_config(["str"], manager_config, metadata)
