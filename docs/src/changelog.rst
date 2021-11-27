@@ -7,6 +7,7 @@ v0.1.5
 Bug fixes:
 
 - Remove ``JobConfig.pass_metadata`` option and instead pass metadata automatically.
+- Fix serialization compatability with the FireWorks workflow manager.
 
 
 v0.1.4
