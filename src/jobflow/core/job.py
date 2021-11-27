@@ -57,8 +57,6 @@ class JobConfig(MSONable):
     pass_manager_config
         Whether to pass the manager configuration on to detour, addition, and
         replacement jobs.
-    pass_metadata
-        Whether to pass metadata on to detour, addition, and replacement jobs.
 
     Returns
     -------
@@ -71,7 +69,6 @@ class JobConfig(MSONable):
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
     pass_manager_config: bool = True
-    pass_metadata: bool = True
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):
@@ -539,16 +536,6 @@ class Job(MSONable):
 
             if response.replace is not None:
                 pass_manager_config(response.replace, self.config.manager_config)
-
-        if self.config.pass_metadata:
-            if response.addition is not None:
-                pass_metadata(response.addition, self.metadata)
-
-            if response.detour is not None:
-                pass_metadata(response.detour, self.metadata)
-
-            if response.replace is not None:
-                pass_metadata(response.replace, self.metadata)
 
         try:
             output = jsanitize(response.output, strict=True, enum_values=True)
@@ -1056,42 +1043,3 @@ def pass_manager_config(
     # update manager config
     for ajob in all_jobs:
         ajob.config.manager_config = deepcopy(manager_config)
-
-
-def pass_metadata(
-    jobs: Union[Job, jobflow.Flow, List[Union[Job, jobflow.Flow]]],
-    metadata: Dict[str, Any],
-):
-    """
-    Pass job metadata on to any jobs in the jobs array.
-
-    Parameters
-    ----------
-    jobs
-        A job, flow, or list of jobs/flows.
-    metadata
-        Metadata to pass on.
-    """
-    from copy import deepcopy
-
-    all_jobs: List[Job] = []
-
-    def get_jobs(arg):
-
-        if isinstance(arg, Job):
-            all_jobs.append(arg)
-        elif isinstance(arg, (list, tuple)):
-            for j in arg:
-                get_jobs(j)
-        elif hasattr(arg, "jobs"):
-            # this is a flow
-            get_jobs(arg.jobs)
-        else:
-            raise ValueError("Unrecognised jobs format")
-
-    # extract all jobs from the input array
-    get_jobs(jobs)
-
-    # update manager config
-    for ajob in all_jobs:
-        ajob.metadata = deepcopy(metadata)

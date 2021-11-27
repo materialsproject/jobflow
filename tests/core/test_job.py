@@ -915,34 +915,3 @@ def test_pass_manager_config():
     # test bad input
     with pytest.raises(ValueError):
         pass_manager_config(["str"], manager_config)
-
-
-def test_pass_metadata():
-    from jobflow import Flow, Job
-    from jobflow.core.job import pass_metadata
-
-    metadata = {"tags": ["mytag"]}
-
-    # test single job
-    test_job1 = Job(add, function_args=(1,))
-    pass_metadata(test_job1, metadata)
-    assert test_job1.metadata == metadata
-
-    # test list job
-    test_job1 = Job(add, function_args=(1,))
-    test_job2 = Job(add, function_args=(1,))
-    pass_metadata([test_job1, test_job2], metadata)
-    assert test_job1.metadata == metadata
-    assert test_job2.metadata == metadata
-
-    # test flow
-    test_job1 = Job(add, function_args=(1,))
-    test_job2 = Job(add, function_args=(1,))
-    flow = Flow([test_job1, test_job2])
-    pass_metadata(flow, metadata)
-    assert test_job1.metadata == metadata
-    assert test_job2.metadata == metadata
-
-    # test bad input
-    with pytest.raises(ValueError):
-        pass_metadata(["str"], metadata)

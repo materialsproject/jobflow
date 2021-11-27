@@ -1,6 +1,13 @@
 Change log
 ==========
 
+v0.1.5
+------
+
+Bug fixes:
+
+- Remove ``JobConfig.pass_metadata`` option and instead pass metadata automatically.
+
 
 v0.1.4
 ------
