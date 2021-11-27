@@ -113,6 +113,7 @@ def job_to_firework(
     if job.config.on_missing_references != OnMissing.ERROR:
         spec["_allow_fizzled_parents"] = True
     spec.update(job.config.manager_config)
+    spec.update(job.metadata)  # add metadata to spec
 
     fw = Firework([task], spec=spec, name=job.name, parents=job_parents, **kwargs)
 

@@ -164,6 +164,7 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
 
     flow = simple_flow()
     uuid = flow.jobs[0].uuid
+    flow.jobs[0].metadata = {"tags": ["my_flow"]}
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -176,6 +177,7 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert wf.fws[0].spec["tags"] == ["my_flow"]
 
     # check store has the activity output
     result = mongo_jobstore.query_one({"uuid": uuid})
