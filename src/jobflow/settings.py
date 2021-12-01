@@ -1,5 +1,5 @@
 """Settings for jobflow."""
-
+from maggma.core import Store
 from pathlib import Path
 
 from maggma.stores import MemoryStore
@@ -72,6 +72,13 @@ class JobflowSettings(BaseSettings):
         "accepted formats.",
     )
 
+    QUEUE_STORE: Store = Field(
+        default_factory=lambda: MemoryStore(),
+        description="Default Store to use for the queue when running locally."
+                    "See the :obj:`JobflowSettings` docstring for more details on the "
+                    "accepted formats.",
+    )
+
     class Config:
         """Pydantic config settings."""
 
@@ -102,6 +109,15 @@ class JobflowSettings(BaseSettings):
             new_values["JOB_STORE"] = JobStore.from_dict(store)
         elif isinstance(store, dict):
             new_values["JOB_STORE"] = JobStore.from_dict_spec(store)
+
+        # TODO: Implement this.
+        queue_store = new_values.get("QUEUE_STORE")
+        # if isinstance(store, str):
+        #     new_values["QUEUE_STORE"] = Store.from_file(store)
+        # elif isinstance(store, dict) and store.get("@class") == "JobStore":
+        #     new_values["QUEUE_STORE"] = JobStore.from_dict(store)
+        # elif isinstance(store, dict):
+        #     new_values["QUEUE_STORE"] = JobStore.from_dict_spec(store)
 
         new_values.update(values)
         return new_values

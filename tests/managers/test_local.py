@@ -314,7 +314,7 @@ def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
     responses = run_locally(flow, store=memory_jobstore)
 
     # check responses has been filled
-    assert len(responses) == 0
+    assert len(responses) == 1
 
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
