@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
-
 import typing
+
 if typing.TYPE_CHECKING:
+    from typing import List, Optional, Union
+
     from maggma.core import Store
-    from typing import Union, List, Optional
+
     import jobflow
 
 __all__ = ["Queue"]
@@ -22,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 
 class Queue:
-
     def __init__(self, queue_store: Store = None):
         from jobflow import SETTINGS
 
@@ -33,10 +34,14 @@ class Queue:
         self.queue_store.connect()
 
     def get_flow_info_by_flow_uuid(self, flow_uuid, properties=None):
-        return self.queue_store.query_one({"type": "flow", "uuid": flow_uuid}, properties)
+        return self.queue_store.query_one(
+            {"type": "flow", "uuid": flow_uuid}, properties
+        )
 
     def get_flow_info_by_job_uuid(self, job_uuid, properties=None):
-        return self.queue_store.query_one({"type": "flow", "jobs": job_uuid}, properties)
+        return self.queue_store.query_one(
+            {"type": "flow", "jobs": job_uuid}, properties
+        )
 
     def get_job_info_by_job_uuid(self, job_uuid, job_index, properties=None):
         query = {"type": "job", "uuid": job_uuid, "index": job_index}
@@ -101,7 +106,9 @@ class Queue:
         if detour:
             # if detour, then update the parents of the child jobs
             leaf_uuids = [v for v, d in new_flow.graph.out_degree() if d == 0]
-            children = list(self.queue_store.query({"type": "job", "parents": job_uuid}))
+            children = list(
+                self.queue_store.query({"type": "job", "parents": job_uuid})
+            )
             for child in children:
                 child["parents"].extend(leaf_uuids)
             self.queue_store.update(children, key=["uuid", "index"])
@@ -111,7 +118,9 @@ class Queue:
 
         logger.info(f"Appended flow ({new_flow.uuid}) with jobs: {new_flow.job_uuids}")
 
-    def checkout_job(self, query=None, launch_dir=None, flow_uuid: str=None) -> Optional[jobflow.Job]:
+    def checkout_job(
+        self, query=None, launch_dir=None, flow_uuid: str = None
+    ) -> Optional[jobflow.Job]:
         from jobflow import Job
 
         query = {} if query is None else query
@@ -151,7 +160,9 @@ class Queue:
                 self.append_flow(job.uuid, job.index, response.detour, detour=True)
 
             if response.stored_data is not None:
-                logger.warning("Response.stored_data is not supported with local manager")
+                logger.warning(
+                    "Response.stored_data is not supported with local manager"
+                )
 
             if response.stop_children:
                 self.stop_children(job.uuid)
@@ -174,9 +185,8 @@ class Queue:
         # now find jobs that are queued and whose parents are all completed and ready them
         updates = []
         for uuid, job in mapping.items():
-            if (
-                job["state"] == "queued" and
-                all([mapping[p]["state"] == "completed" for p in job["parents"]])
+            if job["state"] == "queued" and all(
+                [mapping[p]["state"] == "completed" for p in job["parents"]]
             ):
                 job["state"] = "ready"
                 updates.append(job)
@@ -220,6 +230,7 @@ class Queue:
 
 def _get_job_dict(job, parents):
     from monty.json import jsanitize
+
     return {
         "job": jsanitize(job, strict=True, enum_values=True),
         "uuid": job.uuid,

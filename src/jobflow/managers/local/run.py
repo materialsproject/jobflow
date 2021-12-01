@@ -6,7 +6,7 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Dict, List, Optional, Set, Union
+    from typing import Dict, List, Optional, Union
 
     import jobflow
 
@@ -48,13 +48,12 @@ def run_locally(
         The responses of the jobs, as a dict of ``{uuid: {index: response}}``.
     """
     from collections import defaultdict
-    from monty.serialization import dumpfn
     from pathlib import Path
 
     from monty.os import cd
+    from monty.serialization import dumpfn
 
-    from jobflow import SETTINGS, initialize_logger
-    from jobflow import Queue
+    from jobflow import SETTINGS, Queue, initialize_logger
     from jobflow.core.flow import get_flow
 
     if store is None:

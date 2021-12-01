@@ -1,7 +1,7 @@
 """Settings for jobflow."""
-from maggma.core import Store
 from pathlib import Path
 
+from maggma.core import Store
 from maggma.stores import MemoryStore
 from pydantic import BaseSettings, Field, root_validator
 
@@ -75,8 +75,8 @@ class JobflowSettings(BaseSettings):
     QUEUE_STORE: Store = Field(
         default_factory=lambda: MemoryStore(),
         description="Default Store to use for the queue when running locally."
-                    "See the :obj:`JobflowSettings` docstring for more details on the "
-                    "accepted formats.",
+        "See the :obj:`JobflowSettings` docstring for more details on the "
+        "accepted formats.",
     )
 
     class Config:
@@ -111,7 +111,7 @@ class JobflowSettings(BaseSettings):
             new_values["JOB_STORE"] = JobStore.from_dict_spec(store)
 
         # TODO: Implement this.
-        queue_store = new_values.get("QUEUE_STORE")
+        new_values.get("QUEUE_STORE")
         # if isinstance(store, str):
         #     new_values["QUEUE_STORE"] = Store.from_file(store)
         # elif isinstance(store, dict) and store.get("@class") == "JobStore":
