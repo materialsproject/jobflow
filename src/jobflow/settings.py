@@ -75,7 +75,7 @@ class JobflowSettings(BaseSettings):
     QUEUE_STORE: Store = Field(
         default_factory=lambda: MemoryStore(),
         description="Default Store to use for the queue when running locally."
-        "See the :obj:`JobflowSettings` docstring for more details on the "
+        "See the :obj:`store_from_dict_spec` docstring for more details on the "
         "accepted formats.",
     )
 
@@ -94,7 +94,10 @@ class JobflowSettings(BaseSettings):
 
         This allows setting of the config file path through environment variables.
         """
+        from monty.json import MontyDecoder
         from monty.serialization import loadfn
+
+        from jobflow.core.store import store_from_dict_spec
 
         config_file_path: str = values.get("CONFIG_FILE", DEFAULT_CONFIG_FILE_PATH)
 
@@ -110,14 +113,16 @@ class JobflowSettings(BaseSettings):
         elif isinstance(store, dict):
             new_values["JOB_STORE"] = JobStore.from_dict_spec(store)
 
-        # TODO: Implement this.
-        new_values.get("QUEUE_STORE")
-        # if isinstance(store, str):
-        #     new_values["QUEUE_STORE"] = Store.from_file(store)
-        # elif isinstance(store, dict) and store.get("@class") == "JobStore":
-        #     new_values["QUEUE_STORE"] = JobStore.from_dict(store)
-        # elif isinstance(store, dict):
-        #     new_values["QUEUE_STORE"] = JobStore.from_dict_spec(store)
+        store = new_values.get("QUEUE_STORE")
+        if isinstance(store, str):
+            store = loadfn(store)
+
+        if isinstance(store, Store):
+            new_values["QUEUE_STORE"] = store
+        elif isinstance(store, dict) and store.get("@class", None) is not None:
+            new_values["QUEUE_STORE"] = MontyDecoder().process_decoded(store)
+        elif isinstance(store, dict):
+            new_values["QUEUE_STORE"] = store_from_dict_spec(store)
 
         new_values.update(values)
         return new_values

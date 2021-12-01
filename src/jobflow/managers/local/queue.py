@@ -17,11 +17,6 @@ __all__ = ["Queue"]
 
 logger = logging.getLogger(__name__)
 
-# Flow looks like
-# type: "flow"
-# uuid: 1234
-# jobs: [a, b, c]
-
 
 class Queue:
     def __init__(self, queue_store: Store = None):

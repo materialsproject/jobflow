@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
     save_type = Optional[Dict[str, obj_type]]
     load_type = Union[bool, Dict[str, Union[bool, obj_type]]]
 
-__all__ = ["JobStore"]
+__all__ = ["JobStore", "store_from_dict_spec"]
 
 T = typing.TypeVar("T", bound="JobStore")
 
@@ -638,29 +638,56 @@ class JobStore(Store):
         JobStore
             A JobStore.
         """
-        import maggma.stores  # required to enable subclass searching
-
         if "docs_store" not in spec:
             raise ValueError("Unrecognised database file format.")
 
-        def all_subclasses(cl):
-            return set(cl.__subclasses__()).union(
-                [s for c in cl.__subclasses__() for s in all_subclasses(c)]
-            )
-
-        all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
-
-        docs_store_info = spec["docs_store"]
-        docs_store_type = docs_store_info.pop("type")
-        docs_store = all_stores[docs_store_type](**docs_store_info)
+        docs_store = store_from_dict_spec(spec["docs_store"])
 
         additional_stores = {}
         if "additional_stores" in spec:
             for store_name, info in spec["additional_stores"].items():
-                store_type = info.pop("type")
-                additional_stores[store_name] = all_stores[store_type](**info)
+                additional_stores[store_name] = store_from_dict_spec(info)
 
         return cls(docs_store, additional_stores, **kwargs)
+
+
+def store_from_dict_spec(spec: dict) -> Store:
+    """
+    Create an maggma store from a dict specification.
+
+    The store is specified by the ``type`` key which must match a Maggma ``Store``
+    subclass, and the remaining keys are passed to the store constructor. For example, the
+    following file would  create a ``MongoStore``
+
+    .. code-block:: yaml
+
+        type: MongoStore
+        database: jobflow_unittest
+        collection_name: outputs
+        host: localhost
+        port: 27017
+
+    Parameters
+    ----------
+    spec
+        The dictionary specification.
+
+    Returns
+    -------
+    Store
+        A maggma store.
+    """
+    import maggma.stores  # required to enable subclass searching
+
+    def all_subclasses(cl):
+        return set(cl.__subclasses__()).union(
+            [s for c in cl.__subclasses__() for s in all_subclasses(c)]
+        )
+
+    all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
+
+    store_type = spec.pop("type")
+    return all_stores[store_type](**spec)
 
 
 def _prepare_load(

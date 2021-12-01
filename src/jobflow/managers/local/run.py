@@ -71,7 +71,7 @@ def run_locally(
     queue.add_flow(flow)
 
     logger.info("Started executing jobs locally")
-    responses = defaultdict(dict)
+    responses: Dict[str, dict] = defaultdict(dict)
     root_dir = Path.cwd()
     while True:
         if create_folders:

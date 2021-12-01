@@ -67,3 +67,55 @@ def test_settings_object(clean_dir, test_data):
     # assert passing a jobflow object works
     settings = JobflowSettings(JOB_STORE=JobStore.from_dict(monty_spec))
     assert settings.JOB_STORE.docs_store.collection_name == "memory_db_123"
+
+
+def test_settings_queue_store(clean_dir, test_data):
+    import os
+    from pathlib import Path
+
+    from maggma.stores.mongolike import MemoryStore
+    from monty.serialization import dumpfn
+
+    from jobflow.settings import JobflowSettings
+
+    monty_spec = {
+        "@module": "maggma.stores.mongolike",
+        "@class": "MemoryStore",
+        "@version": "0.31.0",
+        "collection_name": "memory_db_123",
+    }
+
+    dict_spec = {
+        "type": "MongoStore",
+        "database": "jobflow_unittest",
+        "collection_name": "outputs_567",
+        "host": "localhost",
+        "port": 27017,
+    }
+
+    # set the path to lood settings from
+    os.environ["JOBFLOW_CONFIG_FILE"] = str(Path.cwd() / "config.yaml")
+
+    # assert loading monty spec from files works
+    dumpfn({"QUEUE_STORE": monty_spec}, "config.yaml")
+    settings = JobflowSettings()
+    assert settings.QUEUE_STORE.collection_name == "memory_db_123"
+
+    # assert loading alternative dict spec from files works
+    dumpfn({"QUEUE_STORE": dict_spec}, "config.yaml")
+    settings = JobflowSettings()
+    assert settings.QUEUE_STORE.collection_name == "outputs_567"
+
+    # assert loading from db file works.
+    dumpfn({"QUEUE_STORE": str(test_data / "queue_db.yaml")}, "config.yaml")
+    settings = JobflowSettings()
+    assert settings.QUEUE_STORE.collection_name == "outputs"
+
+    # assert loading from serialized file works.
+    dumpfn({"QUEUE_STORE": str(test_data / "queue_db_serialized.json")}, "config.yaml")
+    settings = JobflowSettings()
+    assert settings.QUEUE_STORE.database == "jobflow_unittest"
+
+    # assert passing a jobflow object works
+    settings = JobflowSettings(QUEUE_STORE=MemoryStore.from_dict(monty_spec))
+    assert settings.QUEUE_STORE.collection_name == "memory_db_123"
