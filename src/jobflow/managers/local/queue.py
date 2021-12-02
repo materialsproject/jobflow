@@ -131,11 +131,24 @@ class Queue:
         if result is None:
             return None
 
-        # set job state to running and add launch dir
+        # maggma stores don't implement find one and update, so have to update the entire
+        # document at once. This can be quite slow and mean the same job can be checked
+        # out twice. To get around this, upload a minimal doc first and then the full
+        # doc afterwards
+        self.queue_store.update(
+            {
+                "type": "job",
+                "uuid": result["uuid"],
+                "index": result["index"],
+                "state": "running",
+            },
+            key=["uuid", "index"],
+        )
+
+        # Upload the full doc: set job state to running and add launch dir
         result.update({"state": "running", "launch_dir": launch_dir})
         self.queue_store.update(result, key=["uuid", "index"])
 
-        # remove additional keys and return job object
         return Job.from_dict(result["job"])
 
     def checkin_job(self, job: jobflow.Job, response: Optional[jobflow.Response]):
