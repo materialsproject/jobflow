@@ -529,13 +529,19 @@ class Job(MSONable):
 
         if self.config.pass_manager_config:
             if response.addition is not None:
-                pass_manager_config(response.addition, self.config.manager_config)
+                pass_manager_config(
+                    response.addition, self.config.manager_config, self.metadata
+                )
 
             if response.detour is not None:
-                pass_manager_config(response.detour, self.config.manager_config)
+                pass_manager_config(
+                    response.detour, self.config.manager_config, self.metadata
+                )
 
             if response.replace is not None:
-                pass_manager_config(response.replace, self.config.manager_config)
+                pass_manager_config(
+                    response.replace, self.config.manager_config, self.metadata
+                )
 
         try:
             output = jsanitize(response.output, strict=True, enum_values=True)
@@ -1007,6 +1013,7 @@ def prepare_replace(
 def pass_manager_config(
     jobs: Union[Job, jobflow.Flow, List[Union[Job, jobflow.Flow]]],
     manager_config: Dict[str, Any],
+    metadata: Dict,
 ):
     """
     Pass the manager config on to any jobs in the jobs array.
@@ -1043,3 +1050,7 @@ def pass_manager_config(
     # update manager config
     for ajob in all_jobs:
         ajob.config.manager_config = deepcopy(manager_config)
+
+    # also pass metadata
+    for ajob in all_jobs:
+        ajob.metadata = deepcopy(metadata)
