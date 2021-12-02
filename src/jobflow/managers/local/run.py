@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 
     import jobflow
 
-__all__ = ["run_locally"]
+__all__ = ["run_locally", "rapidfire"]
 
 logger = logging.getLogger(__name__)
 
