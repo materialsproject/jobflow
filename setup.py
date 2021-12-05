@@ -36,7 +36,7 @@ setup(
             "sphinx==4.3.0",
             "furo==2021.11.16",
             "m2r2==0.3.1",
-            "mistune==2.0.0rc1",
+            "mistune==0.8.4",
             "ipython==7.29.0",
             "nbsphinx==0.8.7",
             "nbsphinx-link==1.3.0",
