@@ -154,7 +154,7 @@ def rapidfire(
             except Exception:
                 import traceback
 
-                logger.info(
+                logger.error(
                     f"{job.name} failed with exception:\n{traceback.format_exc()}"
                 )
                 response = None
@@ -163,7 +163,7 @@ def rapidfire(
             queue.checkin_job(job, response)
 
         if sleep_time > 0:
-            logger.info(f"Sleeping for {sleep_time} secs")
+            logger.debug(f"Sleeping for {sleep_time} secs")
             time.sleep(sleep_time)
 
         num_launched += 1
