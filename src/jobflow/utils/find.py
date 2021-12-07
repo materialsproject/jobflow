@@ -77,7 +77,7 @@ def find_key(
         if isinstance(obj, dict):
             if (
                 inspect.isclass(key)
-                and issubclass(key, MSONable)
+                and (issubclass(key, MSONable) or hasattr(key, "as_dict"))
                 and "@module" in obj
                 and obj["@module"] == key.__module__
                 and "@class" in obj
