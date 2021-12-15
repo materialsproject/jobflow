@@ -120,24 +120,27 @@ class Queue:
     ) -> Optional[jobflow.Job]:
         from jobflow import Job
 
-        jquery = {} if query is None else query
-        jquery.update({"state": "ready", "type": "job"})
+        query = {} if query is None else dict(query)
+        query.update({"state": "ready", "type": "job"})
 
         if flow_uuid is not None:
             # if flow uuid provided, only include job ids in that flow
             job_uuids = self.get_flow_info_by_flow_uuid(flow_uuid, ["jobs"])["jobs"]
-            jquery["uuid"] = {"$in": job_uuids}
+            query["uuid"] = {"$in": job_uuids}
 
-        result = self.queue_store.query_one(criteria=jquery)
+        reserve_id = suuid()
+        result = self.queue_store._collection.update_one(
+            query,
+            {"$set": {"state": "running", "reserve_id": reserve_id}},
+            upsert=False,
+        )
 
-        if result is None:
+        if result.modified_count < 1:
             return None
 
-        if not self.reserve_job(result, launch_dir=launch_dir):
-            return self.checkout_job(
-                query=query, launch_dir=launch_dir, flow_uuid=flow_uuid
-            )
-
+        result = self.queue_store.query_one(
+            {"reserve_id": reserve_id}, properties=["job"]
+        )
         return Job.from_dict(result["job"])
 
     def reserve_job(self, job_dict: dict, launch_dir: str | None):
