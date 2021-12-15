@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import typing
 
+from jobflow.utils import suuid
+
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
@@ -118,38 +120,49 @@ class Queue:
     ) -> Optional[jobflow.Job]:
         from jobflow import Job
 
-        query = {} if query is None else query
-        query.update({"state": "ready", "type": "job"})
+        jquery = {} if query is None else query
+        jquery.update({"state": "ready", "type": "job"})
 
         if flow_uuid is not None:
             # if flow uuid provided, only include job ids in that flow
             job_uuids = self.get_flow_info_by_flow_uuid(flow_uuid, ["jobs"])["jobs"]
-            query["uuid"] = {"$in": job_uuids}
+            jquery["uuid"] = {"$in": job_uuids}
 
-        result = self.queue_store.query_one(criteria=query)
+        result = self.queue_store.query_one(criteria=jquery)
 
         if result is None:
             return None
 
-        # maggma stores don't implement find one and update, so have to update the entire
-        # document at once. This can be quite slow and mean the same job can be checked
-        # out twice. To get around this, upload a minimal doc first and then the full
-        # doc afterwards
-        self.queue_store.update(
-            {
-                "type": "job",
-                "uuid": result["uuid"],
-                "index": result["index"],
-                "state": "running",
-            },
-            key=["uuid", "index"],
-        )
-
-        # Upload the full doc: set job state to running and add launch dir
-        result.update({"state": "running", "launch_dir": launch_dir})
-        self.queue_store.update(result, key=["uuid", "index"])
+        if not self.reserve_job(result, launch_dir=launch_dir):
+            return self.checkout_job(
+                query=query, launch_dir=launch_dir, flow_uuid=flow_uuid
+            )
 
         return Job.from_dict(result["job"])
+
+    def reserve_job(self, job_dict: dict, launch_dir: str | None):
+        if job_dict["state"] == "running":
+            return False
+
+        reserve_uuid = suuid()
+
+        # Upload the full doc: set job state to running and add launch dir
+        job_dict.update(
+            {"reserve_uuid": reserve_uuid, "state": "running", "launch_dir": launch_dir}
+        )
+
+        self.queue_store.update(job_dict, key=["uuid", "index"])
+
+        # maggma stores don't implement find one and update, so have to update the entire
+        # document at once. This can be quite slow and mean the same job can be checked
+        # out twice. Therefore do a quick query after updating to check no other job has
+        # checked the job out
+        job_dict = self.queue_store.query_one(
+            {"uuid": job_dict["uuid"], "index": job_dict["index"]}
+        )
+
+        # if we get a different reserve uuid then the job was stolen by another process
+        return job_dict.get("reserve_uuid", None) == reserve_uuid
 
     def checkin_job(self, job: jobflow.Job, response: Optional[jobflow.Response]):
         job_dict = self.get_job_info_by_job_uuid(job.uuid, job.index)

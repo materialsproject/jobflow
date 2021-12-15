@@ -54,7 +54,7 @@ setup(
         ],
         "dev": ["pre-commit>=2.12.1"],
         "vis": ["matplotlib", "pydot"],
-        "fireworks": ["fireworks"],
+        "fireworks": ["fireworks", "pymongo==3.12.2"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
