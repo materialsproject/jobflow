@@ -37,7 +37,7 @@ Some of its features include:
 Workflows in jobflows are made up of two main components:
 
 - A `Job` is an atomic computing job. Essentially any python function can be `Job`,
-  provided its return values can be serialized to json. Anything returned by the job is
+  provided its input and return values can be serialized to json. Anything returned by the job is
   considered an "output" and is stored in the jobflow database.
 - A `Flow` is a collection of `Job` objects or other `Flow` objects. The connectivity
   between jobs is determined automatically from the job inputs. The execution order

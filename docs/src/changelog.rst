@@ -1,6 +1,15 @@
 Change log
 ==========
 
+v0.1.6
+------
+
+Bug fixes:
+
+- Docs fixes (@arosen).
+- Compatability with maggma>=0.38.1 (#68)
+- Fixed missing PyYAML requirement (#67)
+
 v0.1.5
 ------
 

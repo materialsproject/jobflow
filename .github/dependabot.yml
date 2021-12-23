@@ -9,5 +9,4 @@ updates:
   - dependency-type: direct
   - dependency-type: indirect
   ignore:
-    - dependency-name: pymongo
     - dependency-name: mistune

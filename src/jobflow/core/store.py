@@ -81,6 +81,11 @@ class JobStore(Store):
         super().__init__(**kwargs)
 
     @property
+    def _collection(self):
+        """Get the underlying collection object."""
+        return self.docs_store._collection
+
+    @property
     def name(self) -> str:
         """Get the name of the data source.
 
@@ -427,11 +432,6 @@ class JobStore(Store):
             for store in self.additional_stores.values():
                 store.remove_docs({"job_uuid": doc["uuid"], "job_index": doc["index"]})
         self.docs_store.remove_docs(criteria)
-
-    @property
-    def collection(self):
-        """Get the collection name."""
-        return self.docs_store.collection
 
     def get_output(
         self,
