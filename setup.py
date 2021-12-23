@@ -41,13 +41,11 @@ setup(
             "nbsphinx==0.8.7",
             "nbsphinx-link==1.3.0",
             "FireWorks==1.9.8",
-            "pymongo==3.12.2",
             "autodoc_pydantic==1.5.1",
         ],
         "tests": [
             "pytest==6.2.5",
             "pytest-cov==3.0.0",
-            "pymongo==3.12.2",
             "FireWorks==1.9.8",
             "matplotlib==3.5.1",
             "pydot==1.4.2",
