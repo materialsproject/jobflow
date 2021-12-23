@@ -433,11 +433,6 @@ class JobStore(Store):
                 store.remove_docs({"job_uuid": doc["uuid"], "job_index": doc["index"]})
         self.docs_store.remove_docs(criteria)
 
-    @property
-    def collection(self):
-        """Get the collection name."""
-        return self.docs_store.collection
-
     def get_output(
         self,
         uuid: str,

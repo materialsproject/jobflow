@@ -17,7 +17,7 @@ def test_basic(memory_store):
     store.connect()
     assert store
     assert store.name == "JobStore-mem://memory_db"
-    assert store.collection is not None
+    assert store._collection is not None
 
     store.close()
 
@@ -35,7 +35,7 @@ def test_additional(memory_store):
     store.connect()
     assert store
     assert store.name == "JobStore-mem://memory_db"
-    assert store.collection is not None
+    assert store._collection is not None
 
     store.close()
 
