@@ -81,6 +81,11 @@ class JobStore(Store):
         super().__init__(**kwargs)
 
     @property
+    def _collection(self):
+        """Get the underlying collection object."""
+        return self.docs_store._collection
+
+    @property
     def name(self) -> str:
         """Get the name of the data source.
 
