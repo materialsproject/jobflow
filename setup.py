@@ -28,8 +28,9 @@ setup(
         "monty>=2021.5.9",
         "pydash",
         "networkx",
-        "maggma>=0.32.1",
+        "maggma>=0.38.1",
         "pydantic",
+        "PyYAML",
     ],
     extras_require={
         "docs": [
