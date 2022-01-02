@@ -69,6 +69,24 @@ def test_flow_to_workflow(
     wf = flow_to_workflow(flow, memory_jobstore)
     assert wf.fws[0].spec["metadata"] == 5
 
+    # test modification to config
+    flow = connected_flow()
+    wf = flow_to_workflow(
+        flow, memory_jobstore, config_updates={"_fworker": "myfworker"}
+    )
+    assert wf.fws[0].spec["_fworker"] == "myfworker"
+    assert wf.fws[1].spec["_fworker"] == "myfworker"
+
+    flow = connected_flow()
+    wf = flow_to_workflow(
+        flow,
+        memory_jobstore,
+        config_updates=[{"_fworker": "myfworker1"}, {"_fworker": "myfworker2"}],
+    )
+
+    assert wf.fws[0].spec["_fworker"] == "myfworker1"
+    assert wf.fws[1].spec["_fworker"] == "myfworker2"
+
 
 def test_job_to_firework(
     memory_jobstore, simple_job, simple_flow, connected_flow, nested_flow
@@ -94,6 +112,12 @@ def test_job_to_firework(
 
     with pytest.raises(ValueError):
         job_to_firework(job2, memory_jobstore, parents=[job.uuid])
+
+    # test modification to config
+    job = simple_job()
+    fw = job_to_firework(job, memory_jobstore, config_updates={"_fworker": "myfworker"})
+
+    assert fw.spec["_fworker"] == "myfworker"
 
 
 def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):

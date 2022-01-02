@@ -17,6 +17,7 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 def flow_to_workflow(
     flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
     store: Optional[jobflow.JobStore] = None,
+    config_updates: Optional[List[Dict[str, str]] | Dict[str, str]] = None,
     **kwargs,
 ) -> Workflow:
     """
@@ -35,6 +36,10 @@ def flow_to_workflow(
         will be used. Note, this could be different on the computer that submits the
         workflow and the computer which runs the workflow. The value of ``JOB_STORE`` on
         the computer that runs the workflow will be used.
+    config_updates
+        A dict (or list of dicts) specifying the config updates for each job. If a single
+        dict is supplied, e.g. {"_fworker": "myfworker"}, then it will be applied to all
+        jobs. When provided as a list, the order is expected to match that of flow.iterflow().
     **kwargs
         Keyword arguments passed to Workflow init method.
 
@@ -43,7 +48,7 @@ def flow_to_workflow(
     Workflow
         The job or flow as a workflow.
     """
-    from fireworks.core.firework import Firework, Workflow
+    from fireworks.core.firework import Workflow
 
     from jobflow.core.flow import get_flow
 
@@ -51,9 +56,16 @@ def flow_to_workflow(
     fireworks = []
 
     flow = get_flow(flow)
-
-    for job, parents in flow.iterflow():
-        fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
+    if not isinstance(config_updates, list):
+        config_updates = [config_updates for _, _ in flow.iterflow()]
+    for idx, (job, parents) in enumerate(flow.iterflow()):
+        fw = job_to_firework(
+            job,
+            store,
+            parents=parents,
+            parent_mapping=parent_mapping,
+            config_updates=config_updates[idx],
+        )
         fireworks.append(fw)
 
     return Workflow(fireworks, name=flow.name, **kwargs)
@@ -64,6 +76,7 @@ def job_to_firework(
     store: Optional[jobflow.JobStore] = None,
     parents: Optional[Sequence[str]] = None,
     parent_mapping: Optional[Dict[str, Firework]] = None,
+    config_updates: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> Firework:
     """
@@ -86,6 +99,8 @@ def job_to_firework(
         The parent uuids of the job.
     parent_mapping
         A dictionary mapping job uuids to Firework objects, as ``{uuid: Firework}``.
+    config_updates
+        A dict specifying the config updates for each job, e.g. {"_fworker": "myfworker"}.
     **kwargs
         Keyword arguments passed to the Firework constructor.
 
@@ -108,7 +123,9 @@ def job_to_firework(
         job_parents = (
             [parent_mapping[parent] for parent in parents] if parents else None
         )
-
+    if config_updates:
+        for k, v in config_updates.items():
+            job.config.manager_config[k] = v
     spec = {"_add_launchpad_and_fw_id": True}  # this allows the job to know the fw_id
     if job.config.on_missing_references != OnMissing.ERROR:
         spec["_allow_fizzled_parents"] = True
