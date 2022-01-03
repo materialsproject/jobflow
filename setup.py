@@ -37,7 +37,7 @@ setup(
             "furo==2021.11.23",
             "m2r2==0.3.2",
             "ipython==7.30.1",
-            "nbsphinx==0.8.7",
+            "nbsphinx==0.8.8",
             "nbsphinx-link==1.3.0",
             "FireWorks==1.9.8",
             "autodoc_pydantic==1.5.1",
