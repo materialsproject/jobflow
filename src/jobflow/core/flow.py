@@ -448,6 +448,7 @@ class Flow(MSONable):
 
 def get_flow(
     flow: Union[Flow, jobflow.Job, List[jobflow.Job]],
+    check_references: bool = True,
 ) -> Flow:
     """
     Check dependencies and return flow object.
@@ -456,6 +457,9 @@ def get_flow(
     ----------
     flow
         A job, list of jobs, or flow.
+    check_references
+        Whether to check if all the jobs needed to resolve output references are included
+        in the flow.
 
     Returns
     -------
@@ -465,14 +469,15 @@ def get_flow(
     if not isinstance(flow, Flow):
         flow = Flow(jobs=flow)
 
-    # ensure that we have all the jobs needed to resolve the reference connections
-    job_references = find_and_get_references(flow.jobs)
-    job_reference_uuids = {ref.uuid for ref in job_references}
-    missing_jobs = job_reference_uuids.difference(set(flow.job_uuids))
-    if len(missing_jobs) > 0:
-        raise ValueError(
-            "The following jobs were not found in the jobs array and are needed to "
-            f"resolve output references:\n{list(missing_jobs)}"
-        )
+    if check_references:
+        # ensure that we have all the jobs needed to resolve the reference connections
+        job_references = find_and_get_references(flow.jobs)
+        job_reference_uuids = {ref.uuid for ref in job_references}
+        missing_jobs = job_reference_uuids.difference(set(flow.job_uuids))
+        if len(missing_jobs) > 0:
+            raise ValueError(
+                "The following jobs were not found in the jobs array and are needed to "
+                f"resolve output references:\n{list(missing_jobs)}"
+            )
 
     return flow

@@ -83,7 +83,7 @@ class Queue:
     ):
         from jobflow.core.flow import get_flow
 
-        new_flow = get_flow(new_flow)
+        new_flow = get_flow(new_flow, check_references=False)
 
         # add new jobs to flow
         flow_dict = self.get_flow_info_by_job_uuid(job_uuid)
