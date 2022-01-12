@@ -95,7 +95,7 @@ class Queue:
 
         # add new jobs
         job_dicts = []
-        for job, parents in new_flow.iterflow():
+        for job, parents in new_flow.iterflow(skip_missing_jobs=True):
             # inherit the parents of the job to which we are appending
             parents = parents if parents else job_parents
             job_dicts.append(_get_job_dict(job, parents))

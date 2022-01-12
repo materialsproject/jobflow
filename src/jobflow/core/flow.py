@@ -244,12 +244,18 @@ class Flow(MSONable):
 
         return draw_graph(self.graph, **kwargs)
 
-    def iterflow(self):
+    def iterflow(self, skip_missing_jobs: bool = False):
         """
         Iterate through the jobs of the flow.
 
         The jobs are yielded such that the job output references can always be
         resolved. I.e., root nodes of the flow graph are always returned first.
+
+        Parameters
+        ----------
+        skip_missing_jobs
+            Whether to skip jobs which are referenced in the flow but whose jobs are
+            not included. If False, a ``ValueError`` will be raised instead.
 
         Yields
         ------
@@ -271,7 +277,8 @@ class Flow(MSONable):
 
         for node in itergraph(graph):
             parents = [u for u, v in graph.in_edges(node)]
-            job = graph.nodes[node]["job"]
+            if "job" in graph.nodes[node] or not skip_missing_jobs:
+                job = graph.nodes[node]["job"]
             yield job, parents
 
     def update_kwargs(
