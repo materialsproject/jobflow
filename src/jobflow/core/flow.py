@@ -279,7 +279,7 @@ class Flow(MSONable):
             parents = [u for u, v in graph.in_edges(node)]
             if "job" in graph.nodes[node] or not skip_missing_jobs:
                 job = graph.nodes[node]["job"]
-            yield job, parents
+                yield job, parents
 
     def update_kwargs(
         self,
