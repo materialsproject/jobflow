@@ -44,7 +44,7 @@ setup(
             "autodoc_pydantic==1.6.1",
         ],
         "tests": [
-            "pytest==6.2.5",
+            "pytest==7.0.0",
             "pytest-cov==3.0.0",
             "FireWorks==1.9.8",
             "matplotlib==3.5.1",
