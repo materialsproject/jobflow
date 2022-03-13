@@ -140,7 +140,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
         doesn't exist, this error will only be raised when the Job is executed.
 
     Jobs can return :obj:`.Response` objects that control the flow execution flow.
-    For example, to replace the current jub with another job, ``replace`` can be used.
+    For example, to replace the current job with another job, ``replace`` can be used.
 
     >>> from jobflow import Response
     >>> @job
