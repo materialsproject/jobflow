@@ -515,13 +515,13 @@ def test_update_kwargs():
     flow.update_kwargs({"b": 5}, function_filter=div)
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 5
-    assert flow.jobs[1].function_kwargs["b"] == 4
+    assert flow.jobs[2].function_kwargs["b"] == 4
 
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, function_filter=[div])
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 5
-    assert flow.jobs[1].function_kwargs["b"] == 4
+    assert flow.jobs[2].function_kwargs["b"] == 4
 
     flow = get_test_flow()
     flow.update_kwargs({"b": 10}, name_filter=[div, mult])
