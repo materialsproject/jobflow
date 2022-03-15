@@ -524,7 +524,7 @@ def test_update_kwargs():
     assert flow.jobs[2].function_kwargs["b"] == 4
 
     flow = get_test_flow()
-    flow.update_kwargs({"b": 10}, name_filter=[div, mult])
+    flow.update_kwargs({"b": 10}, function_filter=[div, mult])
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 10
     assert flow.jobs[2].function_kwargs["b"] == 10
