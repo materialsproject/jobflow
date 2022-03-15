@@ -686,6 +686,10 @@ def test_update_kwargs():
     test_job.update_kwargs({"b": 5}, name_filter="div")
     assert test_job.function_kwargs["b"] == 2
 
+    test_job = Job(add, function_args=(1,), function_kwargs={"b": 2})
+    test_job.update_kwargs({"b": 5}, name_filter=["div", "test"])
+    assert test_job.function_kwargs["b"] == 2
+
     # test function filter
     test_job = Job(add, function_args=(1,), function_kwargs={"b": 2})
     test_job.update_kwargs({"b": 5}, function_filter=add)
@@ -693,6 +697,10 @@ def test_update_kwargs():
 
     test_job = Job(add, function_args=(1,), function_kwargs={"b": 2})
     test_job.update_kwargs({"b": 5}, function_filter=list)
+    assert test_job.function_kwargs["b"] == 2
+
+    test_job = Job(add, function_args=(1,), function_kwargs={"b": 2})
+    test_job.update_kwargs({"b": 5}, function_filter=[list])
     assert test_job.function_kwargs["b"] == 2
 
     # test dict mod

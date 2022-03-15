@@ -9,6 +9,10 @@ def div(a, b=2):
     return a / b
 
 
+def mult(a, b=2):
+    return a * b
+
+
 def get_test_job():
     from jobflow import Job
 
@@ -20,7 +24,8 @@ def get_test_flow():
 
     add_job = Job(add, function_args=(1, 2))
     div_job = Job(div, function_args=(add_job.output,), function_kwargs={"b": 3})
-    return Flow([add_job, div_job])
+    mult_job = Job(mult, function_args=(add_job.output,), function_kwargs={"b": 4})
+    return Flow([add_job, div_job, mult_job])
 
 
 def get_maker_flow(return_makers=False):
@@ -44,16 +49,27 @@ def get_maker_flow(return_makers=False):
 
         @job
         def make(self, a):
-            return a + self.b
+            return a / self.b
+
+    @dataclass
+    class MultMaker(Maker):
+        name: str = "mult"
+        b: int = 6
+
+        @job
+        def make(self, a):
+            return a * self.b
 
     add_maker = AddMaker(b=3)
     div_maker = DivMaker(b=4)
+    mult_maker = MultMaker(b=5)
     add_job = add_maker.make(2)
     div_job = div_maker.make(add_job.output)
-    flow = Flow([add_job, div_job])
+    mult_job = mult_maker.make(div_job.output)
+    flow = Flow([add_job, div_job, mult_job])
 
     if return_makers:
-        return flow, (AddMaker, DivMaker)
+        return flow, (AddMaker, DivMaker, MultMaker)
     else:
         return flow
 
@@ -473,24 +489,52 @@ def test_update_kwargs():
     flow.update_kwargs({"b": 5})
     assert flow.jobs[0].function_kwargs["b"] == 5
     assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow.jobs[2].function_kwargs["b"] == 5
 
     # test name filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, name_filter="div")
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow.jobs[2].function_kwargs["b"] == 4
+
+    flow = get_test_flow()
+    flow.update_kwargs({"b": 5}, name_filter=["div"])
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow.jobs[2].function_kwargs["b"] == 4
+
+    flow = get_test_flow()
+    flow.update_kwargs({"b": 10}, name_filter=["div", "mult"])
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 10
+    assert flow.jobs[2].function_kwargs["b"] == 10
 
     # test function filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, function_filter=div)
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow.jobs[1].function_kwargs["b"] == 4
+
+    flow = get_test_flow()
+    flow.update_kwargs({"b": 5}, function_filter=[div])
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow.jobs[1].function_kwargs["b"] == 4
+
+    flow = get_test_flow()
+    flow.update_kwargs({"b": 10}, name_filter=[div, mult])
+    assert "b" not in flow.jobs[0].function_kwargs
+    assert flow.jobs[1].function_kwargs["b"] == 10
+    assert flow.jobs[2].function_kwargs["b"] == 10
 
     # test dict mod
     flow = get_test_flow()
     flow.update_kwargs({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
     assert "b" not in flow.jobs[0].function_kwargs
     assert flow.jobs[1].function_kwargs["b"] == 8
+    assert flow.jobs[2].function_kwargs["b"] == 8
 
 
 def test_update_maker_kwargs():
@@ -500,6 +544,7 @@ def test_update_maker_kwargs():
     flow.update_maker_kwargs({"b": 10})
     assert flow.jobs[0].maker.b == 10
     assert flow.jobs[1].maker.b == 10
+    assert flow.jobs[2].maker.b == 10
 
     # test bad kwarg
     flow = get_maker_flow()
@@ -511,12 +556,26 @@ def test_update_maker_kwargs():
     flow.update_maker_kwargs({"b": 10}, name_filter="div")
     assert flow.jobs[0].maker.b == 3
     assert flow.jobs[1].maker.b == 10
+    assert flow.jobs[2].maker.b == 5
+
+    flow = get_maker_flow()
+    flow.update_maker_kwargs({"b": 10}, name_filter=["div"])
+    assert flow.jobs[0].maker.b == 3
+    assert flow.jobs[1].maker.b == 10
+    assert flow.jobs[2].maker.b == 5
 
     # test class filter
     flow, (_, DivMaker) = get_maker_flow(return_makers=True)
     flow.update_maker_kwargs({"b": 10}, class_filter=DivMaker)
     assert flow.jobs[0].maker.b == 3
     assert flow.jobs[1].maker.b == 10
+    assert flow.jobs[2].maker.b == 5
+
+    flow, (_, DivMaker) = get_maker_flow(return_makers=True)
+    flow.update_maker_kwargs({"b": 10}, class_filter=[DivMaker])
+    assert flow.jobs[0].maker.b == 3
+    assert flow.jobs[1].maker.b == 10
+    assert flow.jobs[2].maker.b == 5
 
     # test class filter with instance
     flow, (_, DivMaker) = get_maker_flow(return_makers=True)
@@ -524,12 +583,14 @@ def test_update_maker_kwargs():
     flow.update_maker_kwargs({"b": 10}, class_filter=div_maker)
     assert flow.jobs[0].maker.b == 3
     assert flow.jobs[1].maker.b == 10
+    assert flow.jobs[2].maker.b == 5
 
     # test dict mod
     flow = get_maker_flow()
     flow.update_maker_kwargs({"_inc": {"b": 10}}, name_filter="div", dict_mod=True)
     assert flow.jobs[0].maker.b == 3
     assert flow.jobs[1].maker.b == 14
+    assert flow.jobs[2].maker.b == 5
 
 
 def test_append_name():
