@@ -200,13 +200,13 @@ class Maker(MSONable):
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``SquareThenAddMaker``:
 
-        >>> maker = maker.update_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> maker = maker.update_kwargs({"number": 10}, class_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
         >>> maker = maker.update_kwargs(
-        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
         from pydash import get, set_
