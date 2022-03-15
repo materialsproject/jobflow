@@ -332,7 +332,7 @@ class Flow(MSONable):
         self,
         update: Dict[str, Any],
         name_filter: Optional[str | List[str]] = None,
-        class_filter: Optional[Type[jobflow.Maker] | List[jobflow.Maker]] = None,
+        class_filter: Optional[Type[jobflow.Maker] | List[Type[jobflow.Maker]]] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):

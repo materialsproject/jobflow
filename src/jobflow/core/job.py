@@ -614,7 +614,7 @@ class Job(MSONable):
         self,
         update: Dict[str, Any],
         name_filter: Optional[str | List[str]] = None,
-        function_filter: Optional[Callable | List[callable]] = None,
+        function_filter: Optional[Callable | List[Callable]] = None,
         dict_mod: bool = False,
     ):
         """
@@ -648,9 +648,9 @@ class Job(MSONable):
         """
         from jobflow.utils.dict_mods import apply_mod
 
-        if not isinstance(name_filter, list):
+        if name_filter and not isinstance(name_filter, list):
             name_filter = [name_filter]
-        if not isinstance(function_filter, list):
+        if function_filter and not isinstance(function_filter, list):
             function_filter = [function_filter]
 
         if function_filter is not None and self.function not in function_filter:
