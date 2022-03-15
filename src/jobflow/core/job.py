@@ -732,13 +732,13 @@ class Job(MSONable):
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``RestartMaker``:
 
-        >>> my_job.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> my_job.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
         >>> my_job.update_maker_kwargs(
-        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
         from jobflow import Maker
