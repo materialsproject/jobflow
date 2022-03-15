@@ -648,9 +648,9 @@ class Job(MSONable):
         """
         from jobflow.utils.dict_mods import apply_mod
 
-        if not type(name_filter, list):
+        if not isinstance(name_filter, list):
             name_filter = [name_filter]
-        if not type(function_filter, list):
+        if not isinstance(function_filter, list):
             function_filter = [function_filter]
 
         if function_filter is not None and self.function not in function_filter:
