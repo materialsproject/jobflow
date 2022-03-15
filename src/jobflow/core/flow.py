@@ -277,8 +277,8 @@ class Flow(MSONable):
     def update_kwargs(
         self,
         update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        function_filter: Optional[Callable] = None,
+        name_filter: Optional[str | List[str]] = None,
+        function_filter: Optional[Callable | List[Callable]] = None,
         dict_mod: bool = False,
     ):
         """
@@ -291,9 +291,9 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the job name.
+            A filter (or list of filters) for the job name.
         function_filter
-            Only filter matching functions.
+            A filter (or list of filters) matching the function.
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
@@ -331,8 +331,8 @@ class Flow(MSONable):
     def update_maker_kwargs(
         self,
         update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        class_filter: Optional[Type[jobflow.Maker]] = None,
+        name_filter: Optional[str | List[str]] = None,
+        class_filter: Optional[Type[jobflow.Maker] | List[jobflow.Maker]] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -346,10 +346,10 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name.
+            A filter (or list of filters) for the Maker name.
         class_filter
-            A filter for the maker class. Note the class filter will match any
-            subclasses.
+            A filter (or list of filters) for the maker class. Note the class filter
+            will match any subclasses.
         nested
             Whether to apply the updates to Maker objects that are themselves kwargs
             of Maker, job, or flow objects. See examples for more details.
