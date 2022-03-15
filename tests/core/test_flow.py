@@ -44,7 +44,7 @@ def get_maker_flow(return_makers=False):
 
         @job
         def make(self, a):
-            return a + self.b
+            return a / self.b
 
     add_maker = AddMaker(b=3)
     div_maker = DivMaker(b=4)
