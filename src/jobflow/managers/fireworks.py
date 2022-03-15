@@ -56,7 +56,7 @@ def flow_to_workflow(
     fireworks = []
 
     flow = get_flow(flow)
-    if not isinstance(config_updates, list):
+    if config_updates and not isinstance(config_updates, list):
         config_updates = [config_updates for _, _ in flow.iterflow()]
     for idx, (job, parents) in enumerate(flow.iterflow()):
         fw = job_to_firework(
