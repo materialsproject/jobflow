@@ -63,6 +63,8 @@ class Flow(MSONable):
     host
         The identifier of the host flow. This is set automatically when an flow
         is included in the jobs array of another flow.
+    hosts
+        The list of UUIDs of the hosts containing the job.
 
     Raises
     ------
@@ -124,6 +126,7 @@ class Flow(MSONable):
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
         host: str = None,
+        hosts: Optional[List[str]] = None,
     ):
         from jobflow.core.job import Job
         from jobflow.core.reference import find_and_get_references
@@ -140,6 +143,7 @@ class Flow(MSONable):
         self.order = order
         self.uuid = uuid
         self.host = host
+        self.hosts = hosts or []
 
         job_ids = set()
         for job in self.jobs:
@@ -173,6 +177,8 @@ class Flow(MSONable):
                 raise ValueError(
                     "jobs array does not contain all jobs needed for flow output"
                 )
+
+        self.add_hosts_uuids(self.uuid)
 
     @property
     def job_uuids(self) -> Tuple[str, ...]:
@@ -444,6 +450,30 @@ class Flow(MSONable):
 
         for job in self.jobs:
             job.append_name(append_str, prepend=prepend)
+
+    def add_hosts_uuids(self, hosts_uuids: Union[str, List[str]], prepend: bool = False):
+        """
+        Add a list of UUIDs to the internal list of hosts. The same action is
+        applied to the contained Flows ond Jobs.
+        The elements of the list are supposed to be ordered in such a way that
+        the object identified by one UUID of the list is contained in objects
+        identified by its subsequent elements.
+
+        Parameters
+        ----------
+        hosts_uuids
+            A list of UUIDs to add.
+        prepend
+            Insert the UUIDs at the beginning of the list rather than extending it.
+        """
+        if not isinstance(hosts_uuids, (list, tuple)):
+            hosts_uuids = [hosts_uuids]
+        if prepend:
+            self.hosts[0:0] = hosts_uuids
+        else:
+            self.hosts.extend(hosts_uuids)
+        for j in self.jobs:
+            j.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
 
 def get_flow(

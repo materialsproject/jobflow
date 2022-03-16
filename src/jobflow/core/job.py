@@ -256,6 +256,8 @@ class Job(MSONable):
         The config setting for the job.
     host
         The UUID of the host flow.
+    hosts
+        The list of UUIDs of the hosts containing the job.
     **kwargs
         Additional keyword arguments that can be used to specify which outputs to save
         in additional stores. The argument name gives the additional store name and the
@@ -313,6 +315,7 @@ class Job(MSONable):
         metadata: Dict[str, Any] = None,
         config: JobConfig = None,
         host: Optional[str] = None,
+        hosts: Optional[List[str]] = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -336,6 +339,7 @@ class Job(MSONable):
         self.metadata = metadata
         self.config = config
         self.host = host
+        self.hosts = hosts or []
         self._kwargs = kwargs
 
         if sum([v is True for v in kwargs.values()]) > 1:
@@ -526,6 +530,13 @@ class Job(MSONable):
 
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
+            response.replace.add_hosts_uuids(self.hosts, prepend=True)
+
+        if response.addition is not None:
+            response.addition.add_hosts_uuids(self.hosts, prepend=True)
+
+        if response.detour is not None:
+            response.detour.add_hosts_uuids(self.hosts, prepend=True)
 
         if self.config.pass_manager_config:
             if response.addition is not None:
@@ -552,6 +563,7 @@ class Job(MSONable):
             "output": output,
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
+            "hosts": self.hosts,
         }
         store.update(data, key=["uuid", "index"], save=save)
 
@@ -813,6 +825,27 @@ class Job(MSONable):
             self.maker.name = value
         else:
             super().__setattr__(key, value)
+
+    def add_hosts_uuids(self, hosts_uuids: Union[str, List[str]], prepend: bool = False):
+        """
+        Add a list of UUIDs to the internal list of hosts.
+        The elements of the list are supposed to be ordered in such a way that
+        the object identified by one UUID of the list is contained in objects
+        identified by its subsequent elements.
+
+        Parameters
+        ----------
+        hosts_uuids
+            A list of UUIDs to add.
+        prepend
+            Insert the UUIDs at the beginning of the list rather than extending it.
+        """
+        if not isinstance(hosts_uuids, (list, tuple)):
+            hosts_uuids = [hosts_uuids]
+        if prepend:
+            self.hosts[0:0] = hosts_uuids
+        else:
+            self.hosts.extend(hosts_uuids)
 
 
 @dataclass
