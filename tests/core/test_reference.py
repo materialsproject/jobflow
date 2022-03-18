@@ -1,3 +1,5 @@
+from typing import Dict, List, Optional, Union
+
 import pytest
 
 
@@ -153,9 +155,21 @@ def test_schema():
 
     from jobflow import OutputReference
 
+    class InnerSchema(BaseModel):
+        n: float
+
+    class MediumSchema(BaseModel):
+        s: str
+        nested: InnerSchema
+        nested_opt: Optional[InnerSchema]
+        nested_u: Union[InnerSchema, dict]
+        nested_l: List[InnerSchema]
+        nested_d: Dict[str, InnerSchema]
+
     class MySchema(BaseModel):
         number: int
         name: str
+        nested: MediumSchema
 
     ref = OutputReference("123", output_schema=MySchema)
     assert ref.attributes == tuple()
@@ -177,6 +191,24 @@ def test_schema():
 
     with pytest.raises(AttributeError):
         assert ref[1].uuid == "123"
+
+    # check valid nested schemas
+    assert ref.nested.s.uuid == "123"
+    with pytest.raises(AttributeError):
+        assert ref.nested.m.uuid == "123"
+    assert ref.nested.nested.n.uuid == "123"
+    with pytest.raises(AttributeError):
+        assert ref.nested.nested.m.uuid == "123"
+
+    assert ref.nested.nested_opt.n.uuid == "123"
+    with pytest.raises(AttributeError):
+        assert ref.nested.nested_opt.m.uuid == "123"
+
+    # Union, List and Dict are currently not recognized by their inner type
+    # but check that there is no problem with them
+    assert ref.nested.nested_u.n.uuid == "123"
+    assert ref.nested.nested_l[0].n.uuid == "123"
+    assert ref.nested.nested_d["a"].n.uuid == "123"
 
 
 def test_resolve(memory_jobstore):

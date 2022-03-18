@@ -6,11 +6,10 @@ import typing
 from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
-
-from jobflow.utils.enum import ValueEnum
-
 from pydantic import BaseModel
 from pydantic.utils import lenient_issubclass
+
+from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
 
@@ -226,7 +225,9 @@ class OutputReference(MSONable):
         if self.output_schema is not None:
             _, subschema = validate_schema_access(self.output_schema, item)
 
-        return OutputReference(self.uuid, self.attributes + (("i", item),), output_schema=subschema)
+        return OutputReference(
+            self.uuid, self.attributes + (("i", item),), output_schema=subschema
+        )
 
     def __getattr__(self, item) -> OutputReference:
         """Attribute access of the reference."""
@@ -240,7 +241,9 @@ class OutputReference(MSONable):
         if self.output_schema is not None:
             _, subschema = validate_schema_access(self.output_schema, item)
 
-        return OutputReference(self.uuid, self.attributes + (("a", item),), output_schema=subschema)
+        return OutputReference(
+            self.uuid, self.attributes + (("a", item),), output_schema=subschema
+        )
 
     def __setattr__(self, attr, val):
         """Set attribute."""
@@ -480,6 +483,7 @@ def validate_schema_access(
 ) -> Tuple[bool, Optional[BaseModel]]:
     """
     Validate that an attribute or index access is supported by a model.
+
     If the item is associated to a nested model the class is returned.
 
     Parameters
@@ -505,8 +509,9 @@ def validate_schema_access(
         raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
 
     subschema = None
-    item_type = schema.__fields__[item].type_
+    item_type = schema.__fields__[item].outer_type_
     if lenient_issubclass(item_type, BaseModel):
         subschema = item_type
 
+    print(item, item_type, subschema)
     return True, subschema
