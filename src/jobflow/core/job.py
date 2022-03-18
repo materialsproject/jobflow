@@ -254,8 +254,6 @@ class Job(MSONable):
         A dictionary of information that will get stored alongside the job output.
     config
         The config setting for the job.
-    host
-        The UUID of the host flow.
     hosts
         The list of UUIDs of the hosts containing the job.
     **kwargs
@@ -314,7 +312,6 @@ class Job(MSONable):
         name: Optional[str] = None,
         metadata: Dict[str, Any] = None,
         config: JobConfig = None,
-        host: Optional[str] = None,
         hosts: Optional[List[str]] = None,
         **kwargs,
     ):
@@ -338,7 +335,6 @@ class Job(MSONable):
         self.name = name
         self.metadata = metadata
         self.config = config
-        self.host = host
         self.hosts = hosts or []
         self._kwargs = kwargs
 
@@ -460,6 +456,18 @@ class Job(MSONable):
         graph.add_edges_from(edges)
         return graph
 
+    @property
+    def host(self):
+        """
+        UUID of the first Flow that contains the Job.
+
+        Returns
+        -------
+        str
+            the UUID of the host.
+        """
+        return self.hosts[0] if self.hosts else None
+
     def set_uuid(self, uuid: str):
         """
         Set the UUID of the job.
@@ -505,6 +513,7 @@ class Job(MSONable):
         from datetime import datetime
 
         from jobflow import CURRENT_JOB
+        from jobflow.core.flow import get_flow
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -530,13 +539,19 @@ class Job(MSONable):
 
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
-            response.replace.add_hosts_uuids(self.hosts, prepend=True)
+            response.replace.add_hosts_uuids(self.hosts)
 
         if response.addition is not None:
-            response.addition.add_hosts_uuids(self.hosts, prepend=True)
+            # wrap the detour in a Flow to avoid problems if it need to get
+            # wrapped at a later stage
+            response.addition = get_flow(response.addition)
+            response.addition.add_hosts_uuids(self.hosts)
 
         if response.detour is not None:
-            response.detour.add_hosts_uuids(self.hosts, prepend=True)
+            # wrap the detour in a Flow to avoid problems if it need to get
+            # wrapped at a later stage
+            response.detour = get_flow(response.detour)
+            response.detour.add_hosts_uuids(self.hosts)
 
         if self.config.pass_manager_config:
             if response.addition is not None:
@@ -826,9 +841,12 @@ class Job(MSONable):
         else:
             super().__setattr__(key, value)
 
-    def add_hosts_uuids(self, hosts_uuids: Union[str, List[str]], prepend: bool = False):
+    def add_hosts_uuids(
+        self, hosts_uuids: Union[str, List[str]], prepend: bool = False
+    ):
         """
         Add a list of UUIDs to the internal list of hosts.
+
         The elements of the list are supposed to be ordered in such a way that
         the object identified by one UUID of the list is contained in objects
         identified by its subsequent elements.
@@ -984,7 +1002,7 @@ def store_inputs(inputs: Any) -> Any:
 def prepare_replace(
     replace: Union[jobflow.Flow, Job, List[Job]],
     current_job: Job,
-) -> Union[jobflow.Flow, Job, List[Job]]:
+) -> jobflow.Flow:
     """
     Prepare a replacement :obj:`Flow` or :obj:`Job`.
 
@@ -1003,8 +1021,8 @@ def prepare_replace(
 
     Returns
     -------
-    Flow or Job
-        The updated flow or job.
+    Flow
+        The updated flow.
     """
     from jobflow.core.flow import Flow
 
@@ -1020,6 +1038,7 @@ def prepare_replace(
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
+        store_output_job.add_hosts_uuids(replace.uuid)
         replace.jobs.append(store_output_job)
 
     elif isinstance(replace, Job):
@@ -1033,6 +1052,8 @@ def prepare_replace(
 
         if not replace.output_schema:
             replace.output_schema = current_job.output_schema
+
+        replace = Flow(jobs=replace, output=replace.output)
 
     return replace
 

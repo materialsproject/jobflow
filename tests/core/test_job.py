@@ -158,11 +158,15 @@ def test_replace_response(memory_jobstore):
     metadata = {"hi": "I exist"}
     test_job = Job(replace_job, metadata=metadata, output_schema="123")
     response = test_job.run(memory_jobstore)
-    assert isinstance(response.replace, Job)
-    assert response.replace.index == 2
-    assert response.replace.uuid == test_job.uuid
-    assert response.replace.metadata == metadata
-    assert response.replace.output_schema == "123"
+    assert isinstance(response.replace, Flow)
+    assert len(response.replace.jobs) == 1
+    assert response.replace.jobs[0].index == 2
+    assert response.replace.jobs[0].uuid == test_job.uuid
+    assert response.replace.jobs[0].metadata == metadata
+    assert response.replace.jobs[0].output_schema == "123"
+    assert test_job.hosts == []
+    assert response.replace.hosts == []
+    assert response.replace.jobs[0].hosts == [response.replace.uuid]
 
     # replace with list of job
     test_job = Job(replace_list_job, metadata=metadata, output_schema="123")
@@ -171,9 +175,13 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[-1].function == add
     assert len(response.replace.jobs) == 2
     # currently output schema and metadata ignored in this case
+    for j in response.replace.jobs:
+        assert j.hosts == [response.replace.uuid]
 
     # replace with flow with outputs
     test_job = Job(replace_flow, metadata=metadata, output_schema="123")
+    # wrap the job in a Flow to check hosts
+    test_flow = Flow([test_job])
     response = test_job.run(memory_jobstore)
     assert isinstance(response.replace, Flow)
     assert response.replace.jobs[-1].index == 2
@@ -181,6 +189,8 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[-1].metadata == metadata
     assert response.replace.jobs[-1].output_schema == "123"
     assert response.replace.output is not None
+    for j in response.replace.jobs:
+        assert j.hosts == [response.replace.uuid, test_flow.uuid]
 
     # replace with flow with multi outputs
     test_job = Job(replace_flow_multioutput, metadata=metadata, output_schema="123")
@@ -198,6 +208,9 @@ def test_replace_response(memory_jobstore):
     assert isinstance(response.replace, Flow)
     assert isinstance(response.replace.jobs[-1], Flow)
     assert len(response.replace.jobs) == 2
+    for f in response.replace.jobs:
+        for j in f.jobs:
+            assert j.hosts == [f.uuid, response.replace.uuid]
     # currently output schema and metadata ignored in this case
 
 
@@ -291,11 +304,12 @@ def test_job_config(memory_jobstore):
     # test replace
     test_job = Job(replace_job, config=nopass_config)
     response = test_job.run(memory_jobstore)
-    assert response.replace.config.manager_config == {}
+    assert len(response.replace.jobs) == 1
+    assert response.replace.jobs[0].config.manager_config == {}
 
     test_job = Job(replace_job, config=pass_config)
     response = test_job.run(memory_jobstore)
-    assert response.replace.config.manager_config == manager_config
+    assert response.replace.jobs[0].config.manager_config == manager_config
 
     # test replace list of jobs
     test_job = Job(replace_list_job, config=nopass_config)
@@ -322,20 +336,27 @@ def test_job_config(memory_jobstore):
     # test addition
     test_job = Job(addition_job, config=nopass_config)
     response = test_job.run(memory_jobstore)
-    assert response.addition.config.manager_config == {}
+    assert len(response.addition.jobs) == 1
+    assert response.addition.jobs[0].config.manager_config == {}
 
     test_job = Job(addition_job, config=pass_config)
     response = test_job.run(memory_jobstore)
-    assert response.addition.config.manager_config == manager_config
+    assert len(response.addition.jobs) == 1
+    print(response.addition)
+    assert response.addition.jobs[0].config.manager_config == manager_config
+    assert response.addition.jobs[0].hosts == [response.addition.uuid]
 
     # test detour
     test_job = Job(detour_job, config=nopass_config)
     response = test_job.run(memory_jobstore)
-    assert response.detour.config.manager_config == {}
+    assert len(response.detour.jobs) == 1
+    assert response.detour.jobs[0].config.manager_config == {}
 
     test_job = Job(detour_job, config=pass_config)
     response = test_job.run(memory_jobstore)
-    assert response.detour.config.manager_config == manager_config
+    assert len(response.detour.jobs) == 1
+    assert response.detour.jobs[0].config.manager_config == manager_config
+    assert response.detour.jobs[0].hosts == [response.detour.uuid]
 
 
 def test_job_input_references():
@@ -856,7 +877,7 @@ def test_output_schema(memory_jobstore):
 
     test_job = add_schema_replace(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.replace.output_schema.__name__ == "AddSchema"
+    assert response.replace.jobs[-1].output_schema.__name__ == "AddSchema"
 
     test_job = add_schema_bad(5, 6)
     with pytest.raises(ValueError):
@@ -915,3 +936,23 @@ def test_pass_manager_config():
     # test bad input
     with pytest.raises(ValueError):
         pass_manager_config(["str"], manager_config)
+
+
+def test_hosts(memory_jobstore):
+    from jobflow import Job
+
+    test_job = Job(function=add, function_args=(1,))
+
+    assert test_job.hosts == []
+    test_job.add_hosts_uuids("12345")
+    assert test_job.hosts == ["12345"]
+
+    test_job.add_hosts_uuids(["67890"])
+    assert test_job.hosts == ["12345", "67890"]
+
+    test_job.add_hosts_uuids(["09876"], prepend=True)
+    assert test_job.hosts == ["09876", "12345", "67890"]
+
+    test_job.run(memory_jobstore)
+    result = memory_jobstore.query_one({"uuid": test_job.uuid})
+    assert result["hosts"] == ["09876", "12345", "67890"]
