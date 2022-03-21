@@ -532,11 +532,14 @@ class Job(MSONable):
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
 
-        if self.config.pass_manager_config or self.config.downstream_manager_config:
-            if self.config.downstream_manager_config:
-                passed_config = self.config.downstream_manager_config
-            else:
-                passed_config = self.config.manager_config
+        if self.config.downstream_manager_config:
+            passed_config = self.config.downstream_manager_config
+        elif self.config.pass_manager_config:
+            passed_config = self.config.manager_config
+        else:
+            passed_config = None
+
+        if passed_config:
 
             if response.addition is not None:
                 pass_manager_config(response.addition, passed_config)
