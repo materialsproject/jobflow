@@ -288,8 +288,8 @@ def test_job_config(memory_jobstore):
     manager_config2 = {"abc": 2}
     pass_config = JobConfig(manager_config=manager_config, pass_manager_config=True)
     nopass_config = JobConfig(manager_config=manager_config, pass_manager_config=False)
-    downstream_config = JobConfig(
-        manager_config=manager_config, downstream_manager_config=manager_config2
+    response_config = JobConfig(
+        manager_config=manager_config, response_manager_config=manager_config2
     )
 
     # test replace
@@ -301,7 +301,7 @@ def test_job_config(memory_jobstore):
     response = test_job.run(memory_jobstore)
     assert response.replace.config.manager_config == manager_config
 
-    test_job = Job(replace_job, config=downstream_config)
+    test_job = Job(replace_job, config=response_config)
     response = test_job.run(memory_jobstore)
     assert response.replace.config.manager_config == manager_config2
 
@@ -316,7 +316,7 @@ def test_job_config(memory_jobstore):
     for j in response.replace.jobs:
         assert j.config.manager_config == manager_config
 
-    test_job = Job(replace_list_job, config=downstream_config)
+    test_job = Job(replace_list_job, config=response_config)
     response = test_job.run(memory_jobstore)
     for j in response.replace.jobs:
         assert j.config.manager_config == manager_config2
@@ -332,7 +332,7 @@ def test_job_config(memory_jobstore):
     for j in response.replace.jobs:
         assert j.config.manager_config == manager_config
 
-    test_job = Job(replace_flow, config=downstream_config)
+    test_job = Job(replace_flow, config=response_config)
     response = test_job.run(memory_jobstore)
     for j in response.replace.jobs:
         assert j.config.manager_config == manager_config2
@@ -346,7 +346,7 @@ def test_job_config(memory_jobstore):
     response = test_job.run(memory_jobstore)
     assert response.addition.config.manager_config == manager_config
 
-    test_job = Job(addition_job, config=downstream_config)
+    test_job = Job(addition_job, config=response_config)
     response = test_job.run(memory_jobstore)
     assert response.addition.config.manager_config == manager_config2
 
@@ -359,7 +359,7 @@ def test_job_config(memory_jobstore):
     response = test_job.run(memory_jobstore)
     assert response.detour.config.manager_config == manager_config
 
-    test_job = Job(detour_job, config=downstream_config)
+    test_job = Job(detour_job, config=response_config)
     response = test_job.run(memory_jobstore)
     assert response.detour.config.manager_config == manager_config2
 
