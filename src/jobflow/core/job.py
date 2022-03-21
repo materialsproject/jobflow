@@ -58,9 +58,10 @@ class JobConfig(MSONable):
         Whether to pass the manager configuration on to detour, addition, and
         replacement jobs.
     response_manager_config
-        The manager configuration to pass on a detour, addition, or replacement job if
-        different than the default manager_config. Using this kwarg will automatically
-        take precedence over the behavior of ``pass_manager_config``.
+        The custom configuration to pass on a detour, addition, or replacement job.
+        Using this kwarg will automatically take precedence over the behavior of ``pass_manager_config``
+        such that a different configuration than ``manger_config`` can be passed to downstream
+        jobs.
 
     Returns
     -------
