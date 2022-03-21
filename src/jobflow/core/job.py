@@ -58,7 +58,7 @@ class JobConfig(MSONable):
         Whether to pass the manager configuration on to detour, addition, and
         replacement jobs.
     response_manager_config
-        The custom configuration to pass on a detour, addition, or replacement job.
+        The custom configuration to pass to a detour, addition, or replacement job.
         Using this kwarg will automatically take precedence over the behavior of ``pass_manager_config``
         such that a different configuration than ``manger_config`` can be passed to downstream
         jobs.
@@ -74,7 +74,7 @@ class JobConfig(MSONable):
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
     pass_manager_config: bool = True
-    response_manager_config: dict = None
+    response_manager_config: dict = field(default_factory=dict)
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):
