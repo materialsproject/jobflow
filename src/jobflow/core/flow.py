@@ -385,7 +385,7 @@ class Flow(MSONable):
         used.
 
         >>> flow.update_maker_kwargs({"number": 10}, name_filder="add")
-        >>> flow.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> flow.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         By default, the updates are applied to nested Makers. These are Makers
         which are present in the kwargs of another Maker. Consider the following case
@@ -408,13 +408,13 @@ class Flow(MSONable):
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``RestartMaker``:
 
-        >>> flow.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> flow.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
         >>> flow.update_maker_kwargs(
-        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
         for job in self.jobs:
