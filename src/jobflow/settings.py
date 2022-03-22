@@ -1,5 +1,6 @@
 """Settings for jobflow."""
 
+import os
 from pathlib import Path
 
 from maggma.stores import MemoryStore
@@ -7,7 +8,7 @@ from pydantic import BaseSettings, Field, root_validator
 
 from jobflow import JobStore
 
-DEFAULT_CONFIG_FILE_PATH = "~/.jobflow.yaml"
+DEFAULT_CONFIG_FILE_PATH = os.path.expanduser("~/.jobflow.yaml")
 
 __all__ = ["JobflowSettings"]
 
