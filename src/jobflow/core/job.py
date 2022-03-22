@@ -57,6 +57,11 @@ class JobConfig(MSONable):
     pass_manager_config
         Whether to pass the manager configuration on to detour, addition, and
         replacement jobs.
+    response_manager_config
+        The custom configuration to pass to a detour, addition, or replacement job.
+        Using this kwarg will automatically take precedence over the behavior of ``pass_manager_config``
+        such that a different configuration than ``manger_config`` can be passed to downstream
+        jobs.
 
     Returns
     -------
@@ -69,6 +74,7 @@ class JobConfig(MSONable):
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
     pass_manager_config: bool = True
+    response_manager_config: dict = field(default_factory=dict)
 
 
 def job(method: Optional[Callable] = None, **job_kwargs):
@@ -527,15 +533,23 @@ class Job(MSONable):
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
 
-        if self.config.pass_manager_config:
+        if self.config.response_manager_config:
+            passed_config = self.config.response_manager_config
+        elif self.config.pass_manager_config:
+            passed_config = self.config.manager_config
+        else:
+            passed_config = None
+
+        if passed_config:
+
             if response.addition is not None:
-                pass_manager_config(response.addition, self.config.manager_config)
+                pass_manager_config(response.addition, passed_config)
 
             if response.detour is not None:
-                pass_manager_config(response.detour, self.config.manager_config)
+                pass_manager_config(response.detour, passed_config)
 
             if response.replace is not None:
-                pass_manager_config(response.replace, self.config.manager_config)
+                pass_manager_config(response.replace, passed_config)
 
         try:
             output = jsanitize(response.output, strict=True, enum_values=True)
