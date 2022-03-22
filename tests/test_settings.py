@@ -1,6 +1,3 @@
-from random import setstate
-
-
 def test_settings_init():
     from maggma.stores import MemoryStore
 
