@@ -6,12 +6,12 @@ import typing
 from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
+from pydantic import BaseModel
+from pydantic.utils import lenient_issubclass
 
 from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
-
-    from pydantic import BaseModel
 
     import jobflow
 
@@ -221,10 +221,13 @@ class OutputReference(MSONable):
 
     def __getitem__(self, item) -> OutputReference:
         """Index the reference."""
+        subschema = None
         if self.output_schema is not None:
-            validate_schema_access(self.output_schema, item)
+            _, subschema = validate_schema_access(self.output_schema, item)
 
-        return OutputReference(self.uuid, self.attributes + (("i", item),))
+        return OutputReference(
+            self.uuid, self.attributes + (("i", item),), output_schema=subschema
+        )
 
     def __getattr__(self, item) -> OutputReference:
         """Attribute access of the reference."""
@@ -234,10 +237,13 @@ class OutputReference(MSONable):
             # This is necessary to trick monty/pydantic.
             raise AttributeError
 
+        subschema = None
         if self.output_schema is not None:
-            validate_schema_access(self.output_schema, item)
+            _, subschema = validate_schema_access(self.output_schema, item)
 
-        return OutputReference(self.uuid, self.attributes + (("a", item),))
+        return OutputReference(
+            self.uuid, self.attributes + (("a", item),), output_schema=subschema
+        )
 
     def __setattr__(self, attr, val):
         """Set attribute."""
@@ -472,9 +478,13 @@ def find_and_resolve_references(
     return MontyDecoder().process_decoded(encoded_arg)
 
 
-def validate_schema_access(schema: Type[BaseModel], item: str):
+def validate_schema_access(
+    schema: Type[BaseModel], item: str
+) -> Tuple[bool, Optional[BaseModel]]:
     """
     Validate that an attribute or index access is supported by a model.
+
+    If the item is associated to a nested model the class is returned.
 
     Parameters
     ----------
@@ -490,10 +500,18 @@ def validate_schema_access(schema: Type[BaseModel], item: str):
 
     Returns
     -------
-    bool
-        Returns ``True`` if the schema access was valid.
+    tuple[bool, BaseModel]
+        the bool is ``True`` if the schema access was valid.
+        The BaseModel class associted with the item, if any.
     """
     schema_dict = schema.schema()
     if item not in schema_dict["properties"]:
         raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
-    return True
+
+    subschema = None
+    item_type = schema.__fields__[item].outer_type_
+    if lenient_issubclass(item_type, BaseModel):
+        subschema = item_type
+
+    print(item, item_type, subschema)
+    return True, subschema
