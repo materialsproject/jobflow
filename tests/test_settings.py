@@ -52,7 +52,7 @@ def test_settings_object(clean_dir, test_data):
                 "bucket": "bucket_123",
                 "index": {
                     "type": "MemoryStore",
-                }
+                },
             }
         },
     }
