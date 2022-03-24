@@ -64,7 +64,7 @@ class JobStore(Store):
         # enforce uuid key
         self.docs_store.key = "uuid"
         for additional_store in self.additional_stores.values():
-            additional_store.key = "blob_id"
+            additional_store.key = "blob_uuid"
 
         if save is None or save is False:
             save = {}
@@ -651,16 +651,23 @@ class JobStore(Store):
         all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
 
         docs_store_info = spec["docs_store"]
-        docs_store_type = docs_store_info.pop("type")
-        docs_store = all_stores[docs_store_type](**docs_store_info)
+        docs_store = _construct_store(docs_store_info, all_stores)
 
         additional_stores = {}
         if "additional_stores" in spec:
             for store_name, info in spec["additional_stores"].items():
-                store_type = info.pop("type")
-                additional_stores[store_name] = all_stores[store_type](**info)
-
+                additional_stores[store_name] = _construct_store(info, all_stores)
         return cls(docs_store, additional_stores, **kwargs)
+
+
+def _construct_store(spec_dict, valid_stores):
+    """Parse the dict containing {"type": <StoreType>} recursively."""
+    print(spec_dict)
+    store_type = spec_dict.pop("type")
+    for k, v in spec_dict.items():
+        if isinstance(v, dict) and "type" in v:
+            spec_dict[k] = _construct_store(v, valid_stores)
+    return valid_stores[store_type](**spec_dict)
 
 
 def _prepare_load(
