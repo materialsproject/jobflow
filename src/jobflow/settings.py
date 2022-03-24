@@ -58,7 +58,7 @@ class JobflowSettings(BaseSettings):
             host: localhost
             port: 27017
 
-    S3Store example:
+    S3Store example (Note: the ``key`` field must be set to ``blob_uuid``):
 
     .. code-block:: yaml
 
@@ -72,12 +72,14 @@ class JobflowSettings(BaseSettings):
           data:
             type: S3Store
             bucket: output_blobs
+            key: blob_uuid
             index:
               type: MongoStore
               database: jobflow_unittest
               collection_name: output_blobs_index
               host: localhost
               port: 27017
+              key: blob_uuid
 
 
     Lastly, the store can be specified as a file name that points to a file containing
