@@ -64,7 +64,7 @@ class JobStore(Store):
         # enforce uuid key
         self.docs_store.key = "uuid"
         for additional_store in self.additional_stores.values():
-            additional_store.key = "blob_id"
+            additional_store.key = "blob_uuid"
 
         if save is None or save is False:
             save = {}
