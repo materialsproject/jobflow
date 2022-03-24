@@ -72,7 +72,7 @@ def test_settings_object(clean_dir, test_data):
 
     dumpfn({"JOB_STORE": s3_store_spec}, "config.yaml")
     settings = JobflowSettings()
-    assert settings.JOB_STORE.additional_stores["data"].bucket == "bucket_0"
+    assert settings.JOB_STORE.additional_stores["data"].bucket == "bucket_123"
 
     # assert loading from db file works.
     dumpfn({"JOB_STORE": str(test_data / "db.yaml")}, "config.yaml")
