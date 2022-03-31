@@ -233,12 +233,15 @@ class Flow(MSONable):
 
         Requires matplotlib to be installed.
 
+        Parameters
+        ----------
+        kwargs
+            keyword arguments that are passed to :obj:`jobflow.utils.graph.draw_graph`.
+
         Returns
         -------
         pyplot
             The matplotlib pyplot state object.
-        kwargs
-            keyword arguments that are passed to :obj:`jobflow.utils.graph.draw_graph`.
         """
         from jobflow.utils.graph import draw_graph
 

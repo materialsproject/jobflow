@@ -61,7 +61,7 @@ class OutputReference(MSONable):
     ----------
     uuid
         The job uuid to which the output belongs.
-    attributes :
+    attributes
         A tuple of attributes or indexes that have been performed on the
         output. Attributes are specified by a tuple of ``("a", attr)``, whereas
         indexes are specified as a tuple of ``("i", index)``.

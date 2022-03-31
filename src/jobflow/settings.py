@@ -1,6 +1,5 @@
 """Settings for jobflow."""
 
-import os
 from pathlib import Path
 
 from maggma.stores import MemoryStore
@@ -8,7 +7,7 @@ from pydantic import BaseSettings, Field, root_validator
 
 from jobflow import JobStore
 
-DEFAULT_CONFIG_FILE_PATH = os.path.expanduser("~/.jobflow.yaml")
+DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
 __all__ = ["JobflowSettings"]
 
@@ -39,7 +38,8 @@ class JobflowSettings(BaseSettings):
     docs_store and additional stores are specified by the ``type`` key which must match
     a Maggma ``Store`` subclass, and the remaining keys are passed to the store
     constructor. For example, the following file would  create a :obj:`JobStore` with a
-    ``MongoStore`` for docs and a ``GridFSStore`` or ``S3Store`` as an additional store for data.
+    ``MongoStore`` for docs and a ``GridFSStore`` or ``S3Store`` as an additional store
+    for data.
 
     GridFSStore example:
 
