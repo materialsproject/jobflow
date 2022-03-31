@@ -35,7 +35,7 @@ def start_timing_jobs(websites: List[str]):
         jobs.append(time_job)
 
     output = [j.output for j in jobs]
-    return Response(restart=Flow(jobs, output))
+    return Response(replace=Flow(jobs, output))
 
 
 @job
@@ -44,7 +44,7 @@ def sum_times(times: List[float]):
 
 
 # create a flow that will:
-# 1. load a list of websites from a file.
+# 1. load a list of websites from a file
 # 2. generate one new job for each website to time the website loading
 # 3. sum all the times together
 read_websites_job = read_websites()
