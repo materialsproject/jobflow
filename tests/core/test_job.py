@@ -317,7 +317,7 @@ def test_job_config(memory_jobstore):
 
     test_job = Job(replace_job, config=response_config)
     response = test_job.run(memory_jobstore)
-    assert response.replace.config.manager_config == manager_config2
+    assert response.replace.jobs[0].config.manager_config == manager_config2
 
     # test replace list of jobs
     test_job = Job(replace_list_job, config=nopass_config)
@@ -366,7 +366,7 @@ def test_job_config(memory_jobstore):
 
     test_job = Job(addition_job, config=response_config)
     response = test_job.run(memory_jobstore)
-    assert response.addition.config.manager_config == manager_config2
+    assert response.addition.jobs[0].config.manager_config == manager_config2
 
     # test detour
     test_job = Job(detour_job, config=nopass_config)
@@ -382,7 +382,7 @@ def test_job_config(memory_jobstore):
 
     test_job = Job(detour_job, config=response_config)
     response = test_job.run(memory_jobstore)
-    assert response.detour.config.manager_config == manager_config2
+    assert response.detour.jobs[0].config.manager_config == manager_config2
 
 
 def test_job_input_references():
