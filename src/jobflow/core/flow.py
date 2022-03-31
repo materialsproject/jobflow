@@ -60,9 +60,9 @@ class Flow(MSONable):
         the order automatically based on the connections between jobs.
     uuid
         The identifier of the flow. This is genenrated automatically.
-    host
-        The identifier of the host flow. This is set automatically when an flow
-        is included in the jobs array of another flow.
+    hosts
+        The list of UUIDs of the hosts containing the job. This is updated
+        automatically when a flow is included in the jobs array of another flow.
 
     Raises
     ------
@@ -123,7 +123,7 @@ class Flow(MSONable):
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
-        host: str = None,
+        hosts: Optional[List[str]] = None,
     ):
         from jobflow.core.job import Job
         from jobflow.core.reference import find_and_get_references
@@ -139,7 +139,7 @@ class Flow(MSONable):
         self.name = name
         self.order = order
         self.uuid = uuid
-        self.host = host
+        self.hosts = hosts or []
 
         job_ids = set()
         for job in self.jobs:
@@ -153,7 +153,6 @@ class Flow(MSONable):
                     "jobs array contains multiple jobs/flows with the same uuid "
                     f"({job.uuid})"
                 )
-            job.host = self.uuid
             job_ids.add(job.uuid)
 
         if self.output is not None:
@@ -173,6 +172,8 @@ class Flow(MSONable):
                 raise ValueError(
                     "jobs array does not contain all jobs needed for flow output"
                 )
+
+        self.add_hosts_uuids()
 
     @property
     def job_uuids(self) -> Tuple[str, ...]:
@@ -226,6 +227,18 @@ class Flow(MSONable):
                     edges.append((leaf, root, {"properties": ""}))
             graph.add_edges_from(edges)
         return graph
+
+    @property
+    def host(self):
+        """
+        UUID of the first Flow that contains this Flow.
+
+        Returns
+        -------
+        str
+            the UUID of the host.
+        """
+        return self.hosts[0] if self.hosts else None
 
     def draw_graph(self, **kwargs):
         """
@@ -444,6 +457,39 @@ class Flow(MSONable):
 
         for job in self.jobs:
             job.append_name(append_str, prepend=prepend)
+
+    def add_hosts_uuids(
+        self, hosts_uuids: Optional[Union[str, List[str]]] = None, prepend: bool = False
+    ):
+        """
+        Add a list of UUIDs to the internal list of hosts.
+
+        If hosts_uuids is None the uuid of this Flow will be added to the inner jobs and
+        flow. Otherwise, the passed value will be set both in the list of hosts
+        of the current flow and of the inner jobs and flows.
+        The elements of the list are supposed to be ordered in such a way that
+        the object identified by one UUID of the list is contained in objects
+        identified by its subsequent elements.
+
+        Parameters
+        ----------
+        hosts_uuids
+            A list of UUIDs to add. If None the current uuid of the flow will be
+            added to the inner Flows and Jobs.
+        prepend
+            Insert the UUIDs at the beginning of the list rather than extending it.
+        """
+        if hosts_uuids is not None:
+            if not isinstance(hosts_uuids, (list, tuple)):
+                hosts_uuids = [hosts_uuids]
+            if prepend:
+                self.hosts[0:0] = hosts_uuids
+            else:
+                self.hosts.extend(hosts_uuids)
+        else:
+            hosts_uuids = [self.uuid]
+        for j in self.jobs:
+            j.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
 
 def get_flow(

@@ -591,3 +591,20 @@ def test_get_flow():
     job1 = Job(add, function_args=(1, 2))
     job2 = Job(add, function_args=(job1.output.value, 2))
     get_flow([job1, job2])
+
+
+def test_hosts():
+    from jobflow.core.flow import Flow
+
+    # test single job
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    flow1 = Flow(add_job1)
+    flow2 = Flow([flow1, add_job2])
+    flow3 = Flow(flow2)
+
+    assert add_job1.hosts == [flow1.uuid, flow2.uuid, flow3.uuid]
+    assert add_job2.hosts == [flow2.uuid, flow3.uuid]
+    assert flow1.hosts == [flow2.uuid, flow3.uuid]
+    assert flow2.hosts == [flow3.uuid]
+    assert flow3.hosts == []
