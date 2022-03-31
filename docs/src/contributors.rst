@@ -50,7 +50,7 @@ Additional contributions provided by:
    :width: 16
    :height: 16
    :alt: GitHub profile for arosen93
-.. |0000-0002-0141-7006| image:: ../_static/orcid.svg
+.. |0000-0002-0141-7006| image:: _static/orcid.svg
    :target: https://orcid.org/0000-0002-0141-7006
    :width: 16
    :height: 16
@@ -64,7 +64,7 @@ Additional contributions provided by:
    :width: 16
    :height: 16
    :alt: GitHub profile for jmmshn
-.. |0000-0002-2743-7531| image:: ../_static/orcid.svg
+.. |0000-0002-2743-7531| image:: _static/orcid.svg
    :target: https://orcid.org/0000-0002-0141-7006
    :width: 16
    :height: 16
