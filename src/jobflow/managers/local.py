@@ -34,7 +34,7 @@ def run_locally(
     store
         A job store. If a job store is not specified then
         :obj:`JobflowSettings.JOB_STORE` will be used. By default this is a maggma
-        ``MemoryStore`` but can customised by setting the jobflow configuration file.
+        ``MemoryStore`` but can be customised by setting the jobflow configuration file.
     create_folders
         Whether to run each job in a new folder.
     ensure_success

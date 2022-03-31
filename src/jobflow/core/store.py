@@ -54,7 +54,6 @@ class JobStore(Store):
         save: save_type = None,
         load: load_type = False,
     ):
-        """ """
         self.docs_store = docs_store
         if additional_stores is None:
             self.additional_stores = {}
@@ -189,7 +188,7 @@ class JobStore(Store):
                 # 1. Find the locations of all blob identifiers.
                 # 2. Filter the locations based on the load criteria.
                 # 3. Resolve all data blobs using the data store.
-                # 4. Insert the data blobs into the document
+                # 4. Insert the data blobs into the document.
                 locations = find_key(doc, "blob_uuid")
                 all_blobs = [get(doc, list(loc)) for loc in locations]
                 grouped_blobs = _filter_blobs(all_blobs, locations, load_keys)
@@ -600,7 +599,7 @@ class JobStore(Store):
 
         .. note::
             This function is different to ``JobStore.from_dict`` which is used to load
-            the monty serialised representation of the claas.
+            the monty serialised representation of the class.
 
         The dictionary should contain the keys "docs_store", "additional_stores" and
         any other keyword arguments supported by the :obj:`JobStore` constructor. The
