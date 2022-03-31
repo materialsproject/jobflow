@@ -1,6 +1,21 @@
 Change log
 ==========
 
+v0.1.7
+------
+
+New features:
+
+- Validate subschemas of nested models (@gpetretto, #118).
+- ``downstream_manager_config`` for controlling config of dynamic jobs (@arosen93, #121).
+- S3Store yaml parsing (@jmmshn, #124).
+
+Bug fixes:
+
+- Fix home path for loading settings (@gpetretto, #119).
+- Docs updates (@arosen93, #111).
+
+
 v0.1.6
 ------
 
