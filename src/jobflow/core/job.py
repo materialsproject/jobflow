@@ -261,7 +261,8 @@ class Job(MSONable):
     config
         The config setting for the job.
     hosts
-        The list of UUIDs of the hosts containing the job.
+        The list of UUIDs of the hosts containing the job. The object identified by one
+        UUID of the list should be contained in objects identified by its subsequent elements.
     **kwargs
         Additional keyword arguments that can be used to specify which outputs to save
         in additional stores. The argument name gives the additional store name and the
@@ -1052,8 +1053,7 @@ def prepare_replace(
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
-        store_output_job.add_hosts_uuids(replace.uuid)
-        replace.jobs.append(store_output_job)
+        replace.add_jobs(store_output_job)
 
     elif isinstance(replace, Job):
         # replace is a single Job
