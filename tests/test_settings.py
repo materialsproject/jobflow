@@ -1,5 +1,11 @@
 def test_settings_init():
+    import os
+
     from maggma.stores import MemoryStore
+
+    # set the config file to a not existing path so that it does not
+    # pick the local configuration
+    os.environ["JOBFLOW_CONFIG_FILE"] = "/some/not/existing/path"
 
     from jobflow import SETTINGS
 
