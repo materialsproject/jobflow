@@ -56,10 +56,10 @@ class Flow(MSONable):
     name
         The flow name.
     order
-        The order in which the jobs should be exectuted. The default is to determine
+        The order in which the jobs should be executed. The default is to determine
         the order automatically based on the connections between jobs.
     uuid
-        The identifier of the flow. This is genenrated automatically.
+        The identifier of the flow. This is generated automatically.
     hosts
         The list of UUIDs of the hosts containing the job. This is updated
         automatically when a flow is included in the jobs array of another flow.
@@ -400,7 +400,7 @@ class Flow(MSONable):
         for some Makers. To only apply the update to the correct Makers, filters can be
         used.
 
-        >>> flow.update_maker_kwargs({"number": 10}, name_filder="add")
+        >>> flow.update_maker_kwargs({"number": 10}, name_filter="add")
         >>> flow.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         By default, the updates are applied to nested Makers. These are Makers

@@ -54,7 +54,7 @@ autodoc_typehints = "description"
 autoclass_content = "both"
 autodoc_member_order = "bysource"
 
-# better napolean support
+# better napoleon support
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_use_ivar = True

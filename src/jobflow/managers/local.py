@@ -165,4 +165,4 @@ def run_locally(
     if ensure_success and not finished_successfully:
         raise RuntimeError("Flow did not finish running successfully")
 
-    return dict(responses)
+    return responses

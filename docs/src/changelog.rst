@@ -22,7 +22,7 @@ v0.1.6
 Bug fixes:
 
 - Docs fixes (@arosen).
-- Compatability with maggma>=0.38.1 (#68)
+- Compatibility with maggma>=0.38.1 (#68)
 - Fixed missing PyYAML requirement (#67)
 
 v0.1.5
@@ -31,7 +31,7 @@ v0.1.5
 Bug fixes:
 
 - Remove ``JobConfig.pass_metadata`` option and instead pass metadata automatically.
-- Fix serialization compatability with the FireWorks workflow manager.
+- Fix serialization compatibility with the FireWorks workflow manager.
 
 
 v0.1.4
@@ -63,7 +63,7 @@ New features:
 
 - ``ensure_success`` option added to ``run_locally``.
 - Better graph visualisation.
-- Updating the name of a job from a maker now propogates the name change to the maker.
+- Updating the name of a job from a maker now propagates the name change to the maker.
 - ``Job.update_maker_kwargs`` with ``nested=True`` now applies the updates to makers
   in the kwargs or args of the job.
 
