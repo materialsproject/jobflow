@@ -502,7 +502,7 @@ def validate_schema_access(
     -------
     tuple[bool, BaseModel]
         the bool is ``True`` if the schema access was valid.
-        The BaseModel class associted with the item, if any.
+        The BaseModel class associated with the item, if any.
     """
     schema_dict = schema.schema()
     if item not in schema_dict["properties"]:
