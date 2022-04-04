@@ -6,7 +6,7 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Dict, List, Optional, Set, Union
+    pass
 
     import jobflow
 
@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 def run_locally(
-    flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
+    flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
     log: bool = True,
-    store: Optional[jobflow.JobStore] = None,
+    store: jobflow.JobStore | None = None,
     create_folders: bool = False,
     ensure_success: bool = False,
-) -> Dict[str, Dict[int, jobflow.Response]]:
+) -> dict[str, dict[int, jobflow.Response]]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
 
@@ -66,9 +66,9 @@ def run_locally(
 
     flow = get_flow(flow)
 
-    stopped_parents: Set[str] = set()
-    errored: Set[str] = set()
-    responses: Dict[str, Dict[int, jobflow.Response]] = defaultdict(dict)
+    stopped_parents: set[str] = set()
+    errored: set[str] = set()
+    responses: dict[str, dict[int, jobflow.Response]] = defaultdict(dict)
     stop_jobflow = False
 
     root_dir = Path.cwd()

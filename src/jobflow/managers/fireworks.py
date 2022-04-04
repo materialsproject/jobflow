@@ -7,7 +7,7 @@ import typing
 from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_serialize
 
 if typing.TYPE_CHECKING:
-    from typing import Dict, List, Optional, Sequence, Union
+    from typing import Sequence
 
     import jobflow
 
@@ -15,8 +15,8 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 
 def flow_to_workflow(
-    flow: Union[jobflow.Flow, jobflow.Job, List[jobflow.Job]],
-    store: Optional[jobflow.JobStore] = None,
+    flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
+    store: jobflow.JobStore | None = None,
     **kwargs,
 ) -> Workflow:
     """
@@ -47,7 +47,7 @@ def flow_to_workflow(
 
     from jobflow.core.flow import get_flow
 
-    parent_mapping: Dict[str, Firework] = {}
+    parent_mapping: dict[str, Firework] = {}
     fireworks = []
 
     flow = get_flow(flow)
@@ -61,9 +61,9 @@ def flow_to_workflow(
 
 def job_to_firework(
     job: jobflow.Job,
-    store: Optional[jobflow.JobStore] = None,
-    parents: Optional[Sequence[str]] = None,
-    parent_mapping: Optional[Dict[str, Firework]] = None,
+    store: jobflow.JobStore | None = None,
+    parents: Sequence[str] | None = None,
+    parent_mapping: dict[str, Firework] | None = None,
     **kwargs,
 ) -> Firework:
     """

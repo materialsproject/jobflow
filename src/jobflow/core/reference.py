@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Any, Dict, Optional, Sequence, Tuple, Type
+from typing import Any, Sequence
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
@@ -93,8 +93,8 @@ class OutputReference(MSONable):
     def __init__(
         self,
         uuid: str,
-        attributes: Tuple[Tuple[str, Any], ...] = tuple(),
-        output_schema: Optional[Type[BaseModel]] = None,
+        attributes: tuple[tuple[str, Any], ...] = tuple(),
+        output_schema: type[BaseModel] | None = None,
     ):
         super().__init__()
         self.uuid = uuid
@@ -109,8 +109,8 @@ class OutputReference(MSONable):
 
     def resolve(
         self,
-        store: Optional[jobflow.JobStore],
-        cache: Optional[Dict[str, Any]] = None,
+        store: jobflow.JobStore | None,
+        cache: dict[str, Any] | None = None,
         on_missing: OnMissing = OnMissing.ERROR,
     ) -> Any:
         """
@@ -311,9 +311,9 @@ class OutputReference(MSONable):
 def resolve_references(
     references: Sequence[OutputReference],
     store: jobflow.JobStore,
-    cache: Optional[Dict[str, Any]] = None,
+    cache: dict[str, Any] | None = None,
     on_missing: OnMissing = OnMissing.ERROR,
-) -> Dict[OutputReference, Any]:
+) -> dict[OutputReference, Any]:
     """
     Resolve multiple output references.
 
@@ -363,7 +363,7 @@ def resolve_references(
     return resolved_references
 
 
-def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
+def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
     """
     Find and extract output references.
 
@@ -398,13 +398,13 @@ def find_and_get_references(arg: Any) -> Tuple[OutputReference, ...]:
     locations = find_key_value(arg, "@class", "OutputReference")
 
     # deserialize references and return
-    return tuple([OutputReference.from_dict(get(arg, loc)) for loc in locations])
+    return tuple(OutputReference.from_dict(get(arg, loc)) for loc in locations)
 
 
 def find_and_resolve_references(
     arg: Any,
     store: jobflow.JobStore,
-    cache: Optional[Dict[str, Any]] = None,
+    cache: dict[str, Any] | None = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Any:
     """
@@ -479,8 +479,8 @@ def find_and_resolve_references(
 
 
 def validate_schema_access(
-    schema: Type[BaseModel], item: str
-) -> Tuple[bool, Optional[BaseModel]]:
+    schema: type[BaseModel], item: str
+) -> tuple[bool, BaseModel | None]:
     """
     Validate that an attribute or index access is supported by a model.
 

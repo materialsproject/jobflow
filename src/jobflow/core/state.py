@@ -15,7 +15,7 @@ import typing
 from monty.design_patterns import singleton
 
 if typing.TYPE_CHECKING:
-    from typing import Optional
+    pass
 
     import jobflow
 
@@ -24,8 +24,8 @@ __all__ = ["CURRENT_JOB"]
 
 @singleton
 class State:
-    job: Optional[jobflow.Job] = None
-    store: Optional[jobflow.JobStore] = None
+    job: jobflow.Job | None = None
+    store: jobflow.JobStore | None = None
 
     def reset(self):
         self.job = None

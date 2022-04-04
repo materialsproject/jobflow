@@ -18,7 +18,7 @@ import re
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Optional, Tuple
+    from typing import Any
 
 
 __all__ = ["DictMods", "apply_mod"]
@@ -155,7 +155,7 @@ class DictMods:
 _DM = DictMods()
 
 
-def apply_mod(modification: Dict[str, Any], obj: Dict[str, Any]):
+def apply_mod(modification: dict[str, Any], obj: dict[str, Any]):
     """
     Apply a dict mod to an object.
 
@@ -177,8 +177,8 @@ def apply_mod(modification: Dict[str, Any], obj: Dict[str, Any]):
 
 
 def _get_nested_dict(
-    input_dict: Dict[str, Any], key: str
-) -> Optional[Tuple[Dict[str, Any], str]]:
+    input_dict: dict[str, Any], key: str
+) -> tuple[dict[str, Any], str] | None:
     """Get nested dicts using a key."""
     current = input_dict
     toks = [t for t in key.split("->") if t != ""]

@@ -13,18 +13,7 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Hashable,
-        List,
-        Optional,
-        Set,
-        Tuple,
-        Type,
-        Union,
-    )
+    from typing import Any, Callable, Hashable
 
     from networkx import DiGraph
     from pydantic import BaseModel
@@ -77,7 +66,7 @@ class JobConfig(MSONable):
     response_manager_config: dict = field(default_factory=dict)
 
 
-def job(method: Optional[Callable] = None, **job_kwargs):
+def job(method: Callable | None = None, **job_kwargs):
     """
     Wrap a function to produce a :obj:`Job`.
 
@@ -311,15 +300,15 @@ class Job(MSONable):
     def __init__(
         self,
         function: Callable,
-        function_args: Tuple[Any, ...] = None,
-        function_kwargs: Dict[str, Any] = None,
-        output_schema: Optional[Type[BaseModel]] = None,
+        function_args: tuple[Any, ...] = None,
+        function_kwargs: dict[str, Any] = None,
+        output_schema: type[BaseModel] | None = None,
         uuid: str = None,
         index: int = 1,
-        name: Optional[str] = None,
-        metadata: Dict[str, Any] = None,
+        name: str | None = None,
+        metadata: dict[str, Any] = None,
         config: JobConfig = None,
-        hosts: Optional[List[str]] = None,
+        hosts: list[str] | None = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -345,7 +334,7 @@ class Job(MSONable):
         self.hosts = hosts or []
         self._kwargs = kwargs
 
-        if sum([v is True for v in kwargs.values()]) > 1:
+        if sum(v is True for v in kwargs.values()) > 1:
             raise ValueError("Cannot select True for multiple additional stores.")
 
         if self.name is None:
@@ -368,7 +357,7 @@ class Job(MSONable):
             )
 
     @property
-    def input_references(self) -> Tuple[jobflow.OutputReference, ...]:
+    def input_references(self) -> tuple[jobflow.OutputReference, ...]:
         """
         Find :obj:`.OutputReference` objects in the job inputs.
 
@@ -379,14 +368,14 @@ class Job(MSONable):
         """
         from jobflow.core.reference import find_and_get_references
 
-        references: Set[jobflow.OutputReference] = set()
+        references: set[jobflow.OutputReference] = set()
         for arg in tuple(self.function_args) + tuple(self.function_kwargs.values()):
             references.update(find_and_get_references(arg))
 
         return tuple(references)
 
     @property
-    def input_uuids(self) -> Tuple[str, ...]:
+    def input_uuids(self) -> tuple[str, ...]:
         """
         Uuids of any :obj:`.OutputReference` objects in the job inputs.
 
@@ -395,10 +384,10 @@ class Job(MSONable):
         tuple(str, ...)
            The UUIDs of the references in the job inputs.
         """
-        return tuple([ref.uuid for ref in self.input_references])
+        return tuple(ref.uuid for ref in self.input_references)
 
     @property
-    def input_references_grouped(self) -> Dict[str, Tuple[OutputReference, ...]]:
+    def input_references_grouped(self) -> dict[str, tuple[OutputReference, ...]]:
         """
         Group any :obj:`.OutputReference` objects in the job inputs by their UUIDs.
 
@@ -416,7 +405,7 @@ class Job(MSONable):
         return {k: tuple(v) for k, v in groups.items()}
 
     @property
-    def maker(self) -> Optional[jobflow.Maker]:
+    def maker(self) -> jobflow.Maker | None:
         """
         Get the host :obj:`.Maker` object if a job is to run a maker function.
 
@@ -446,7 +435,7 @@ class Job(MSONable):
 
         edges = []
         for uuid, refs in self.input_references_grouped.items():
-            properties: Union[List[str], str] = [
+            properties: list[str] | str = [
                 ref.attributes_formatted[-1]
                 .replace("[", "")
                 .replace("]", "")
@@ -627,7 +616,7 @@ class Job(MSONable):
 
         from jobflow.core.reference import find_and_resolve_references
 
-        cache: Dict[str, Any] = {}
+        cache: dict[str, Any] = {}
         resolved_args = find_and_resolve_references(
             self.function_args,
             store,
@@ -654,9 +643,9 @@ class Job(MSONable):
 
     def update_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        function_filter: Optional[Callable] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
         dict_mod: bool = False,
     ):
         """
@@ -708,9 +697,9 @@ class Job(MSONable):
 
     def update_maker_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        class_filter: Optional[Type[jobflow.Maker]] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        class_filter: type[jobflow.Maker] | None = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -837,7 +826,7 @@ class Job(MSONable):
         else:
             self.name += append_str
 
-    def as_dict(self) -> Dict:
+    def as_dict(self) -> dict:
         """Serialize the job as a dictionary."""
         d = super().as_dict()
 
@@ -856,9 +845,7 @@ class Job(MSONable):
         else:
             super().__setattr__(key, value)
 
-    def add_hosts_uuids(
-        self, hosts_uuids: Union[str, List[str]], prepend: bool = False
-    ):
+    def add_hosts_uuids(self, hosts_uuids: str | list[str], prepend: bool = False):
         """
         Add a list of UUIDs to the internal list of hosts.
 
@@ -904,19 +891,19 @@ class Response:
         Stop executing all remaining jobs.
     """
 
-    output: Optional[Any] = None
-    detour: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
-    addition: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
-    replace: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
-    stored_data: Optional[Dict[Hashable, Any]] = None
+    output: Any | None = None
+    detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
+    addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
+    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
+    stored_data: dict[Hashable, Any] | None = None
     stop_children: bool = False
     stop_jobflow: bool = False
 
     @classmethod
     def from_job_returns(
         cls,
-        job_returns: Optional[Any],
-        output_schema: Optional[Type[BaseModel]] = None,
+        job_returns: Any | None,
+        output_schema: type[BaseModel] | None = None,
     ) -> Response:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
@@ -960,7 +947,7 @@ class Response:
         return cls(output=apply_schema(job_returns, output_schema))
 
 
-def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
+def apply_schema(output: Any, schema: type[BaseModel] | None):
     """
     Apply schema to job outputs.
 
@@ -1015,7 +1002,7 @@ def store_inputs(inputs: Any) -> Any:
 
 
 def prepare_replace(
-    replace: Union[jobflow.Flow, Job, List[Job]],
+    replace: jobflow.Flow | Job | list[Job],
     current_job: Job,
 ) -> jobflow.Flow:
     """
@@ -1073,8 +1060,8 @@ def prepare_replace(
 
 
 def pass_manager_config(
-    jobs: Union[Job, jobflow.Flow, List[Union[Job, jobflow.Flow]]],
-    manager_config: Dict[str, Any],
+    jobs: Job | jobflow.Flow | list[Job | jobflow.Flow],
+    manager_config: dict[str, Any],
 ):
     """
     Pass the manager config on to any jobs in the jobs array.
@@ -1090,7 +1077,7 @@ def pass_manager_config(
     """
     from copy import deepcopy
 
-    all_jobs: List[Job] = []
+    all_jobs: list[Job] = []
 
     def get_jobs(arg):
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from monty.json import MontyDecoder, MSONable
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Optional, Type, Union
+    from typing import Any
 
     import jobflow
 
@@ -120,7 +120,7 @@ class Maker(MSONable):
     >>> double_add_job = maker.make(1, 2)
     """
 
-    def make(self, *args, **kwargs) -> Union[jobflow.Flow, jobflow.Job]:
+    def make(self, *args, **kwargs) -> jobflow.Flow | jobflow.Job:
         """Make a job or a flow - must be overridden with a concrete implementation."""
         raise NotImplementedError
 
@@ -131,9 +131,9 @@ class Maker(MSONable):
 
     def update_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        class_filter: Optional[Type[Maker]] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        class_filter: type[Maker] | None = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):

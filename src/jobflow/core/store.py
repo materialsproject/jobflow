@@ -12,7 +12,7 @@ from jobflow.core.reference import OnMissing
 if typing.TYPE_CHECKING:
     from enum import Enum
     from pathlib import Path
-    from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
+    from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
     from maggma.core import Sort
 
@@ -50,7 +50,7 @@ class JobStore(Store):
     def __init__(
         self,
         docs_store: Store,
-        additional_stores: Optional[Dict[str, Store]] = None,
+        additional_stores: dict[str, Store] | None = None,
         save: save_type = None,
         load: load_type = False,
     ):
@@ -114,7 +114,7 @@ class JobStore(Store):
         for additional_store in self.additional_stores.values():
             additional_store.close()
 
-    def count(self, criteria: Optional[Dict] = None) -> int:
+    def count(self, criteria: dict | None = None) -> int:
         """
         Count the number of documents matching the query criteria.
 
@@ -132,13 +132,13 @@ class JobStore(Store):
 
     def query(
         self,
-        criteria: Optional[Dict] = None,
-        properties: Union[Dict, List, None] = None,
-        sort: Optional[Dict[str, Union[Sort, int]]] = None,
+        criteria: dict | None = None,
+        properties: dict | list | None = None,
+        sort: dict[str, Sort | int] | None = None,
         skip: int = 0,
         limit: int = 0,
         load: load_type = None,
-    ) -> Iterator[Dict]:
+    ) -> Iterator[dict]:
         """
         Query the JobStore for documents.
 
@@ -217,11 +217,11 @@ class JobStore(Store):
 
     def query_one(
         self,
-        criteria: Optional[Dict] = None,
-        properties: Union[Dict, List, None] = None,
-        sort: Optional[Dict[str, Union[Sort, int]]] = None,
+        criteria: dict | None = None,
+        properties: dict | list | None = None,
+        sort: dict[str, Sort | int] | None = None,
         load: load_type = None,
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         Query the Store for a single document.
 
@@ -251,9 +251,9 @@ class JobStore(Store):
 
     def update(
         self,
-        docs: Union[List[Dict], Dict],
-        key: Union[List, str, None] = None,
-        save: Union[bool, save_type] = None,
+        docs: list[dict] | dict,
+        key: list | str | None = None,
+        save: bool | save_type = None,
     ):
         """
         Update or insert documents into the Store.
@@ -351,14 +351,14 @@ class JobStore(Store):
 
     def groupby(
         self,
-        keys: Union[List[str], str],
-        criteria: Optional[Dict] = None,
-        properties: Union[Dict, List, None] = None,
-        sort: Optional[Dict[str, Union[Sort, int]]] = None,
+        keys: list[str] | str,
+        criteria: dict | None = None,
+        properties: dict | list | None = None,
+        sort: dict[str, Sort | int] | None = None,
         skip: int = 0,
         limit: int = 0,
         load: load_type = None,
-    ) -> Iterator[Tuple[Dict, List[Dict]]]:
+    ) -> Iterator[tuple[dict, list[dict]]]:
         """
         Group documents by keys.
 
@@ -412,12 +412,12 @@ class JobStore(Store):
             return tuple(get(doc, k) for k in keys)
 
         for vals, group in groupby(sorted(data, key=grouping_keys), key=grouping_keys):
-            doc: Dict[str, Any] = {}
+            doc: dict[str, Any] = {}
             for k, v in zip(keys, vals):
                 set_(doc, k, v)
             yield doc, list(group)
 
-    def remove_docs(self, criteria: Dict):
+    def remove_docs(self, criteria: dict):
         """
         Remove docs matching the criteria.
 
@@ -435,9 +435,9 @@ class JobStore(Store):
     def get_output(
         self,
         uuid: str,
-        which: Union[str, int] = "last",
+        which: str | int = "last",
         load: load_type = False,
-        cache: Optional[Dict[str, Any]] = None,
+        cache: dict[str, Any] | None = None,
         on_missing: OnMissing = OnMissing.ERROR,
     ):
         """
@@ -486,7 +486,7 @@ class JobStore(Store):
         if isinstance(which, int) or which in ("last", "first"):
             sort = -1 if which == "last" else 1
 
-            criteria: Dict[str, Any] = {"uuid": uuid}
+            criteria: dict[str, Any] = {"uuid": uuid}
             if isinstance(which, int):
                 # handle specific index specified
                 criteria["index"] = which
@@ -533,7 +533,7 @@ class JobStore(Store):
             )
 
     @classmethod
-    def from_file(cls: Type[T], db_file: Union[str, Path], **kwargs) -> T:
+    def from_file(cls: type[T], db_file: str | Path, **kwargs) -> T:
         """
         Create an JobStore from a database file.
 
@@ -671,14 +671,14 @@ def _construct_store(spec_dict, valid_stores):
 
 def _prepare_load(
     load: load_type,
-) -> Union[bool, Dict[str, Union[bool, List[Union[str, Tuple[str, str]]]]]]:
+) -> bool | dict[str, bool | list[str | tuple[str, str]]]:
     """Standardize load types."""
     from enum import Enum
 
     if isinstance(load, bool):
         return load
 
-    new_load: Dict[str, Union[bool, List[Union[str, Tuple[str, str]]]]] = {}
+    new_load: dict[str, bool | list[str | tuple[str, str]]] = {}
     for store_name, store_load in load.items():
         if isinstance(store_load, bool):
             new_load[store_name] = store_load
@@ -700,8 +700,8 @@ def _prepare_load(
 
 
 def _prepare_save(
-    save: Union[bool, save_type],
-) -> Dict[str, List[Union[str, Type[MSONable]]]]:
+    save: bool | save_type,
+) -> dict[str, list[str | type[MSONable]]]:
     """Standardize save type."""
     from enum import Enum
 
@@ -720,10 +720,10 @@ def _prepare_save(
 
 
 def _filter_blobs(
-    blob_infos: List[Dict],
-    locations: List[List[Any]],
-    load: Union[bool, Dict[str, Union[bool, List[Union[str, Tuple[str, str]]]]]] = None,
-) -> Dict[str, Tuple[List[Dict], List[List[Any]]]]:
+    blob_infos: list[dict],
+    locations: list[list[Any]],
+    load: bool | dict[str, bool | list[str | tuple[str, str]]] = None,
+) -> dict[str, tuple[list[dict], list[list[Any]]]]:
     """Filter and group blobs."""
     from collections import defaultdict
 
@@ -764,7 +764,7 @@ def _filter_blobs(
     return _group_blobs(new_blobs, new_locations)
 
 
-def _get_blob_info(obj: Any, store_name: str) -> Dict[str, str]:
+def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
     from jobflow.utils.uuid import suuid
 
     class_name = ""

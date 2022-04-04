@@ -31,6 +31,7 @@ Additional contributions provided by:
 
 | **David Waroquiers** |davidwaroquiers| |0000-0001-8943-9762|
 | Université Catholique de Louvain
+
 .. |davidwaroquiers| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/davidwaroquiers
    :width: 16
@@ -45,6 +46,7 @@ Additional contributions provided by:
 | **Andrew Rosen** |arosen| |0000-0002-0141-7006|
 | Miller Research Fellow
 | University of California, Berkeley
+
 .. |arosen| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/arosen93
    :width: 16
@@ -59,6 +61,7 @@ Additional contributions provided by:
 | **Jimmy-Xuan Shen** |jmmshn| |0000-0002-2743-7531|
 | Postdoctoral researcher
 | Lawrence Livermore National Laboratory
+
 .. |jmmshn| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/jmmshn
    :width: 16
@@ -72,6 +75,7 @@ Additional contributions provided by:
 
 | **Guido Petretto** |gpetretto|
 | Université Catholique de Louvain
+
 .. |gpetretto| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/gpetretto
    :width: 16

@@ -12,7 +12,7 @@ from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+    from typing import Any, Callable
 
     from networkx import DiGraph
 
@@ -120,12 +120,12 @@ class Flow(MSONable):
 
     def __init__(
         self,
-        jobs: Union[List[Union[Flow, jobflow.Job]], jobflow.Job, Flow],
-        output: Optional[Any] = None,
+        jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow,
+        output: Any | None = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
-        hosts: Optional[List[str]] = None,
+        hosts: list[str] | None = None,
     ):
         from jobflow.core.job import Job
 
@@ -140,12 +140,12 @@ class Flow(MSONable):
         self.uuid = uuid
         self.hosts = hosts or []
 
-        self._jobs: Tuple[Union[Flow, Job], ...] = tuple()
+        self._jobs: tuple[Flow | Job, ...] = tuple()
         self.add_jobs(jobs)
         self.output = output
 
     @property
-    def jobs(self) -> Tuple[Union[Flow, jobflow.Job], ...]:
+    def jobs(self) -> tuple[Flow | jobflow.Job, ...]:
         """
         Get the Jobs in the Flow.
 
@@ -201,7 +201,7 @@ class Flow(MSONable):
         self._output = output
 
     @property
-    def job_uuids(self) -> Tuple[str, ...]:
+    def job_uuids(self) -> tuple[str, ...]:
         """
         Uuids of every Job contained in the Flow (including nested Flows).
 
@@ -210,7 +210,7 @@ class Flow(MSONable):
         tuple[str]
             The uuids of all Jobs in the Flow (including nested Flows).
         """
-        uuids: List[str] = []
+        uuids: list[str] = []
         for job in self.jobs:
             if isinstance(job, Flow):
                 uuids.extend(job.job_uuids)
@@ -219,7 +219,7 @@ class Flow(MSONable):
         return tuple(uuids)
 
     @property
-    def all_uuids(self) -> Tuple[str, ...]:
+    def all_uuids(self) -> tuple[str, ...]:
         """
         Uuids of every Job and Flow contained in the Flow (including nested Flows).
 
@@ -228,7 +228,7 @@ class Flow(MSONable):
         tuple[str]
             The uuids of all Jobs and Flows in the Flow (including nested Flows).
         """
-        uuids: List[str] = []
+        uuids: list[str] = []
         for job in self.jobs:
             if isinstance(job, Flow):
                 uuids.extend(job.all_uuids)
@@ -271,7 +271,7 @@ class Flow(MSONable):
         return graph
 
     @property
-    def host(self) -> Optional[str]:
+    def host(self) -> str | None:
         """
         UUID of the first Flow that contains this Flow.
 
@@ -334,9 +334,9 @@ class Flow(MSONable):
 
     def update_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        function_filter: Optional[Callable] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
         dict_mod: bool = False,
     ):
         """
@@ -388,9 +388,9 @@ class Flow(MSONable):
 
     def update_maker_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        class_filter: Optional[Type[jobflow.Maker]] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        class_filter: type[jobflow.Maker] | None = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -504,7 +504,7 @@ class Flow(MSONable):
             job.append_name(append_str, prepend=prepend)
 
     def add_hosts_uuids(
-        self, hosts_uuids: Optional[Union[str, List[str]]] = None, prepend: bool = False
+        self, hosts_uuids: str | list[str] | None = None, prepend: bool = False
     ):
         """
         Add a list of UUIDs to the internal list of hosts.
@@ -536,7 +536,7 @@ class Flow(MSONable):
         for j in self.jobs:
             j.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
-    def add_jobs(self, jobs: Union[List[Union[Flow, jobflow.Job]], jobflow.Job, Flow]):
+    def add_jobs(self, jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow):
         """
         Add Jobs or Flows to the Flow.
 
@@ -574,7 +574,7 @@ class Flow(MSONable):
             job.add_hosts_uuids(hosts)
         self._jobs += tuple(jobs)
 
-    def remove_jobs(self, indices: Union[int, List[int]]):
+    def remove_jobs(self, indices: int | list[int]):
         """
         Remove jobs from the Flow.
 
@@ -593,7 +593,7 @@ class Flow(MSONable):
             )
 
         new_jobs = tuple(j for i, j in enumerate(self.jobs) if i not in indices)
-        uuids: Set = set()
+        uuids: set = set()
         for job in new_jobs:
             if isinstance(job, Flow):
                 uuids.update(job.job_uuids)
@@ -613,7 +613,7 @@ class Flow(MSONable):
 
 
 def get_flow(
-    flow: Union[Flow, jobflow.Job, List[jobflow.Job]],
+    flow: Flow | jobflow.Job | list[jobflow.Job],
 ) -> Flow:
     """
     Check dependencies and return flow object.
