@@ -68,6 +68,7 @@ def test_flow_of_jobs_init():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
+    assert flow.all_uuids == (add_job.uuid,)
 
     # test single job no list
     add_job = get_test_job()
@@ -84,6 +85,7 @@ def test_flow_of_jobs_init():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job1.uuid, add_job2.uuid)
+    assert flow.all_uuids == (add_job1.uuid, add_job2.uuid)
 
     # # test multiple job, linear order
     add_job1 = get_test_job()
@@ -142,6 +144,7 @@ def test_flow_of_flows_init():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
+    assert flow.all_uuids == (add_job.uuid, subflow.uuid)
     assert flow.jobs[0].host == flow.uuid
 
     # test single flow no list
@@ -163,6 +166,12 @@ def test_flow_of_flows_init():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job1.uuid, add_job2.uuid)
+    assert flow.all_uuids == (
+        add_job1.uuid,
+        subflow1.uuid,
+        add_job2.uuid,
+        subflow2.uuid,
+    )
     assert flow.jobs[0].host == flow.uuid
     assert flow.jobs[1].host == flow.uuid
 
@@ -608,3 +617,82 @@ def test_hosts():
     assert flow1.hosts == [flow2.uuid, flow3.uuid]
     assert flow2.hosts == [flow3.uuid]
     assert flow3.hosts == []
+
+
+def test_add_jobs():
+    from jobflow.core.flow import Flow
+
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    flow1 = Flow(add_job1)
+    flow1.add_jobs(add_job2)
+    assert len(flow1.jobs) == 2
+    assert add_job2.hosts == [flow1.uuid]
+
+    with pytest.raises(ValueError):
+        flow1.add_jobs(add_job2)
+
+    add_job3 = get_test_job()
+    Flow(add_job3)
+
+    # job belongs to another Flow
+    with pytest.raises(ValueError):
+        flow1.add_jobs(add_job3)
+
+    add_job4 = get_test_job()
+    with pytest.raises(ValueError):
+        flow1.add_jobs([add_job4, add_job4])
+
+    # nested flows
+    inner_flow = Flow(get_test_job())
+    outer_flow = Flow(inner_flow)
+    assert inner_flow.hosts == [outer_flow.uuid]
+    added_job = get_test_job()
+    inner_flow.add_jobs(added_job)
+    assert added_job.hosts == [inner_flow.uuid, outer_flow.uuid]
+
+    # circular dependency
+    flow1 = Flow([get_test_flow()])
+    flow2 = Flow([flow1])
+    flow3 = Flow([flow2])
+    with pytest.raises(ValueError):
+        flow1.add_jobs(flow3)
+
+
+def test_remove_jobs():
+    from jobflow.core.flow import Flow
+
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    flow1 = Flow([add_job1, add_job2])
+
+    flow1.remove_jobs(0)
+    assert len(flow1.jobs) == 1
+    assert flow1.jobs[0].uuid is add_job2.uuid
+
+    with pytest.raises(ValueError):
+        flow1.remove_jobs(-1)
+    with pytest.raises(ValueError):
+        flow1.remove_jobs(10)
+
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    flow2 = Flow([add_job1, add_job2], output=add_job2.output)
+
+    with pytest.raises(ValueError):
+        flow2.remove_jobs(1)
+
+
+def test_set_output():
+    from jobflow.core.flow import Flow
+
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    add_job3 = get_test_job()
+    flow = Flow([add_job1, add_job2], output=add_job2.output)
+
+    flow.output = add_job1.output
+    assert flow.output.uuid == add_job1.uuid
+
+    with pytest.raises(ValueError):
+        flow.output = [add_job3.output]
