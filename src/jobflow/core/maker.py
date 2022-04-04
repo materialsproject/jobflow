@@ -149,10 +149,11 @@ class Maker(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name.
+            A filter for the Maker name. Only Makers with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
         class_filter
-            A filter for the maker class. Note the class filter will match any
-            subclasses.
+            A filter for the maker class. Only Makers with a matching class will be
+            updated. Note the class filter will match any subclasses.
         nested
             Whether to apply the updates to Maker objects that are themselves kwargs
             of a Maker object. See examples for more details.

@@ -349,9 +349,11 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the job name.
+            A filter for the job name. Only jobs with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a job with the name "adder".
         function_filter
-            Only filter matching functions.
+            A filter for the job function. Only jobs with a matching function will be
+            updated.
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
@@ -404,10 +406,11 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name.
+            A filter for the Maker name. Only Makers with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
         class_filter
-            A filter for the maker class. Note the class filter will match any
-            subclasses.
+            A filter for the maker class. Only Makers with a matching class will be
+            updated. Note the class filter will match any subclasses.
         nested
             Whether to apply the updates to Maker objects that are themselves kwargs
             of Maker, job, or flow objects. See examples for more details.
@@ -520,9 +523,11 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the job name.
+            A filter for the job name. Only jobs with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a job with the name "adder".
         function_filter
-            Only filter matching functions.
+            A filter for the job function. Only jobs with a matching function will be
+            updated.
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
@@ -568,9 +573,11 @@ class Flow(MSONable):
         config
             A JobConfig object or a dict with containing the attributes to update.
         name_filter
-            A filter for the job name.
+            A filter for the job name. Only jobs with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a job with the name "adder".
         function_filter
-            Only filter matching functions.
+            A filter for the job function. Only jobs with a matching function will be
+            updated.
         attributes :
             Which attributes of the job config to set. Can be specified as one or more
             attributes specified by their name.
