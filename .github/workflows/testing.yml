@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - name: Install dependencies
         run: |
@@ -43,19 +43,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8, 3.9 ]
+        python-version: ["3.8", "3.9", "3.10" ]
 
     steps:
-    - uses: actions/checkout@v2.3.4
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v2.2.2
+    - uses: actions/setup-python@v3
       with:
         python-version:  ${{ matrix.python-version }}
 
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v1
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/setup.py') }}
@@ -72,7 +72,7 @@ jobs:
       run: pytest --cov=jobflow --cov-report=xml
 
     - uses: codecov/codecov-action@v1
-      if: matrix.python-version == 3.8 && github.repository == 'materialsproject/jobflow'
+      if: matrix.python-version == 3.9 && github.repository == 'materialsproject/jobflow'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
@@ -81,14 +81,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install pandoc
         run: sudo apt-get install pandoc
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - name: Install dependencies
         run: |

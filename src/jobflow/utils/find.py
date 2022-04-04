@@ -5,7 +5,7 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Hashable, List, Tuple, Type, Union
+    from typing import Any, Hashable
 
     from monty.json import MSONable
 
@@ -18,11 +18,11 @@ __all__ = [
 
 
 def find_key(
-    d: Union[Dict[Hashable, Any], List[Any]],
-    key: Union[Hashable, Type[MSONable]],
+    d: dict[Hashable, Any] | list[Any],
+    key: Hashable | type[MSONable],
     include_end: bool = False,
     nested: bool = False,
-) -> List[List[Any]]:
+) -> list[list[Any]]:
     """
     Find the route to key: value pairs in a dictionary.
 
@@ -106,8 +106,8 @@ def find_key(
 
 
 def find_key_value(
-    d: Union[Dict[Hashable, Any], List[Any]], key: Hashable, value: Hashable
-) -> Tuple[List[Any], ...]:
+    d: dict[Hashable, Any] | list[Any], key: Hashable, value: Hashable
+) -> tuple[list[Any], ...]:
     """
     Find the route to key: value pairs in a dictionary.
 
@@ -153,10 +153,10 @@ def find_key_value(
                 _lookup(v, path + (i,))
 
     _lookup(d)
-    return tuple([list(path) for path in found_items])
+    return tuple(list(path) for path in found_items)
 
 
-def update_in_dictionary(obj: Dict[Hashable, Any], updates: Dict[Tuple, Any]):
+def update_in_dictionary(obj: dict[Hashable, Any], updates: dict[tuple, Any]):
     """
     Update a dictionary in place at specific locations with a new values.
 

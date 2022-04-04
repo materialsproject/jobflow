@@ -1,5 +1,11 @@
 def test_settings_init():
+    import os
+
     from maggma.stores import MemoryStore
+
+    # set the config file to a not existing path so that it does not
+    # pick the local configuration
+    os.environ["JOBFLOW_CONFIG_FILE"] = "/some/not/existing/path"
 
     from jobflow import SETTINGS
 
@@ -41,6 +47,22 @@ def test_settings_object(clean_dir, test_data):
         }
     }
 
+    s3_store_spec = {
+        "docs_store": {
+            "type": "MemoryStore",
+            "collection_name": "docs_store_123",
+        },
+        "additional_stores": {
+            "data": {
+                "type": "S3Store",
+                "bucket": "bucket_123",
+                "index": {
+                    "type": "MemoryStore",
+                },
+            }
+        },
+    }
+
     # set the path to lood settings from
     os.environ["JOBFLOW_CONFIG_FILE"] = str(Path.cwd() / "config.yaml")
 
@@ -53,6 +75,10 @@ def test_settings_object(clean_dir, test_data):
     dumpfn({"JOB_STORE": dict_spec}, "config.yaml")
     settings = JobflowSettings()
     assert settings.JOB_STORE.docs_store.collection_name == "outputs_567"
+
+    dumpfn({"JOB_STORE": s3_store_spec}, "config.yaml")
+    settings = JobflowSettings()
+    assert settings.JOB_STORE.additional_stores["data"].bucket == "bucket_123"
 
     # assert loading from db file works.
     dumpfn({"JOB_STORE": str(test_data / "db.yaml")}, "config.yaml")

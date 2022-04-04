@@ -13,18 +13,7 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Hashable,
-        List,
-        Optional,
-        Set,
-        Tuple,
-        Type,
-        Union,
-    )
+    from typing import Any, Callable, Hashable
 
     from networkx import DiGraph
     from pydantic import BaseModel
@@ -57,6 +46,11 @@ class JobConfig(MSONable):
     pass_manager_config
         Whether to pass the manager configuration on to detour, addition, and
         replacement jobs.
+    response_manager_config
+        The custom configuration to pass to a detour, addition, or replacement job.
+        Using this kwarg will automatically take precedence over the behavior of
+        ``pass_manager_config`` such that a different configuration than ``manger_config``
+        can be passed to downstream jobs.
 
     Returns
     -------
@@ -69,9 +63,10 @@ class JobConfig(MSONable):
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
     pass_manager_config: bool = True
+    response_manager_config: dict = field(default_factory=dict)
 
 
-def job(method: Optional[Callable] = None, **job_kwargs):
+def job(method: Callable | None = None, **job_kwargs):
     """
     Wrap a function to produce a :obj:`Job`.
 
@@ -140,7 +135,7 @@ def job(method: Optional[Callable] = None, **job_kwargs):
         doesn't exist, this error will only be raised when the Job is executed.
 
     Jobs can return :obj:`.Response` objects that control the flow execution flow.
-    For example, to replace the current jub with another job, ``replace`` can be used.
+    For example, to replace the current job with another job, ``replace`` can be used.
 
     >>> from jobflow import Response
     >>> @job
@@ -254,8 +249,9 @@ class Job(MSONable):
         A dictionary of information that will get stored alongside the job output.
     config
         The config setting for the job.
-    host
-        The UUID of the host flow.
+    hosts
+        The list of UUIDs of the hosts containing the job. The object identified by one
+        UUID of the list should be contained in objects identified by its subsequent elements.
     **kwargs
         Additional keyword arguments that can be used to specify which outputs to save
         in additional stores. The argument name gives the additional store name and the
@@ -304,15 +300,15 @@ class Job(MSONable):
     def __init__(
         self,
         function: Callable,
-        function_args: Tuple[Any, ...] = None,
-        function_kwargs: Dict[str, Any] = None,
-        output_schema: Optional[Type[BaseModel]] = None,
+        function_args: tuple[Any, ...] = None,
+        function_kwargs: dict[str, Any] = None,
+        output_schema: type[BaseModel] | None = None,
         uuid: str = None,
         index: int = 1,
-        name: Optional[str] = None,
-        metadata: Dict[str, Any] = None,
+        name: str | None = None,
+        metadata: dict[str, Any] = None,
         config: JobConfig = None,
-        host: Optional[str] = None,
+        hosts: list[str] | None = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -335,10 +331,10 @@ class Job(MSONable):
         self.name = name
         self.metadata = metadata
         self.config = config
-        self.host = host
+        self.hosts = hosts or []
         self._kwargs = kwargs
 
-        if sum([v is True for v in kwargs.values()]) > 1:
+        if sum(v is True for v in kwargs.values()) > 1:
             raise ValueError("Cannot select True for multiple additional stores.")
 
         if self.name is None:
@@ -361,7 +357,7 @@ class Job(MSONable):
             )
 
     @property
-    def input_references(self) -> Tuple[jobflow.OutputReference, ...]:
+    def input_references(self) -> tuple[jobflow.OutputReference, ...]:
         """
         Find :obj:`.OutputReference` objects in the job inputs.
 
@@ -372,14 +368,14 @@ class Job(MSONable):
         """
         from jobflow.core.reference import find_and_get_references
 
-        references: Set[jobflow.OutputReference] = set()
+        references: set[jobflow.OutputReference] = set()
         for arg in tuple(self.function_args) + tuple(self.function_kwargs.values()):
             references.update(find_and_get_references(arg))
 
         return tuple(references)
 
     @property
-    def input_uuids(self) -> Tuple[str, ...]:
+    def input_uuids(self) -> tuple[str, ...]:
         """
         Uuids of any :obj:`.OutputReference` objects in the job inputs.
 
@@ -388,10 +384,10 @@ class Job(MSONable):
         tuple(str, ...)
            The UUIDs of the references in the job inputs.
         """
-        return tuple([ref.uuid for ref in self.input_references])
+        return tuple(ref.uuid for ref in self.input_references)
 
     @property
-    def input_references_grouped(self) -> Dict[str, Tuple[OutputReference, ...]]:
+    def input_references_grouped(self) -> dict[str, tuple[OutputReference, ...]]:
         """
         Group any :obj:`.OutputReference` objects in the job inputs by their UUIDs.
 
@@ -409,7 +405,7 @@ class Job(MSONable):
         return {k: tuple(v) for k, v in groups.items()}
 
     @property
-    def maker(self) -> Optional[jobflow.Maker]:
+    def maker(self) -> jobflow.Maker | None:
         """
         Get the host :obj:`.Maker` object if a job is to run a maker function.
 
@@ -439,7 +435,7 @@ class Job(MSONable):
 
         edges = []
         for uuid, refs in self.input_references_grouped.items():
-            properties: Union[List[str], str] = [
+            properties: list[str] | str = [
                 ref.attributes_formatted[-1]
                 .replace("[", "")
                 .replace("]", "")
@@ -455,6 +451,18 @@ class Job(MSONable):
         graph.add_node(self.uuid, job=self, label=self.name)
         graph.add_edges_from(edges)
         return graph
+
+    @property
+    def host(self):
+        """
+        UUID of the first Flow that contains the Job.
+
+        Returns
+        -------
+        str
+            the UUID of the host.
+        """
+        return self.hosts[0] if self.hosts else None
 
     def set_uuid(self, uuid: str):
         """
@@ -501,6 +509,7 @@ class Job(MSONable):
         from datetime import datetime
 
         from jobflow import CURRENT_JOB
+        from jobflow.core.flow import get_flow
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -526,22 +535,37 @@ class Job(MSONable):
 
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
+            response.replace.add_hosts_uuids(self.hosts)
 
-        if self.config.pass_manager_config:
+        if response.addition is not None:
+            # wrap the detour in a Flow to avoid problems if it need to get
+            # wrapped at a later stage
+            response.addition = get_flow(response.addition)
+            response.addition.add_hosts_uuids(self.hosts)
+
+        if response.detour is not None:
+            # wrap the detour in a Flow to avoid problems if it need to get
+            # wrapped at a later stage
+            response.detour = get_flow(response.detour)
+            response.detour.add_hosts_uuids(self.hosts)
+
+        if self.config.response_manager_config:
+            passed_config = self.config.response_manager_config
+        elif self.config.pass_manager_config:
+            passed_config = self.config.manager_config
+        else:
+            passed_config = None
+
+        if passed_config:
+
             if response.addition is not None:
-                pass_manager_config(
-                    response.addition, self.config.manager_config, self.metadata
-                )
+                pass_manager_config(response.addition, passed_config, self.metadata)
 
             if response.detour is not None:
-                pass_manager_config(
-                    response.detour, self.config.manager_config, self.metadata
-                )
+                pass_manager_config(response.detour, passed_config, self.metadata)
 
             if response.replace is not None:
-                pass_manager_config(
-                    response.replace, self.config.manager_config, self.metadata
-                )
+                pass_manager_config(response.replace, passed_config, self.metadata)
 
         try:
             output = jsanitize(response.output, strict=True, enum_values=True)
@@ -558,6 +582,7 @@ class Job(MSONable):
             "output": output,
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
+            "hosts": self.hosts,
         }
         store.update(data, key=["uuid", "index"], save=save)
 
@@ -591,7 +616,7 @@ class Job(MSONable):
 
         from jobflow.core.reference import find_and_resolve_references
 
-        cache: Dict[str, Any] = {}
+        cache: dict[str, Any] = {}
         resolved_args = find_and_resolve_references(
             self.function_args,
             store,
@@ -618,9 +643,9 @@ class Job(MSONable):
 
     def update_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        function_filter: Optional[Callable] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
         dict_mod: bool = False,
     ):
         """
@@ -672,9 +697,9 @@ class Job(MSONable):
 
     def update_maker_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        class_filter: Optional[Type[jobflow.Maker]] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        class_filter: type[jobflow.Maker] | None = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -738,13 +763,13 @@ class Job(MSONable):
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``RestartMaker``:
 
-        >>> my_job.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> my_job.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
         >>> my_job.update_maker_kwargs(
-        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
         from jobflow import Maker
@@ -801,7 +826,7 @@ class Job(MSONable):
         else:
             self.name += append_str
 
-    def as_dict(self) -> Dict:
+    def as_dict(self) -> dict:
         """Serialize the job as a dictionary."""
         d = super().as_dict()
 
@@ -819,6 +844,28 @@ class Job(MSONable):
             self.maker.name = value
         else:
             super().__setattr__(key, value)
+
+    def add_hosts_uuids(self, hosts_uuids: str | list[str], prepend: bool = False):
+        """
+        Add a list of UUIDs to the internal list of hosts.
+
+        The elements of the list are supposed to be ordered in such a way that
+        the object identified by one UUID of the list is contained in objects
+        identified by its subsequent elements.
+
+        Parameters
+        ----------
+        hosts_uuids
+            A list of UUIDs to add.
+        prepend
+            Insert the UUIDs at the beginning of the list rather than extending it.
+        """
+        if not isinstance(hosts_uuids, (list, tuple)):
+            hosts_uuids = [hosts_uuids]
+        if prepend:
+            self.hosts[0:0] = hosts_uuids
+        else:
+            self.hosts.extend(hosts_uuids)
 
 
 @dataclass
@@ -844,19 +891,19 @@ class Response:
         Stop executing all remaining jobs.
     """
 
-    output: Optional[Any] = None
-    detour: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
-    addition: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
-    replace: Optional[Union[jobflow.Flow, Job, List[Job], List[jobflow.Flow]]] = None
-    stored_data: Optional[Dict[Hashable, Any]] = None
+    output: Any | None = None
+    detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
+    addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
+    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
+    stored_data: dict[Hashable, Any] | None = None
     stop_children: bool = False
     stop_jobflow: bool = False
 
     @classmethod
     def from_job_returns(
         cls,
-        job_returns: Optional[Any],
-        output_schema: Optional[Type[BaseModel]] = None,
+        job_returns: Any | None,
+        output_schema: type[BaseModel] | None = None,
     ) -> Response:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
@@ -900,7 +947,7 @@ class Response:
         return cls(output=apply_schema(job_returns, output_schema))
 
 
-def apply_schema(output: Any, schema: Optional[Type[BaseModel]]):
+def apply_schema(output: Any, schema: type[BaseModel] | None):
     """
     Apply schema to job outputs.
 
@@ -955,9 +1002,9 @@ def store_inputs(inputs: Any) -> Any:
 
 
 def prepare_replace(
-    replace: Union[jobflow.Flow, Job, List[Job]],
+    replace: jobflow.Flow | Job | list[Job],
     current_job: Job,
-) -> Union[jobflow.Flow, Job, List[Job]]:
+) -> jobflow.Flow:
     """
     Prepare a replacement :obj:`Flow` or :obj:`Job`.
 
@@ -976,8 +1023,8 @@ def prepare_replace(
 
     Returns
     -------
-    Flow or Job
-        The updated flow or job.
+    Flow
+        The updated flow.
     """
     from jobflow.core.flow import Flow
 
@@ -993,7 +1040,7 @@ def prepare_replace(
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
-        replace.jobs.append(store_output_job)
+        replace.add_jobs(store_output_job)
 
     elif isinstance(replace, Job):
         # replace is a single Job
@@ -1007,13 +1054,15 @@ def prepare_replace(
         if not replace.output_schema:
             replace.output_schema = current_job.output_schema
 
+        replace = Flow(jobs=replace, output=replace.output)
+
     return replace
 
 
 def pass_manager_config(
-    jobs: Union[Job, jobflow.Flow, List[Union[Job, jobflow.Flow]]],
-    manager_config: Dict[str, Any],
-    metadata: Dict,
+    jobs: Job | jobflow.Flow | list[Job | jobflow.Flow],
+    manager_config: dict[str, Any],
+    metadata: dict,
 ):
     """
     Pass the manager config on to any jobs in the jobs array.
@@ -1029,7 +1078,7 @@ def pass_manager_config(
     """
     from copy import deepcopy
 
-    all_jobs: List[Job] = []
+    all_jobs: list[Job] = []
 
     def get_jobs(arg):
 

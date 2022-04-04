@@ -15,7 +15,7 @@ except ImportError:
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Tuple
+    pass
 
     import jobflow
 
@@ -60,7 +60,7 @@ def itergraph(graph: nx.DiGraph):
 def draw_graph(
     graph: nx.DiGraph,
     layout_function: typing.Callable = None,
-    figsize: Tuple[float, float] = (12, 8),
+    figsize: tuple[float, float] = (12, 8),
 ):
     """
     Draw a networkx graph.

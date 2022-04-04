@@ -12,7 +12,7 @@ from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+    from typing import Any, Callable
 
     from networkx import DiGraph
 
@@ -56,13 +56,15 @@ class Flow(MSONable):
     name
         The flow name.
     order
-        The order in which the jobs should be exectuted. The default is to determine
+        The order in which the jobs should be executed. The default is to determine
         the order automatically based on the connections between jobs.
     uuid
-        The identifier of the flow. This is genenrated automatically.
-    host
-        The identifier of the host flow. This is set automatically when an flow
-        is included in the jobs array of another flow.
+        The identifier of the flow. This is generated automatically.
+    hosts
+        The list of UUIDs of the hosts containing the job. This is updated
+        automatically when a flow is included in the jobs array of another flow.
+        The object identified by one UUID of the list should be contained in objects
+        identified by its subsequent elements.
 
     Raises
     ------
@@ -118,15 +120,14 @@ class Flow(MSONable):
 
     def __init__(
         self,
-        jobs: Union[List[Union[Flow, jobflow.Job]], jobflow.Job, Flow],
-        output: Optional[Any] = None,
+        jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow,
+        output: Any | None = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
-        host: str = None,
+        hosts: list[str] | None = None,
     ):
         from jobflow.core.job import Job
-        from jobflow.core.reference import find_and_get_references
 
         if isinstance(jobs, (Job, Flow)):
             jobs = [jobs]
@@ -134,30 +135,54 @@ class Flow(MSONable):
         if uuid is None:
             uuid = suuid()
 
-        self.jobs = jobs
-        self.output = output
         self.name = name
         self.order = order
         self.uuid = uuid
-        self.host = host
+        self.hosts = hosts or []
 
-        job_ids = set()
-        for job in self.jobs:
-            if job.host is not None and job.host != self.uuid:
-                raise ValueError(
-                    f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
-                    f"to another flow."
-                )
-            if job.uuid in job_ids:
-                raise ValueError(
-                    "jobs array contains multiple jobs/flows with the same uuid "
-                    f"({job.uuid})"
-                )
-            job.host = self.uuid
-            job_ids.add(job.uuid)
+        self._jobs: tuple[Flow | Job, ...] = tuple()
+        self.add_jobs(jobs)
+        self.output = output
 
-        if self.output is not None:
-            if contains_flow_or_job(self.output):
+    @property
+    def jobs(self) -> tuple[Flow | jobflow.Job, ...]:
+        """
+        Get the Jobs in the Flow.
+
+        Returns
+        -------
+        list[Job]
+            The list of Jobs/Flows of the Flow.
+        """
+        return self._jobs
+
+    @property
+    def output(self) -> Any:
+        """
+        Get the output of the flow.
+
+        Returns
+        -------
+        Any
+            The output of the flow.
+        """
+        return self._output
+
+    @output.setter
+    def output(self, output: Any):
+        """
+        Set the output of the Flow.
+
+        The output should be compatible with the list of Jobs/Flows contained in the Flow.
+
+        Parameters
+        ----------
+        output
+            The output of the flow. These should come from the output of one
+            or more of the jobs.
+        """
+        if output is not None:
+            if contains_flow_or_job(output):
                 warnings.warn(
                     f"Flow '{self.name}' contains a Flow or Job as an output. "
                     f"Usually the Flow output should be the output of a Job or "
@@ -166,30 +191,48 @@ class Flow(MSONable):
                 )
 
             # check if the jobs array contains all jobs needed for the references
-            references = find_and_get_references(self.output)
+            references = find_and_get_references(output)
             reference_uuids = {ref.uuid for ref in references}
 
             if not reference_uuids.issubset(set(self.job_uuids)):
                 raise ValueError(
                     "jobs array does not contain all jobs needed for flow output"
                 )
+        self._output = output
 
     @property
-    def job_uuids(self) -> Tuple[str, ...]:
+    def job_uuids(self) -> tuple[str, ...]:
         """
         Uuids of every Job contained in the Flow (including nested Flows).
 
         Returns
         -------
-        list[str]
+        tuple[str]
             The uuids of all Jobs in the Flow (including nested Flows).
         """
-        uuids: List[str] = []
+        uuids: list[str] = []
         for job in self.jobs:
             if isinstance(job, Flow):
                 uuids.extend(job.job_uuids)
             else:
                 uuids.append(job.uuid)
+        return tuple(uuids)
+
+    @property
+    def all_uuids(self) -> tuple[str, ...]:
+        """
+        Uuids of every Job and Flow contained in the Flow (including nested Flows).
+
+        Returns
+        -------
+        tuple[str]
+            The uuids of all Jobs and Flows in the Flow (including nested Flows).
+        """
+        uuids: list[str] = []
+        for job in self.jobs:
+            if isinstance(job, Flow):
+                uuids.extend(job.all_uuids)
+            uuids.append(job.uuid)
         return tuple(uuids)
 
     @property
@@ -227,18 +270,33 @@ class Flow(MSONable):
             graph.add_edges_from(edges)
         return graph
 
+    @property
+    def host(self) -> str | None:
+        """
+        UUID of the first Flow that contains this Flow.
+
+        Returns
+        -------
+        str
+            the UUID of the host.
+        """
+        return self.hosts[0] if self.hosts else None
+
     def draw_graph(self, **kwargs):
         """
         Draw the flow graph using matplotlib.
 
         Requires matplotlib to be installed.
 
+        Parameters
+        ----------
+        kwargs
+            keyword arguments that are passed to :obj:`jobflow.utils.graph.draw_graph`.
+
         Returns
         -------
         pyplot
             The matplotlib pyplot state object.
-        kwargs
-            keyword arguments that are passed to :obj:`jobflow.utils.graph.draw_graph`.
         """
         from jobflow.utils.graph import draw_graph
 
@@ -283,9 +341,9 @@ class Flow(MSONable):
 
     def update_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        function_filter: Optional[Callable] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
         dict_mod: bool = False,
     ):
         """
@@ -337,9 +395,9 @@ class Flow(MSONable):
 
     def update_maker_kwargs(
         self,
-        update: Dict[str, Any],
-        name_filter: Optional[str] = None,
-        class_filter: Optional[Type[jobflow.Maker]] = None,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        class_filter: type[jobflow.Maker] | None = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -391,8 +449,8 @@ class Flow(MSONable):
         for some Makers. To only apply the update to the correct Makers, filters can be
         used.
 
-        >>> flow.update_maker_kwargs({"number": 10}, name_filder="add")
-        >>> flow.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> flow.update_maker_kwargs({"number": 10}, name_filter="add")
+        >>> flow.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         By default, the updates are applied to nested Makers. These are Makers
         which are present in the kwargs of another Maker. Consider the following case
@@ -415,13 +473,13 @@ class Flow(MSONable):
         The following update will apply to the nested ``AddMaker`` in the kwargs of the
         ``RestartMaker``:
 
-        >>> flow.update_maker_kwargs({"number": 10}, function_filter=AddMaker)
+        >>> flow.update_maker_kwargs({"number": 10}, class_filter=AddMaker)
 
         However, if ``nested=False``, then the update will not be applied to the nested
         Maker:
 
         >>> flow.update_maker_kwargs(
-        ...     {"number": 10}, function_filter=AddMaker, nested=False
+        ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
         for job in self.jobs:
@@ -452,9 +510,117 @@ class Flow(MSONable):
         for job in self.jobs:
             job.append_name(append_str, prepend=prepend)
 
+    def add_hosts_uuids(
+        self, hosts_uuids: str | list[str] | None = None, prepend: bool = False
+    ):
+        """
+        Add a list of UUIDs to the internal list of hosts.
+
+        If hosts_uuids is None the uuid of this Flow will be added to the inner jobs and
+        flow. Otherwise, the passed value will be set both in the list of hosts
+        of the current flow and of the inner jobs and flows.
+        The elements of the list are supposed to be ordered in such a way that
+        the object identified by one UUID of the list is contained in objects
+        identified by its subsequent elements.
+
+        Parameters
+        ----------
+        hosts_uuids
+            A list of UUIDs to add. If None the current uuid of the flow will be
+            added to the inner Flows and Jobs.
+        prepend
+            Insert the UUIDs at the beginning of the list rather than extending it.
+        """
+        if hosts_uuids is not None:
+            if not isinstance(hosts_uuids, (list, tuple)):
+                hosts_uuids = [hosts_uuids]
+            if prepend:
+                self.hosts[0:0] = hosts_uuids
+            else:
+                self.hosts.extend(hosts_uuids)
+        else:
+            hosts_uuids = [self.uuid]
+        for j in self.jobs:
+            j.add_hosts_uuids(hosts_uuids, prepend=prepend)
+
+    def add_jobs(self, jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow):
+        """
+        Add Jobs or Flows to the Flow.
+
+        Added objects should not belong to other flows. The list of hosts will be added
+        automatically to the incoming Jobs/Flows based on the hosts of the current Flow.
+
+        Parameters
+        ----------
+        jobs
+            A list of Jobs and Flows.
+        """
+        if not isinstance(jobs, (tuple, list)):
+            jobs = [jobs]
+
+        job_ids = set(self.all_uuids)
+        hosts = [self.uuid] + self.hosts
+        for job in jobs:
+            if job.host is not None and job.host != self.uuid:
+                raise ValueError(
+                    f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
+                    f"to another flow."
+                )
+            if job.uuid in job_ids:
+                raise ValueError(
+                    "jobs array contains multiple jobs/flows with the same uuid "
+                    f"({job.uuid})"
+                )
+            # check for circular dependency of Flows.
+            if isinstance(job, Flow) and self.uuid in job.all_uuids:
+                raise ValueError(
+                    f"circular dependency: Flow ({job.uuid}) contains the "
+                    f"current Flow ({self.uuid})"
+                )
+            job_ids.add(job.uuid)
+            job.add_hosts_uuids(hosts)
+        self._jobs += tuple(jobs)
+
+    def remove_jobs(self, indices: int | list[int]):
+        """
+        Remove jobs from the Flow.
+
+        It is not possible to remove jobs referenced in the output.
+
+        Parameters
+        ----------
+        indices
+            Indices of the jobs to be removed. Accepted values: from 0 to len(jobs) - 1.
+        """
+        if not isinstance(indices, (list, tuple)):
+            indices = [indices]
+        if any(i < 0 or i >= len(self.jobs) for i in indices):
+            raise ValueError(
+                "Only indices between 0 and the number of the jobs are accepted"
+            )
+
+        new_jobs = tuple(j for i, j in enumerate(self.jobs) if i not in indices)
+        uuids: set = set()
+        for job in new_jobs:
+            if isinstance(job, Flow):
+                uuids.update(job.job_uuids)
+            else:
+                uuids.add(job.uuid)
+
+        # check if the output contains some references to the removed Jobs.
+        references = find_and_get_references(self.output)
+        reference_uuids = {ref.uuid for ref in references}
+
+        if not reference_uuids.issubset(uuids):
+            raise ValueError(
+                "Removed Jobs/Flows are referenced in the output of the Flow."
+            )
+
+        self._jobs = new_jobs
+
 
 def get_flow(
-    flow: Union[Flow, jobflow.Job, List[jobflow.Job]],
+    flow: Flow | jobflow.Job | list[jobflow.Job],
     check_references: bool = True,
 ) -> Flow:
     """

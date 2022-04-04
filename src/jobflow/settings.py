@@ -7,7 +7,7 @@ from pydantic import BaseSettings, Field, root_validator
 
 from jobflow import JobStore
 
-DEFAULT_CONFIG_FILE_PATH = "~/.jobflow.yaml"
+DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
 __all__ = ["JobflowSettings"]
 
@@ -38,7 +38,10 @@ class JobflowSettings(BaseSettings):
     docs_store and additional stores are specified by the ``type`` key which must match
     a Maggma ``Store`` subclass, and the remaining keys are passed to the store
     constructor. For example, the following file would  create a :obj:`JobStore` with a
-    ``MongoStore`` for docs and a ``GridFSStore`` as an additional store for data.
+    ``MongoStore`` for docs and a ``GridFSStore`` or ``S3Store`` as an additional store
+    for data.
+
+    GridFSStore example:
 
     .. code-block:: yaml
 
@@ -55,6 +58,30 @@ class JobflowSettings(BaseSettings):
             collection_name: outputs_blobs
             host: localhost
             port: 27017
+
+    S3Store example (Note: the ``key`` field must be set to ``blob_uuid``):
+
+    .. code-block:: yaml
+
+        docs_store:
+          type: MongoStore
+          database: jobflow_unittest
+          collection_name: outputs
+          host: localhost
+          port: 27017
+        additional_stores:
+          data:
+            type: S3Store
+            bucket: output_blobs
+            key: blob_uuid
+            index:
+              type: MongoStore
+              database: jobflow_unittest
+              collection_name: output_blobs_index
+              host: localhost
+              port: 27017
+              key: blob_uuid
+
 
     Lastly, the store can be specified as a file name that points to a file containing
     the credentials in any format supported by :obj:`.JobStore.from_file`.
