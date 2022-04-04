@@ -463,3 +463,16 @@ def test_reference_in_output(memory_jobstore):
     assert ref1.resolve(memory_jobstore, on_missing=OnMissing.PASS) == ref2
     with pytest.raises(ValueError):
         ref1.resolve(memory_jobstore, on_missing=OnMissing.ERROR)
+
+
+def test_not_iterable():
+    from jobflow.core.reference import OutputReference
+
+    ref = OutputReference("12345")
+
+    with pytest.raises(TypeError):
+        next(ref)
+
+    with pytest.raises(TypeError):
+        for _ in ref:
+            pass

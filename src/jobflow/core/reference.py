@@ -253,6 +253,10 @@ class OutputReference(MSONable):
         else:
             raise TypeError("OutputReference objects are immutable")
 
+    def __iter__(self):
+        """Make sure OutputReference is not iterable."""
+        raise TypeError("OutputReference objects are not iterable")
+
     def __setitem__(self, index, val):
         """Set item."""
         # Setting items via indexing is not allowed.
