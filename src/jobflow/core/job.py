@@ -665,9 +665,9 @@ class Job(MSONable):
 
         Examples
         --------
-        Consider a flow containing a simple job with a ``number`` keyword argument.
+        Consider a simple job with a ``number`` keyword argument.
 
-        >>> from jobflow import job, Flow
+        >>> from jobflow import job
         >>> @job
         ... def add(a, number=5):
         ...     return a + number
@@ -825,6 +825,125 @@ class Job(MSONable):
             self.name = append_str + self.name
         else:
             self.name += append_str
+
+    def update_metadata(
+        self,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
+        dict_mod: bool = False,
+    ):
+        """
+        Update the metadata of the job.
+
+        Parameters
+        ----------
+        update
+            The updates to apply.
+        name_filter
+            A filter for the job name.
+        function_filter
+            Only filter matching functions.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
+        """
+        from jobflow.utils.dict_mods import apply_mod
+
+        if function_filter is not None and function_filter != self.function:
+            return
+
+        if (
+            name_filter is not None
+            and self.name is not None
+            and name_filter not in self.name
+        ):
+            return
+
+        # if we get to here then we pass all the filters
+        if dict_mod:
+            apply_mod(update, self.metadata)
+        else:
+            self.metadata.update(update)
+
+    def update_config(
+        self,
+        config: JobConfig | dict,
+        name_filter: str = None,
+        function_filter: Callable = None,
+        attributes: list[str] | str = None,
+    ):
+        """
+        Update the job config.
+
+        Parameters
+        ----------
+        config
+            A JobConfig object or a dict with containing the attributes to update.
+        name_filter
+            A filter for the job name.
+        function_filter
+            Only filter matching functions.
+        attributes :
+            Which attributes of the job config to set. Can be specified as one or more
+            attributes specified by their name.
+
+        Examples
+        --------
+        Consider a simple job.
+
+        >>> from jobflow import job, JobConfig
+        >>> @job
+        ... def add(a, b):
+        ...     return a + b
+        >>> add_job = add(1, 2)
+
+        The ``config`` can be updated using.
+
+        >>> new_config = JobConfig(
+        ...    manager_config={"_fworker": "myfworker"}, resolve_references=False
+        ... )
+        >>> add_job.update_config(new_config)
+
+        To only update specific attributes, the ``attributes`` argument can be specified.
+        For example, the following will only update the "manager_config" attribute of the
+        job config.
+
+        >>> add_job.update_config(new_config, attributes="manager_config")
+
+        Alternatively, the config can be specified as a dictionary with keys that are
+        attributes of the JobConfig object. This allows you to specify updates without
+        having to create a completely new JobConfig object. For example:
+
+        >>> add_job.update_config({"manager_config": {"_fworker": "myfworker"}})
+        """
+        if function_filter is not None and function_filter != self.function:
+            return
+
+        if (
+            name_filter is not None
+            and self.name is not None
+            and name_filter not in self.name
+        ):
+            return
+
+        # if we get to here then we pass all the filters
+        if isinstance(config, dict):
+            # convert dict specification to a JobConfig but set the attributes accordingly
+            if attributes is None:
+                attributes = list(config.keys())
+            config = JobConfig(**config)
+
+        if attributes is None:
+            # overwrite the whole config
+            self.config = config
+        else:
+            # only update the specified attributes
+            attributes = [attributes] if isinstance(attributes, str) else attributes
+            for attr in attributes:
+                if not hasattr(self.config, attr):
+                    raise ValueError(f"Unknown JobConfig attribute: {attr}")
+                setattr(self.config, attr, getattr(config, attr))
 
     def as_dict(self) -> dict:
         """Serialize the job as a dictionary."""

@@ -20,6 +20,7 @@ def get_test_flow():
 
     add_job = Job(add, function_args=(1, 2))
     div_job = Job(div, function_args=(add_job.output,), function_kwargs={"b": 3})
+    div_job.metadata = {"b": 3}
     return Flow([add_job, div_job])
 
 
@@ -696,3 +697,29 @@ def test_set_output():
 
     with pytest.raises(ValueError):
         flow.output = [add_job3.output]
+
+
+def test_update_metadata():
+    # test no filter
+    flow = get_test_flow()
+    flow.update_metadata({"b": 5})
+    assert flow.jobs[0].metadata["b"] == 5
+    assert flow.jobs[1].metadata["b"] == 5
+
+    # test name filter
+    flow = get_test_flow()
+    flow.update_metadata({"b": 5}, name_filter="div")
+    assert "b" not in flow.jobs[0].metadata
+    assert flow.jobs[1].metadata["b"] == 5
+
+    # test function filter
+    flow = get_test_flow()
+    flow.update_metadata({"b": 5}, function_filter=div)
+    assert "b" not in flow.jobs[0].metadata
+    assert flow.jobs[1].metadata["b"] == 5
+
+    # test dict mod
+    flow = get_test_flow()
+    flow.update_metadata({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
+    assert "b" not in flow.jobs[0].metadata
+    assert flow.jobs[1].metadata["b"] == 8

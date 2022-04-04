@@ -982,3 +982,38 @@ def test_hosts(memory_jobstore):
     test_job.run(memory_jobstore)
     result = memory_jobstore.query_one({"uuid": test_job.uuid})
     assert result["hosts"] == ["09876", "12345", "67890"]
+
+
+def test_update_metadata():
+    from jobflow import Job
+
+    # test no filter
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"b": 5})
+    assert test_job.metadata["b"] == 5
+
+    # test name filter
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"b": 5}, name_filter="add")
+    assert test_job.metadata["b"] == 5
+
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"b": 5}, name_filter="div")
+    assert test_job.metadata["b"] == 2
+
+    # test function filter
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"b": 5}, function_filter=add)
+    assert test_job.metadata["b"] == 5
+
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"b": 5}, function_filter=list)
+    assert test_job.metadata["b"] == 2
+
+    # test dict mod
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"_inc": {"b": 5}}, dict_mod=True)
+    assert test_job.metadata["b"] == 7
