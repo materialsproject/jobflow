@@ -932,6 +932,13 @@ class Job(MSONable):
             # convert dict specification to a JobConfig but set the attributes accordingly
             if attributes is None:
                 attributes = list(config.keys())
+
+            attributes = [attributes] if isinstance(attributes, str) else attributes
+            if not set(attributes).issubset(set(config.keys())):
+                raise ValueError(
+                    "Specified attributes include a key that is not present in the config"
+                    " dictionary."
+                )
             config = JobConfig(**config)
 
         if attributes is None:
