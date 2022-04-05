@@ -603,6 +603,34 @@ def test_get_flow():
     get_flow([job1, job2])
 
 
+def test_add_hosts_uuids():
+    from jobflow.core.flow import Flow
+
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+
+    # test adding host id again (automatically added once on job creation)
+    flow = Flow([add_job1, add_job2])
+    flow.add_hosts_uuids()
+    assert add_job1.hosts == [flow.uuid, flow.uuid]
+    assert add_job2.hosts == [flow.uuid, flow.uuid]
+
+    # test appending specific uuid
+    flow = Flow([get_test_job()])
+    flow.add_hosts_uuids("abc")
+    assert flow.jobs[0].hosts == [flow.uuid, "abc"]
+
+    # test appending several uuid
+    flow = Flow([get_test_job()])
+    flow.add_hosts_uuids(["abc", "xyz"])
+    assert flow.jobs[0].hosts == [flow.uuid, "abc", "xyz"]
+
+    # test prepending specific uuid
+    flow = Flow([get_test_job()])
+    flow.add_hosts_uuids("abc", prepend=True)
+    assert flow.jobs[0].hosts == ["abc", flow.uuid]
+
+
 def test_hosts():
     from jobflow.core.flow import Flow
 
