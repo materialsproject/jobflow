@@ -131,7 +131,7 @@ def run_locally(
 
     def _get_job_dir():
         if create_folders:
-            time_now = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
+            time_now = datetime.utcnow().strftime(SETTINGS.DIRECTORY_FORMAT)
             job_dir = root_dir / f"job_{time_now}-{randint(10000, 99999)}"
             job_dir.mkdir()
             return job_dir
