@@ -595,6 +595,7 @@ class Flow(MSONable):
         >>> flow = Flow([add_job1, add_job2])
 
         The ``config`` of both jobs could be updated as follows:
+
         >>> new_config = JobConfig(
         ...    manager_config={"_fworker": "myfworker"}, resolve_references=False
         ... )
