@@ -1,6 +1,26 @@
 Change log
 ==========
 
+v0.1.8
+------
+
+New features:
+
+- New ``update_metadata`` function for updating the metadata of jobs and flows.
+- New ``update_config`` function for updating the config (included manager_config) of
+  jobs and flows.
+- New ``DIRECTORY_FORMAT`` option in JobflowSettings for controlling the date time format
+  used to create new directories.
+- New functions for adding and removing jobs from a flow. The ``Job.jobs`` list is no
+  longer mutable (@gpetretto).
+- New ``Job.hosts`` attribute that stores a list of all host Flows. This captures the
+  nested nature of flows with the outer flow always first in the list (@gpetretto).
+
+Bug fixes:
+
+- OutputReferences are no longer iterable.
+- Docstring clarifications (@utf, @mjwen).
+
 v0.1.7
 ------
 

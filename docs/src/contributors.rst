@@ -81,3 +81,27 @@ Additional contributions provided by:
    :width: 16
    :height: 16
    :alt: GitHub profile for gpetretto
+
+| **Janosh Riebesell** |janosh|
+| Cambridge University
+
+.. |janosh| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
+   :target: https://github.com/janosh
+   :width: 16
+   :height: 16
+   :alt: GitHub profile for janosh
+
+| **Mingjian Wen** |mjwen| |0000-0003-0013-575X|
+| Postdoctoral researcher
+| Lawrence Berkeley National Laboratory
+
+.. |mjwen| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
+   :target: https://github.com/mjwen
+   :width: 16
+   :height: 16
+   :alt: GitHub profile for mjwen
+.. |0000-0003-0013-575X| image:: _static/orcid.svg
+   :target: https://orcid.org/0000-0003-0013-575X
+   :width: 16
+   :height: 16
+   :alt: ORCID profile for 0000-0003-0013-575X

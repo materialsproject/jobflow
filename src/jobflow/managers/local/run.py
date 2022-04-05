@@ -86,16 +86,7 @@ def rapidfire(
     write_jobfile: bool = True,
     log=True,
 ) -> Dict[str, dict]:
-    """
-    Keeps running Rockets in m_dir until we reach an error. Automatically creates subdirectories
-    for each Rocket. Usually stops when we run out of FireWorks from the LaunchPad.
-
-    Args:
-        launchpad (LaunchPad)
-        max_launches (int): -1 means 'until completion'
-        sleep_time (int): secs to sleep between rapidfire loop iterations
-        timeout (int): of seconds after which to stop the rapidfire process
-    """
+    """Keep running jobs until we reach an error or all jobs are run."""
     import time
     from collections import defaultdict
     from datetime import datetime
@@ -176,5 +167,7 @@ def _get_launch_dir(root_dir):
     from datetime import datetime
     from random import randint
 
-    time_now = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
+    from jobflow import SETTINGS
+
+    time_now = datetime.utcnow().strftime(SETTINGS.DIRECTORY_FORMAT)
     return root_dir / f"job_{time_now}-{randint(10000, 99999)}"
