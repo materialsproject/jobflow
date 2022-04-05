@@ -744,6 +744,17 @@ def test_remove_jobs():
     with pytest.raises(ValueError):
         flow.remove_jobs(0)
 
+    # test removing a job in a flow containing another flow
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    add_job3 = get_test_job()
+    flow_inner = Flow([add_job1, add_job2])
+    flow = Flow([flow_inner, add_job3])
+
+    flow.remove_jobs(1)
+    assert len(flow.jobs) == 1
+    assert flow.jobs[0].uuid is flow_inner.uuid
+
 
 def test_set_output():
     from jobflow.core.flow import Flow
