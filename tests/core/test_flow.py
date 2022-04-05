@@ -691,6 +691,7 @@ def test_add_jobs():
 def test_remove_jobs():
     from jobflow.core.flow import Flow
 
+    # test removing one job
     add_job1 = get_test_job()
     add_job2 = get_test_job()
     flow1 = Flow([add_job1, add_job2])
@@ -704,12 +705,44 @@ def test_remove_jobs():
     with pytest.raises(ValueError):
         flow1.remove_jobs(10)
 
+    # test removing two jobs
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    add_job3 = get_test_job()
+    flow = Flow([add_job1, add_job2, add_job3])
+
+    flow.remove_jobs([0, 2])
+    assert len(flow.jobs) == 1
+    assert flow.jobs[0].uuid is add_job2.uuid
+
+    # test removing job which is used in output
     add_job1 = get_test_job()
     add_job2 = get_test_job()
     flow2 = Flow([add_job1, add_job2], output=add_job2.output)
 
     with pytest.raises(ValueError):
         flow2.remove_jobs(1)
+
+    # test removing a flow
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    add_job3 = get_test_job()
+    flow_inner = Flow([add_job1, add_job2])
+    flow = Flow([flow_inner, add_job3])
+
+    flow.remove_jobs(0)
+    assert len(flow.jobs) == 1
+    assert flow.jobs[0].uuid is add_job3.uuid
+
+    # test removing a flow which is used in output
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    add_job3 = get_test_job()
+    flow_inner = Flow([add_job1, add_job2])
+    flow = Flow([flow_inner, add_job3], output=flow_inner.jobs[0].output)
+
+    with pytest.raises(ValueError):
+        flow.remove_jobs(0)
 
 
 def test_set_output():
