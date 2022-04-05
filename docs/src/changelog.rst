@@ -1,8 +1,8 @@
 Change log
 ==========
 
-Unreleased
-----------
+v0.1.8
+------
 
 New features:
 
