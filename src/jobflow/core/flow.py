@@ -349,9 +349,11 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the job name.
+            A filter for the job name. Only jobs with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a job with the name "adder".
         function_filter
-            Only filter matching functions.
+            A filter for the job function. Only jobs with a matching function will be
+            updated.
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
@@ -404,10 +406,11 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name.
+            A filter for the Maker name. Only Makers with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
         class_filter
-            A filter for the maker class. Note the class filter will match any
-            subclasses.
+            A filter for the maker class. Only Makers with a matching class will be
+            updated. Note the class filter will match any subclasses.
         nested
             Whether to apply the updates to Maker objects that are themselves kwargs
             of Maker, job, or flow objects. See examples for more details.
@@ -502,6 +505,120 @@ class Flow(MSONable):
 
         for job in self.jobs:
             job.append_name(append_str, prepend=prepend)
+
+    def update_metadata(
+        self,
+        update: dict[str, Any],
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
+        dict_mod: bool = False,
+    ):
+        """
+        Update the metadata of all Jobs in the Flow.
+
+        Note that updates will be applied to jobs in nested Flow.
+
+        Parameters
+        ----------
+        update
+            The updates to apply.
+        name_filter
+            A filter for the job name. Only jobs with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a job with the name "adder".
+        function_filter
+            A filter for the job function. Only jobs with a matching function will be
+            updated.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
+
+        Examples
+        --------
+        Consider a flow containing two jobs.
+
+        >>> from jobflow import job, Flow
+        >>> @job
+        ... def add(a, b):
+        ...     return a + b
+        >>> add_job1 = add(5, 6)
+        >>> add_job2 = add(6, 7)
+        >>> flow = Flow([add_job1, add_job2])
+
+        The ``metadata`` of both jobs could be updated as follows:
+
+        >>> flow.update_metadata({"tag": "addition_job"})
+        """
+        for job in self.jobs:
+            job.update_metadata(
+                update,
+                name_filter=name_filter,
+                function_filter=function_filter,
+                dict_mod=dict_mod,
+            )
+
+    def update_config(
+        self,
+        config: jobflow.JobConfig | dict,
+        name_filter: str = None,
+        function_filter: Callable = None,
+        attributes: list[str] | str = None,
+    ):
+        """
+        Update the job config of all Jobs in the Flow.
+
+        Note that updates will be applied to jobs in nested Flow.
+
+        Parameters
+        ----------
+        config
+            A JobConfig object or a dict with containing the attributes to update.
+        name_filter
+            A filter for the job name. Only jobs with a matching name will be updated.
+            Includes partial matches, e.g. "ad" will match a job with the name "adder".
+        function_filter
+            A filter for the job function. Only jobs with a matching function will be
+            updated.
+        attributes :
+            Which attributes of the job config to set. Can be specified as one or more
+            attributes specified by their name.
+
+        Examples
+        --------
+        Consider a flow containing two jobs.
+
+        >>> from jobflow import job, Flow
+        >>> @job
+        ... def add(a, b):
+        ...     return a + b
+        >>> add_job1 = add(5, 6)
+        >>> add_job2 = add(6, 7)
+        >>> flow = Flow([add_job1, add_job2])
+
+        The ``config`` of both jobs could be updated as follows:
+        >>> new_config = JobConfig(
+        ...    manager_config={"_fworker": "myfworker"}, resolve_references=False
+        ... )
+        >>> flow.update_config(new_config)
+
+        To only update specific attributes, the ``attributes`` argument can be set. For
+        example, the following will only update the "manager_config" attribute of the
+        jobs' config.
+
+        >>> flow.update_config(new_config, attributes="manager_config")
+
+        Alternatively, the config can be specified as a dictionary with keys that are
+        attributes of the JobConfig object. This allows you to specify updates without
+        having to create a completely new JobConfig object. For example:
+
+        >>> flow.update_config({"manager_config": {"_fworker": "myfworker"}})
+        """
+        for job in self.jobs:
+            job.update_config(
+                config,
+                name_filter=name_filter,
+                function_filter=function_filter,
+                attributes=attributes,
+            )
 
     def add_hosts_uuids(
         self, hosts_uuids: str | list[str] | None = None, prepend: bool = False

@@ -20,6 +20,7 @@ def get_test_flow():
 
     add_job = Job(add, function_args=(1, 2))
     div_job = Job(div, function_args=(add_job.output,), function_kwargs={"b": 3})
+    div_job.metadata = {"b": 3}
     return Flow([add_job, div_job])
 
 
@@ -602,6 +603,34 @@ def test_get_flow():
     get_flow([job1, job2])
 
 
+def test_add_hosts_uuids():
+    from jobflow.core.flow import Flow
+
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+
+    # test adding host id again (automatically added once on job creation)
+    flow = Flow([add_job1, add_job2])
+    flow.add_hosts_uuids()
+    assert add_job1.hosts == [flow.uuid, flow.uuid]
+    assert add_job2.hosts == [flow.uuid, flow.uuid]
+
+    # test appending specific uuid
+    flow = Flow([get_test_job()])
+    flow.add_hosts_uuids("abc")
+    assert flow.jobs[0].hosts == [flow.uuid, "abc"]
+
+    # test appending several uuid
+    flow = Flow([get_test_job()])
+    flow.add_hosts_uuids(["abc", "xyz"])
+    assert flow.jobs[0].hosts == [flow.uuid, "abc", "xyz"]
+
+    # test prepending specific uuid
+    flow = Flow([get_test_job()])
+    flow.add_hosts_uuids("abc", prepend=True)
+    assert flow.jobs[0].hosts == ["abc", flow.uuid]
+
+
 def test_hosts():
     from jobflow.core.flow import Flow
 
@@ -696,3 +725,65 @@ def test_set_output():
 
     with pytest.raises(ValueError):
         flow.output = [add_job3.output]
+
+
+def test_update_metadata():
+    # test no filter
+    flow = get_test_flow()
+    flow.update_metadata({"b": 5})
+    assert flow.jobs[0].metadata["b"] == 5
+    assert flow.jobs[1].metadata["b"] == 5
+
+    # test name filter
+    flow = get_test_flow()
+    flow.update_metadata({"b": 5}, name_filter="div")
+    assert "b" not in flow.jobs[0].metadata
+    assert flow.jobs[1].metadata["b"] == 5
+
+    # test function filter
+    flow = get_test_flow()
+    flow.update_metadata({"b": 5}, function_filter=div)
+    assert "b" not in flow.jobs[0].metadata
+    assert flow.jobs[1].metadata["b"] == 5
+
+    # test dict mod
+    flow = get_test_flow()
+    flow.update_metadata({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
+    assert "b" not in flow.jobs[0].metadata
+    assert flow.jobs[1].metadata["b"] == 8
+
+
+def test_update_config():
+    from jobflow import JobConfig
+
+    new_config = JobConfig(
+        resolve_references=False,
+        manager_config={"a": "b"},
+        pass_manager_config=False,
+    )
+
+    # test no filter
+    flow = get_test_flow()
+    flow.update_config(new_config)
+    assert flow.jobs[0].config == new_config
+    assert flow.jobs[1].config == new_config
+
+    # test name filter
+    flow = get_test_flow()
+    flow.update_config(new_config, name_filter="div")
+    assert flow.jobs[0].config != new_config
+    assert flow.jobs[1].config == new_config
+
+    # test function filter
+    flow = get_test_flow()
+    flow.update_config(new_config, function_filter=div)
+    assert flow.jobs[0].config != new_config
+    assert flow.jobs[1].config == new_config
+
+    # test attributes
+    flow = get_test_flow()
+    flow.update_config(new_config, function_filter=div, attributes=["manager_config"])
+    assert flow.jobs[0].config.manager_config == {}
+    assert flow.jobs[0].config.resolve_references
+    assert flow.jobs[1].config.manager_config == {"a": "b"}
+    assert flow.jobs[1].config.resolve_references

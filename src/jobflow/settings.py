@@ -98,6 +98,10 @@ class JobflowSettings(BaseSettings):
         "See the :obj:`JobflowSettings` docstring for more details on the "
         "accepted formats.",
     )
+    DIRECTORY_FORMAT: str = Field(
+        "%Y-%m-%d-%H-%M-%S-%f",
+        description="Date stamp format used to create directories",
+    )
 
     class Config:
         """Pydantic config settings."""

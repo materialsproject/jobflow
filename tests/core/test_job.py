@@ -982,3 +982,125 @@ def test_hosts(memory_jobstore):
     test_job.run(memory_jobstore)
     result = memory_jobstore.query_one({"uuid": test_job.uuid})
     assert result["hosts"] == ["09876", "12345", "67890"]
+
+
+def test_update_metadata():
+    from jobflow import Job
+
+    # test no filter
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"b": 5})
+    assert test_job.metadata["b"] == 5
+
+    # test name filter
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"b": 5}, name_filter="add")
+    assert test_job.metadata["b"] == 5
+
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"b": 5}, name_filter="div")
+    assert test_job.metadata["b"] == 2
+
+    # test function filter
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"b": 5}, function_filter=add)
+    assert test_job.metadata["b"] == 5
+
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"b": 5}, function_filter=list)
+    assert test_job.metadata["b"] == 2
+
+    # test dict mod
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"_inc": {"b": 5}}, dict_mod=True)
+    assert test_job.metadata["b"] == 7
+
+
+def test_update_config():
+    from jobflow import Job, JobConfig
+
+    new_config = JobConfig(
+        resolve_references=False,
+        manager_config={"a": "b"},
+        pass_manager_config=False,
+    )
+    new_config_dict = {
+        "resolve_references": False,
+        "manager_config": {"a": "b"},
+        "pass_manager_config": False,
+    }
+
+    # test no filter
+    test_job = Job(add)
+    test_job.update_config(new_config)
+    assert test_job.config == new_config
+
+    # test name filter
+    test_job = Job(add)
+    test_job.update_config(new_config, name_filter="add")
+    assert test_job.config == new_config
+
+    test_job = Job(add)
+    test_job.update_config(new_config, name_filter="div")
+    assert test_job.config != new_config
+
+    # test function filter
+    test_job = Job(add)
+    test_job.update_config(new_config, function_filter=add)
+    assert test_job.config == new_config
+
+    test_job = Job(add)
+    test_job.update_config(new_config, function_filter=list)
+    assert test_job.config != new_config
+
+    # test attributes
+    test_job = Job(add)
+    test_job.update_config(new_config, attributes="manager_config")
+    assert test_job.config.manager_config == {"a": "b"}
+    assert test_job.config.resolve_references
+
+    test_job = Job(add)
+    test_job.update_config(new_config, attributes=["manager_config"])
+    assert test_job.config.manager_config == {"a": "b"}
+    assert test_job.config.resolve_references
+
+    test_job = Job(add)
+    test_job.update_config(
+        new_config, attributes=["manager_config", "resolve_references"]
+    )
+    assert test_job.config.manager_config == {"a": "b"}
+    assert not test_job.config.resolve_references
+    assert test_job.config.pass_manager_config
+
+    with pytest.raises(ValueError):
+        test_job.update_config(new_config, attributes="abc_xyz")
+
+    # test dictionary config updates
+    test_job = Job(add)
+    test_job.update_config(new_config_dict)
+    assert test_job.config == new_config
+
+    # test dict with attributes
+    test_job = Job(add)
+    test_job.update_config(new_config_dict, attributes="manager_config")
+    assert test_job.config.manager_config == {"a": "b"}
+    assert test_job.config.resolve_references
+
+    test_job = Job(add)
+    test_job.update_config(new_config_dict, attributes=["manager_config"])
+    assert test_job.config.manager_config == {"a": "b"}
+    assert test_job.config.resolve_references
+
+    test_job = Job(add)
+    test_job.update_config(
+        new_config_dict, attributes=["manager_config", "resolve_references"]
+    )
+    assert test_job.config.manager_config == {"a": "b"}
+    assert not test_job.config.resolve_references
+    assert test_job.config.pass_manager_config
+
+    with pytest.raises(ValueError):
+        test_job.update_config(new_config_dict, attributes="abc_xyz")

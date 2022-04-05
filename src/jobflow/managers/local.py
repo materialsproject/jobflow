@@ -52,7 +52,7 @@ def run_locally(
 
     from monty.os import cd
 
-    from jobflow import SETTINGS, Job, initialize_logger
+    from jobflow import SETTINGS, initialize_logger
     from jobflow.core.flow import get_flow
     from jobflow.core.reference import OnMissing
 
@@ -131,7 +131,7 @@ def run_locally(
 
     def _get_job_dir():
         if create_folders:
-            time_now = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
+            time_now = datetime.utcnow().strftime(SETTINGS.DIRECTORY_FORMAT)
             job_dir = root_dir / f"job_{time_now}-{randint(10000, 99999)}"
             job_dir.mkdir()
             return job_dir
@@ -139,22 +139,13 @@ def run_locally(
             return root_dir
 
     def _run(root_flow):
-        if isinstance(root_flow, Job):
+        job: jobflow.Job
+        for job, parents in root_flow.iterflow():
             job_dir = _get_job_dir()
             with cd(job_dir):
-                response = _run_job(root_flow, [])
-
+                response = _run_job(job, parents)
             if response is False:
                 return False
-
-        else:
-            job: jobflow.Job
-            for job, parents in root_flow.iterflow():
-                job_dir = _get_job_dir()
-                with cd(job_dir):
-                    response = _run_job(job, parents)
-                if response is False:
-                    return False
 
         return True if response is not None else False
 
