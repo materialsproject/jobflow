@@ -517,5 +517,4 @@ def validate_schema_access(
     if lenient_issubclass(item_type, BaseModel):
         subschema = item_type
 
-    print(item, item_type, subschema)
     return True, subschema

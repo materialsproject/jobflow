@@ -661,7 +661,6 @@ class JobStore(Store):
 
 def _construct_store(spec_dict, valid_stores):
     """Parse the dict containing {"type": <StoreType>} recursively."""
-    print(spec_dict)
     store_type = spec_dict.pop("type")
     for k, v in spec_dict.items():
         if isinstance(v, dict) and "type" in v:
