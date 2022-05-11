@@ -118,8 +118,7 @@ def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
 
     # test non MSONable output
     test_job = Job(bad_output)
-    with pytest.raises(RuntimeError):
-        test_job.run(memory_jobstore)
+    assert result["output"] == "{1, 2, 3}"
 
 
 def test_replace_response(memory_jobstore):
