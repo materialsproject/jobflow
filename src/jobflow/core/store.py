@@ -293,7 +293,7 @@ class JobStore(Store):
         blob_data = defaultdict(list)
         dict_docs = []
         for doc in docs:
-            doc = jsanitize(doc, strict=True, allow_bson=True)
+            doc = jsanitize(doc, allow_bson=True, recursive_msonable=True)
             dict_docs.append(doc)
 
             if save_keys:
