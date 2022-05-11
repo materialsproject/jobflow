@@ -803,7 +803,7 @@ class Job(MSONable):
 
         # fireworks can't serialize functions and classes, so explicitly serialize to
         # the job recursively using monty to avoid issues
-        return jsanitize(d, enum_values=True, recursive_msonable=True)
+        return jsanitize(d, strict=True, enum_values=True)
 
     def __setattr__(self, key, value):
         """Handle setting attributes. Implements a special case for job name."""
