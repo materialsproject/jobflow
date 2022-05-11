@@ -538,7 +538,9 @@ class Job(MSONable):
                 pass_manager_config(response.replace, self.config.manager_config)
 
         try:
-            output = jsanitize(response.output, strict=True, enum_values=True)
+            output = jsanitize(
+                response.output, enum_values=True, recursive_msonable=True
+            )
         except AttributeError:
             raise RuntimeError(
                 "Job output contained an object that is not MSONable and therefore "
@@ -801,7 +803,7 @@ class Job(MSONable):
 
         # fireworks can't serialize functions and classes, so explicitly serialize to
         # the job recursively using monty to avoid issues
-        return jsanitize(d, strict=True, enum_values=True)
+        return jsanitize(d, enum_values=True, recursive_msonable=True)
 
     def __setattr__(self, key, value):
         """Handle setting attributes. Implements a special case for job name."""
