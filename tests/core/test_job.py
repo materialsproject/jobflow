@@ -118,7 +118,9 @@ def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
 
     # test non MSONable output
     test_job = Job(bad_output)
-    assert result["output"] == "{1, 2, 3}"
+    response = test_job.run(memory_data_jobstore)
+    assert isinstance(response, Response)
+    assert response.output == "{1, 2, 3}"
 
 
 def test_replace_response(memory_jobstore):
