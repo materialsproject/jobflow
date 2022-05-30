@@ -41,7 +41,7 @@ setup(
             "nbsphinx==0.8.8",
             "nbsphinx-link==1.3.0",
             "FireWorks==2.0.3",
-            "autodoc_pydantic==1.7.0",
+            "autodoc_pydantic==1.7.1",
         ],
         "tests": [
             "pytest==7.1.2",
