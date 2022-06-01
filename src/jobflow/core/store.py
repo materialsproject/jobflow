@@ -302,7 +302,9 @@ class JobStore(Store):
                         locations.extend(find_key(doc, save_key, include_end=True))
 
                     objects = [get(doc, list(loc)) for loc in locations]
-                    object_map = dict(zip(map(tuple, locations), objects))
+                    object_map = {
+                        tuple(k): o for k, o in zip(locations, objects) if o is not None
+                    }
                     object_info = {
                         k: _get_blob_info(o, store_name) for k, o in object_map.items()
                     }

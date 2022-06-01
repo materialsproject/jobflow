@@ -74,7 +74,6 @@ def test_data_update(memory_data_jobstore):
     results = memory_data_jobstore.query_one(c, load={"data": "data"})
     assert results["data"] == [1, 2, 3, 4]
 
-    c = {"d": {"$exists": 1}}
     results = memory_data_jobstore.query_one(c, load={"data": ["data"]})
     assert results["data"] == [1, 2, 3, 4]
 
@@ -190,6 +189,26 @@ def test_data_update(memory_data_jobstore):
     results = memory_data_jobstore.query_one(c, load={"data": [MyEnum.B, "x"]})
     assert results["output"]["B"] == 101
     assert results["x"] == 10
+
+    # test None
+    data2 = [2, 2]
+    data3 = [3, 3]
+    d = {"index": 1, "uuid": 4, "data1": None, "data2": data2, "data3": data3}
+    memory_data_jobstore.update(d, save={"data": ["data1", "data2", "data3"]})
+
+    c = {"uuid": 4}
+    results = memory_data_jobstore.query_one(c, load=None)
+    assert results["data1"] is None
+
+    results = memory_data_jobstore.query_one(c, load=False)
+    assert results["data1"] is None
+
+    c = {"job_uuid": 4}
+    data_store = memory_data_jobstore.additional_stores["data"]
+    data_fields = [doc["data"] for doc in data_store.query(c)]
+    assert data2 in data_fields
+    assert data3 in data_fields
+    assert None not in data_fields
 
 
 def test_count(memory_jobstore):
