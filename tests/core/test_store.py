@@ -29,15 +29,30 @@ def test_basic(memory_store):
 def test_additional(memory_store):
     from copy import deepcopy
 
+    import boto3
+    from maggma.stores import MemoryStore, S3Store
+    from moto import mock_s3
+
     from jobflow import JobStore
 
-    store = JobStore(memory_store, additional_stores={"data": deepcopy(memory_store)})
-    store.connect()
-    assert store
-    assert store.name == "JobStore-mem://memory_db"
-    assert store._collection is not None
+    with mock_s3():
+        conn = boto3.resource("s3", region_name="us-east-1")
+        conn.create_bucket(Bucket="bucket1")
+        index = MemoryStore("index", key="blob_uuid")
+        s3_store = S3Store(index, "bucket1", key="blob_uuid")
+        store = JobStore(
+            memory_store,
+            additional_stores={"data": deepcopy(memory_store), "data_s3": s3_store},
+        )
 
-    store.close()
+        with store as s:
+            assert s
+            assert s.name == "JobStore-mem://memory_db"
+            assert s._collection is not None
+            assert s.additional_stores["data_s3"].searchable_fields == [
+                "job_uuid",
+                "job_index",
+            ]
 
 
 def test_doc_update_query(memory_jobstore):
