@@ -64,7 +64,8 @@ class JobStore(Store):
         self.docs_store.key = "uuid"
         for additional_store in self.additional_stores.values():
             additional_store.key = "blob_uuid"
-            additional_store.searchable_fields.extend(["job_uuid", "job_index"])
+            if hasattr(additional_store, "searchable_fields"):
+                additional_store.searchable_fields.extend(["job_uuid", "job_index"])
 
         if save is None or save is False:
             save = {}
