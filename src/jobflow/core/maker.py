@@ -219,6 +219,7 @@ class Maker(MSONable):
                 apply_mod(update, d)
             else:
                 d.update(update)
+            print(d)
             return MontyDecoder().process_decoded(d)
 
         return recursive_call(
@@ -307,4 +308,5 @@ def recursive_call(
             else:
                 func(nested_class)
     if update:
-        return MontyDecoder().process_decoded(d)
+        print("nested_class", nested_class)
+        return nested_class

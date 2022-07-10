@@ -785,6 +785,7 @@ class Job(MSONable):
                 nested=nested,
                 dict_mod=dict_mod,
             )
+            print(">> ", maker)
             setattr(self, "function", getattr(maker, self.function.__name__))
         elif nested:
             # also look for makers in job args and kwargs
