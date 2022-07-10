@@ -260,7 +260,12 @@ def recursive_call(
 
     from jobflow.utils.find import find_key
 
+    if isinstance(class_filter, Maker):
+        # Maker instance supplied rather than a Maker class
+        class_filter = class_filter.__class__
+
     def _filter(nested_obj: Maker):
+        # Filter the Maker object
         if not isinstance(nested_obj, Maker):
             return False
         if name_filter is not None and name_filter not in nested_obj.name:
@@ -270,9 +275,6 @@ def recursive_call(
         return True
 
     d = obj.as_dict()
-    if isinstance(class_filter, Maker):
-        # Maker instance supplied rather than a Maker class
-        class_filter = class_filter.__class__
 
     # find and update makers in Maker kwargs. Process is:
     # 1. Look for any monty classes in serialized maker kwargs
@@ -285,7 +287,7 @@ def recursive_call(
     if nested:
         locations = find_key(d, "@class", nested=True)
     else:
-        locations = [[]]  # will only look at the top level
+        locations = [[]]  # will only look at the top level if nested=False
 
     for location in sorted(
         locations, key=len, reverse=True
@@ -297,14 +299,15 @@ def recursive_call(
         # print("nested_class 1", type(MontyDecoder().process_decoded(d)))
         if _filter(nested_class):
             # either update or call the function on the nested Maker
-            nested_class = func(nested_class)
-            if not isinstance(nested_class, Maker):
+            modified_class = func(nested_class)
+            if not isinstance(modified_class, Maker):  # pragma: no cover
                 raise ValueError(
                     "Function must return a Maker object. "
-                    f"Got {nested_class} instead."
+                    f"Got {type(modified_class)} instead."
                 )
             # update the serialized maker with the new kwarg
-            set_(d, list(location), func(nested_class).as_dict())
+            set_(d, list(location), modified_class.as_dict())
+
     # the top level must be processed separately since it's constructor
     # might not be discoverable by MontyDecoder (kinda hacky)
     new_obj = obj.from_dict(d)
