@@ -306,4 +306,5 @@ def recursive_call(
                     set_(d, list(location), func(nested_class).as_dict())
             else:
                 func(nested_class)
-    return MontyDecoder().process_decoded(d)
+    if update:
+        return MontyDecoder().process_decoded(d)
