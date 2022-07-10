@@ -244,7 +244,7 @@ class Maker(MSONable):
                         update,
                         name_filter=name_filter,
                         class_filter=class_filter,
-                        nested=nested,
+                        nested=False,
                         dict_mod=dict_mod,
                     )
 
