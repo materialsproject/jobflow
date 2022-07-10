@@ -213,7 +213,7 @@ class Maker(MSONable):
         from jobflow.utils.dict_mods import apply_mod
 
         def _update_kwargs_func(maker: Maker):
-            # if we get to here then we pass all the filters
+            # Update the kwargs of the maker
             d = maker.as_dict()
             if dict_mod:
                 apply_mod(update, d)
@@ -244,11 +244,12 @@ def recursive_call(
     Parameters
     ----------
     obj
-        The object to call the function on.
+        The Maker object to call the function on.
     func
-        The function to call.
+        The function to call a Maker object, if it matches the filters.
+        If the ``update`` is True, the function must return a new Maker object.
     update
-        Whether to update the object in place.
+        Whether to update the Maker object in place.
     name_filter
         A filter for the Maker name. Only Makers with a matching name will be updated.
         Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
@@ -258,7 +259,6 @@ def recursive_call(
     nested
         Whether to apply the updates to Maker objects that are themselves kwargs
         of a Maker object. See examples for more details.
-
     """
     from pydash import get, set_
 
