@@ -219,13 +219,11 @@ class Maker(MSONable):
                 apply_mod(update, d)
             else:
                 d.update(update)
-            print(d)
-            return MontyDecoder().process_decoded(d)
+            return maker.from_dict(d)
 
         return recursive_call(
             self,
             func=_update_kwargs_func,
-            update=True,
             name_filter=name_filter,
             class_filter=class_filter,
             nested=nested,
@@ -235,7 +233,6 @@ class Maker(MSONable):
 def recursive_call(
     obj: Maker,
     func: Callable[[Maker], Any],
-    update: bool = False,
     name_filter: str | None = None,
     class_filter: type[Maker] | None = None,
     nested: bool = True,
@@ -248,9 +245,7 @@ def recursive_call(
         The Maker object to call the function on.
     func
         The function to call a Maker object, if it matches the filters.
-        If the ``update`` is True, the function must return a new Maker object.
-    update
-        Whether to update the Maker object in place.
+        This function must return a new Maker object.
     name_filter
         A filter for the Maker name. Only Makers with a matching name will be updated.
         Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
@@ -264,6 +259,15 @@ def recursive_call(
     from pydash import get, set_
 
     from jobflow.utils.find import find_key
+
+    def _filter(nested_obj: Maker):
+        if not isinstance(nested_obj, Maker):
+            return False
+        if name_filter is not None and name_filter not in nested_obj.name:
+            return False
+        if class_filter is not None and not isinstance(nested_obj, class_filter):
+            return False
+        return True
 
     d = obj.as_dict()
     if isinstance(class_filter, Maker):
@@ -286,27 +290,24 @@ def recursive_call(
     for location in sorted(
         locations, key=len, reverse=True
     ):  # should deserialize in order
+        if len(location) == 0:
+            continue
         nested_class = MontyDecoder().process_decoded(get(d, list(location)))
-        if isinstance(nested_class, Maker):
-            if name_filter is not None and name_filter not in nested_class.name:
-                continue
-            if class_filter is not None and not isinstance(nested_class, class_filter):
-                continue
+        # print("nested_class 0", get(d, list(location)))
+        # print("nested_class 1", type(MontyDecoder().process_decoded(d)))
+        if _filter(nested_class):
             # either update or call the function on the nested Maker
-            if update:
-                nested_class = func(nested_class)
-                if not isinstance(nested_class, Maker):
-                    raise ValueError(
-                        "Function must return a Maker object. "
-                        f"Got {nested_class} instead."
-                    )
-                # update the serialized maker with the new kwarg
-                if len(location) == 0:
-                    d = nested_class.as_dict()
-                else:
-                    set_(d, list(location), func(nested_class).as_dict())
-            else:
-                func(nested_class)
-    if update:
-        print("nested_class", nested_class)
-        return nested_class
+            nested_class = func(nested_class)
+            if not isinstance(nested_class, Maker):
+                raise ValueError(
+                    "Function must return a Maker object. "
+                    f"Got {nested_class} instead."
+                )
+            # update the serialized maker with the new kwarg
+            set_(d, list(location), func(nested_class).as_dict())
+    # the top level must be processed separately since it's constructor
+    # might not be discoverable by MontyDecoder (kinda hacky)
+    new_obj = obj.from_dict(d)
+    if _filter(obj):
+        new_obj = func(new_obj)
+    return new_obj
