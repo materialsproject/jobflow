@@ -295,8 +295,6 @@ def recursive_call(
         if len(location) == 0:
             continue
         nested_class = MontyDecoder().process_decoded(get(d, list(location)))
-        # print("nested_class 0", get(d, list(location)))
-        # print("nested_class 1", type(MontyDecoder().process_decoded(d)))
         if _filter(nested_class):
             # either update or call the function on the nested Maker
             modified_class = func(nested_class)
@@ -308,7 +306,7 @@ def recursive_call(
             # update the serialized maker with the new kwarg
             set_(d, list(location), modified_class.as_dict())
 
-    # the top level must be processed separately since it's constructor
+    # the top level must be processed separately since its constructor
     # might not be discoverable by MontyDecoder (kinda hacky)
     new_obj = obj.from_dict(d)
     if _filter(obj):
