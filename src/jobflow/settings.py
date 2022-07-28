@@ -1,5 +1,6 @@
 """Settings for jobflow."""
 
+from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
@@ -10,6 +11,17 @@ from jobflow import JobStore
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
 __all__ = ["JobflowSettings"]
+
+
+def _default_additional_store():
+    """Create a default MemoryStore and connect it.
+
+    This is a private function used for the additional_stores in
+    the default JOB_STORE.
+    """
+    mem_store = MemoryStore()
+    mem_store.connect()
+    return mem_store
 
 
 class JobflowSettings(BaseSettings):
@@ -93,7 +105,10 @@ class JobflowSettings(BaseSettings):
 
     # general settings
     JOB_STORE: JobStore = Field(
-        default_factory=lambda: JobStore(MemoryStore()),
+        default_factory=lambda: JobStore(
+            MemoryStore(),
+            additional_stores=defaultdict(lambda: _default_additional_store()),
+        ),
         description="Default JobStore to use when running locally or using FireWorks. "
         "See the :obj:`JobflowSettings` docstring for more details on the "
         "accepted formats.",
