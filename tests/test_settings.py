@@ -11,6 +11,11 @@ def test_settings_init():
 
     # assert default job store initialised correctly
     assert isinstance(SETTINGS.JOB_STORE.docs_store, MemoryStore)
+    assert len(SETTINGS.JOB_STORE.additional_stores) == 0
+    data_store = SETTINGS.JOB_STORE.additional_stores["data"]
+    assert len(SETTINGS.JOB_STORE.additional_stores) == 1
+    assert isinstance(data_store, MemoryStore)
+    assert data_store is SETTINGS.JOB_STORE.additional_stores["data"]
 
 
 def test_settings_object(clean_dir, test_data):

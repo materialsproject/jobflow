@@ -328,7 +328,13 @@ class JobStore(Store):
         self.docs_store.update(dict_docs, key=key)
 
         for store_name, blobs in blob_data.items():
-            store = self.additional_stores.get(store_name, None)
+            # Here we use a try/except with a self.additional_stores[store_name]
+            # instead of self.additional_store.get(store_name, None) to allow
+            # for additional_stores to be a defaultdict with a MemoryStore's default.
+            try:
+                store = self.additional_stores[store_name]
+            except KeyError:
+                store = None
 
             if store is None:
                 raise ValueError(f"Unrecognised additional store name: {store_name}")
