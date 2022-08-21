@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from monty.json import MontyDecoder, MSONable
 
 if typing.TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Callable
 
     import jobflow
 
@@ -210,57 +210,105 @@ class Maker(MSONable):
         ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
-        from pydash import get, set_
-
         from jobflow.utils.dict_mods import apply_mod
-        from jobflow.utils.find import find_key
 
-        d = self.as_dict()
+        def _update_kwargs_func(maker: Maker):
+            # Update the kwargs of the maker
+            d = maker.as_dict()
+            if dict_mod:
+                apply_mod(update, d)
+            else:
+                d.update(update)
+            return maker.from_dict(d)
 
-        if isinstance(class_filter, Maker):
-            # Maker instance supplied rather than a Maker class
-            class_filter = class_filter.__class__
+        return recursive_call(
+            self,
+            func=_update_kwargs_func,
+            name_filter=name_filter,
+            class_filter=class_filter,
+            nested=nested,
+        )
 
-        if nested:
-            # find and update makers in Maker kwargs. Process is:
-            # 1. Look for any monty classes in serialized maker kwargs
-            # 2. Regenerate the classes and check if they are a Maker
-            # 3. Apply the updates
-            # 4. Reconstruct initial maker kwargs
 
-            # find all classes in the serialized maker kwargs
-            locations = find_key(d, "@class", nested=True)
+def recursive_call(
+    obj: Maker,
+    func: Callable[[Maker], Any],
+    name_filter: str | None = None,
+    class_filter: type[Maker] | None = None,
+    nested: bool = True,
+):
+    """Recursively call a function on all Maker objects in the object.
 
-            for location in locations:
-                if len(location) == 0:
-                    # skip the current maker class
-                    continue
+    Parameters
+    ----------
+    obj
+        The Maker object to call the function on.
+    func
+        The function to call a Maker object, if it matches the filters.
+        This function must return a new Maker object.
+    name_filter
+        A filter for the Maker name. Only Makers with a matching name will be updated.
+        Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
+    class_filter
+        A filter for the maker class. Only Makers with a matching class will be
+        updated. Note the class filter will match any subclasses.
+    nested
+        Whether to apply the updates to Maker objects that are themselves kwargs
+        of a Maker object. See examples for more details.
+    """
+    from pydash import get, set_
 
-                nested_class = MontyDecoder().process_decoded(get(d, list(location)))
+    from jobflow.utils.find import find_key
 
-                if isinstance(nested_class, Maker):
-                    # class is a Maker; apply the updates
-                    nested_class = nested_class.update_kwargs(
-                        update,
-                        name_filter=name_filter,
-                        class_filter=class_filter,
-                        nested=nested,
-                        dict_mod=dict_mod,
-                    )
+    if isinstance(class_filter, Maker):
+        # Maker instance supplied rather than a Maker class
+        class_filter = class_filter.__class__
 
-                    # update the serialized maker with the new kwarg
-                    set_(d, list(location), nested_class.as_dict())
+    def _filter(nested_obj: Maker):
+        # Filter the Maker object
+        if not isinstance(nested_obj, Maker):
+            return False
+        if name_filter is not None and name_filter not in nested_obj.name:
+            return False
+        if class_filter is not None and not isinstance(nested_obj, class_filter):
+            return False
+        return True
 
-        if name_filter is not None and name_filter not in self.name:
-            return self.from_dict(d)
+    d = obj.as_dict()
 
-        if class_filter is not None and not isinstance(self, class_filter):
-            return self.from_dict(d)
+    # find and update makers in Maker kwargs. Process is:
+    # 1. Look for any monty classes in serialized maker kwargs
+    # 2. Regenerate the classes and check if they are a Maker
+    # 3. Call the functions on the deepest classes first
+    # 4. Call the function or update on the deepest classes and move up the tree
+    # 5. Finally replace the call/update the object itself
 
-        # if we get to here then we pass all the filters
-        if dict_mod:
-            apply_mod(update, d)
-        else:
-            d.update(update)
+    # find all classes in the serialized maker kwargs
+    if nested:
+        locations = find_key(d, "@class", nested=True)
+    else:
+        locations = [[]]  # will only look at the top level if nested=False
 
-        return self.from_dict(d)
+    for location in sorted(
+        locations, key=len, reverse=True
+    ):  # should deserialize in order
+        if len(location) == 0:
+            continue
+        nested_class = MontyDecoder().process_decoded(get(d, list(location)))
+        if _filter(nested_class):
+            # either update or call the function on the nested Maker
+            modified_class = func(nested_class)
+            if not isinstance(modified_class, Maker):  # pragma: no cover
+                raise ValueError(
+                    "Function must return a Maker object. "
+                    f"Got {type(modified_class)} instead."
+                )
+            # update the serialized maker with the new kwarg
+            set_(d, list(location), modified_class.as_dict())
+
+    # the top level must be processed separately since its constructor
+    # might not be discoverable by MontyDecoder (kinda hacky)
+    new_obj = obj.from_dict(d)
+    if _filter(obj):
+        new_obj = func(new_obj)
+    return new_obj
