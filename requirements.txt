@@ -1,5 +1,5 @@
 monty==2022.4.26
-networkx==2.8.5
+networkx==2.8.6
 pydash==5.1.0
 maggma==0.48.0
 pydantic==1.9.2
