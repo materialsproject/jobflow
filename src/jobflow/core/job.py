@@ -71,7 +71,7 @@ def job(method: Callable | None = None, **job_kwargs):
     Wrap a function to produce a :obj:`Job`.
 
     :obj:`Job` objects are delayed function calls that can be used in an
-    :obj:`Flow`. A job is a composed of the function name and source and any
+    :obj:`Flow`. A job is composed of the function name and source and any
     arguments for the function. This decorator makes it simple to create
     job objects directly from a function definition. See the examples for more details.
 
@@ -252,6 +252,12 @@ class Job(MSONable):
     hosts
         The list of UUIDs of the hosts containing the job. The object identified by one
         UUID of the list should be contained in objects identified by its subsequent elements.
+    metadata_updates
+        A list of updates for the metadata that will be applied to any Flow/Job generated
+        by the job.
+    config_updates
+        A list of updates for the config that will be applied to any Flow/Job generated
+        by the job.
     **kwargs
         Additional keyword arguments that can be used to specify which outputs to save
         in additional stores. The argument name gives the additional store name and the
@@ -309,6 +315,8 @@ class Job(MSONable):
         metadata: dict[str, Any] = None,
         config: JobConfig = None,
         hosts: list[str] | None = None,
+        metadata_updates: list[dict[str, Any]] | None = None,
+        config_updates: list[dict[str, Any]] | None = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -332,6 +340,8 @@ class Job(MSONable):
         self.metadata = metadata
         self.config = config
         self.hosts = hosts or []
+        self.metadata_updates = metadata_updates or []
+        self.config_updates = config_updates or []
         self._kwargs = kwargs
 
         if sum(v is True for v in kwargs.values()) > 1:
@@ -535,19 +545,25 @@ class Job(MSONable):
 
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
-            response.replace.add_hosts_uuids(self.hosts)
 
         if response.addition is not None:
-            # wrap the detour in a Flow to avoid problems if it need to get
+            # wrap the detour in a Flow to avoid problems if it needs to get
             # wrapped at a later stage
             response.addition = get_flow(response.addition)
-            response.addition.add_hosts_uuids(self.hosts)
 
         if response.detour is not None:
-            # wrap the detour in a Flow to avoid problems if it need to get
+            # wrap the detour in a Flow to avoid problems if it needs to get
             # wrapped at a later stage
             response.detour = get_flow(response.detour)
-            response.detour.add_hosts_uuids(self.hosts)
+
+        # common actions that should be applied to all newly generated Jobs/Flows
+        for new_jobs in (response.replace, response.addition, response.detour):
+            if new_jobs is not None:
+                new_jobs.add_hosts_uuids(self.hosts)
+                for metadata_update in self.metadata_updates:
+                    new_jobs.update_metadata(**metadata_update, dynamic=True)
+                for config_update in self.config_updates:
+                    new_jobs.update_config(**config_update, dynamic=True)
 
         if self.config.response_manager_config:
             passed_config = self.config.response_manager_config
@@ -835,9 +851,13 @@ class Job(MSONable):
         name_filter: str | None = None,
         function_filter: Callable | None = None,
         dict_mod: bool = False,
+        dynamic: bool = True,
     ):
         """
         Update the metadata of the job.
+
+        Can optionally apply the same updates at runtime to any Job or Flow generated
+        by this job.
 
         Parameters
         ----------
@@ -852,16 +872,30 @@ class Job(MSONable):
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
+        dynamic
+            The updates will be propagated to Jobs/Flows dynamically generated at runtime.
         """
         from jobflow.utils.dict_mods import apply_mod
 
-        if function_filter is not None and function_filter != self.function:
+        if dynamic:
+            dict_input = dict(
+                update=update,
+                name_filter=name_filter,
+                function_filter=function_filter,
+                dict_mod=dict_mod,
+            )
+            self.metadata_updates.append(dict_input)
+
+        # unwrap the functions in case the job is a decorated one
+        function_filter = getattr(function_filter, "__wrapped__", function_filter)
+        function = getattr(self.function, "__wrapped__", self.function)
+
+        # if function_filter is not None and function_filter != self.function:
+        if function_filter is not None and function_filter != function:
             return
 
-        if (
-            name_filter is not None
-            and self.name is not None
-            and name_filter not in self.name
+        if name_filter is not None and (
+            self.name is None or name_filter not in self.name
         ):
             return
 
@@ -877,9 +911,13 @@ class Job(MSONable):
         name_filter: str = None,
         function_filter: Callable = None,
         attributes: list[str] | str = None,
+        dynamic: bool = True,
     ):
         """
         Update the job config.
+
+        Can optionally apply the same updates at runtime to any Job or Flow generated
+        by this job.
 
         Parameters
         ----------
@@ -894,6 +932,8 @@ class Job(MSONable):
         attributes :
             Which attributes of the job config to set. Can be specified as one or more
             attributes specified by their name.
+        dynamic
+            The updates will be propagated to Jobs/Flows dynamically generated at runtime.
 
         Examples
         --------
@@ -924,13 +964,25 @@ class Job(MSONable):
 
         >>> add_job.update_config({"manager_config": {"_fworker": "myfworker"}})
         """
-        if function_filter is not None and function_filter != self.function:
+        if dynamic:
+            dict_input = dict(
+                config=config,
+                name_filter=name_filter,
+                function_filter=function_filter,
+                attributes=attributes,
+            )
+            self.config_updates.append(dict_input)
+
+        # unwrap the functions in case the job is a decorated one
+        function_filter = getattr(function_filter, "__wrapped__", function_filter)
+        function = getattr(self.function, "__wrapped__", self.function)
+
+        # if function_filter is not None and function_filter != self.function:
+        if function_filter is not None and function_filter != function:
             return
 
-        if (
-            name_filter is not None
-            and self.name is not None
-            and name_filter not in self.name
+        if name_filter is not None and (
+            self.name is None or name_filter not in self.name
         ):
             return
 
