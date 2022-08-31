@@ -599,6 +599,7 @@ class Job(MSONable):
             "completed_at": datetime.now().isoformat(),
             "metadata": self.metadata,
             "hosts": self.hosts,
+            "name": self.name,
         }
         store.update(data, key=["uuid", "index"], save=save)
 

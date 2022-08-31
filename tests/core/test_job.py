@@ -1094,6 +1094,7 @@ def test_update_metadata(memory_jobstore):
     assert "b" not in test_job.metadata
     response = test_job.run(memory_jobstore)
     assert response.replace.jobs[0].metadata["b"] == 2
+    assert response.replace.jobs[0].metadata_updates[0]["update"] == {"b": 2}
 
 
 def test_update_config(memory_jobstore):
@@ -1256,3 +1257,4 @@ def test_update_config(memory_jobstore):
     assert test_job.config != new_config
     response = test_job.run(memory_jobstore)
     assert response.replace.jobs[0].config == new_config
+    assert response.replace.jobs[0].config_updates[0]["config"] == new_config
