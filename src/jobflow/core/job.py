@@ -875,6 +875,29 @@ class Job(MSONable):
             details.
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at runtime.
+
+        Examples
+        --------
+        Consider a simple job that makes use of a :obj:`Maker` to generate additional jobs
+        at runtime (see :obj:`Response` options for more details):
+
+        >>> @job
+        ... def use_maker(maker):
+        ...     return Response(replace=maker.make())
+
+        Calling `update_metadata` with `dynamic` set to `True` (the default)
+
+        >>> test_job = use_maker(ExampleMaker())
+        ... test_job.update_metadata({"example": 1}, dynamic=True)
+
+        will not only set the `example` metadata to the `test_job`, but also to all the
+        new Jobs that will be generated at runtime by the ExampleMaker.
+
+        `update_metadata` can be called multiple times with different `name_filter` or
+        `function_filter` to control which Jobs will be updated.
+
+        At variance, if `dynamic` is set to `False` the `example` metadata will only be
+        added to the `test_job` and not to the generated Jobs.
         """
         from jobflow.utils.dict_mods import apply_mod
 
@@ -964,6 +987,27 @@ class Job(MSONable):
         having to create a completely new JobConfig object. For example:
 
         >>> add_job.update_config({"manager_config": {"_fworker": "myfworker"}})
+
+        Consider instead a simple job that makes use of a :obj:`Maker` to generate
+        additional jobs at runtime (see :obj:`Response` options for more details):
+
+        >>> @job
+        ... def use_maker(maker):
+        ...     return Response(replace=maker.make())
+
+        Calling `update_config` with `dynamic` set to `True` (the default)
+
+        >>> test_job = use_maker(ExampleMaker())
+        ... test_job.update_config({"manager_config": {"_fworker": "myfworker"}})
+
+        will not only set the `manager_config` to the `test_job`, but also to all the
+        new Jobs that will be generated at runtime by the ExampleMaker.
+
+        `update_config` can be called multiple times with different `name_filter` or
+        `function_filter` to control which Jobs will be updated.
+
+        At variance, if `dynamic` is set to `False` the `manager_config` option will
+        only be set for the `test_job` and not for the generated Jobs.
         """
         if dynamic:
             dict_input = dict(
