@@ -512,6 +512,7 @@ class Flow(MSONable):
         name_filter: str | None = None,
         function_filter: Callable | None = None,
         dict_mod: bool = False,
+        dynamic: bool = True,
     ):
         """
         Update the metadata of all Jobs in the Flow.
@@ -531,6 +532,8 @@ class Flow(MSONable):
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
+        dynamic
+            The updates will be propagated to Jobs/Flows dynamically generated at runtime.
 
         Examples
         --------
@@ -554,6 +557,7 @@ class Flow(MSONable):
                 name_filter=name_filter,
                 function_filter=function_filter,
                 dict_mod=dict_mod,
+                dynamic=dynamic,
             )
 
     def update_config(
@@ -562,6 +566,7 @@ class Flow(MSONable):
         name_filter: str = None,
         function_filter: Callable = None,
         attributes: list[str] | str = None,
+        dynamic: bool = True,
     ):
         """
         Update the job config of all Jobs in the Flow.
@@ -581,6 +586,8 @@ class Flow(MSONable):
         attributes :
             Which attributes of the job config to set. Can be specified as one or more
             attributes specified by their name.
+        dynamic
+            The updates will be propagated to Jobs/Flows dynamically generated at runtime.
 
         Examples
         --------
@@ -619,6 +626,7 @@ class Flow(MSONable):
                 name_filter=name_filter,
                 function_filter=function_filter,
                 attributes=attributes,
+                dynamic=dynamic,
             )
 
     def add_hosts_uuids(

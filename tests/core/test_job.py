@@ -984,13 +984,19 @@ def test_hosts(memory_jobstore):
     assert result["hosts"] == ["09876", "12345", "67890"]
 
 
-def test_update_metadata():
-    from jobflow import Job
+def test_update_metadata(memory_jobstore):
+    from dataclasses import dataclass
+
+    from jobflow import Job, Maker, Response, job
 
     # test no filter
     test_job = Job(add, function_args=(1,))
     test_job.update_metadata({"b": 5})
     assert test_job.metadata["b"] == 5
+    assert len(test_job.metadata_updates) == 1
+    test_job.update_metadata({"c": 6}, dynamic=False)
+    assert test_job.metadata["c"] == 6
+    assert len(test_job.metadata_updates) == 1
 
     # test name filter
     test_job = Job(add, function_args=(1,))
@@ -1012,15 +1018,89 @@ def test_update_metadata():
     test_job.update_metadata({"b": 5}, function_filter=list)
     assert test_job.metadata["b"] == 2
 
+    # test function filter with wrapped job functions
+    @job
+    def add_wrapped(a, b):
+        return a + b
+
+    class A:
+        @classmethod
+        @job
+        def cmj_wrapped(cls, a, b):
+            return a + b
+
+        @staticmethod
+        @job
+        def smj_wrapped(a, b):
+            return a + b
+
+        @job
+        @classmethod
+        def jcm_wrapped(cls, a, b):
+            return a + b
+
+        @job
+        @staticmethod
+        def jsm_wrapped(a, b):
+            return a + b
+
+    test_job = add_wrapped(1, 2)
+    test_job.update_metadata({"b": 5}, function_filter=add_wrapped)
+    assert test_job.metadata["b"] == 5
+
+    test_job = add_wrapped(1, 2)
+    test_job.metadata = {"b": 2}
+    test_job.update_metadata({"b": 5}, function_filter=add)
+    assert test_job.metadata["b"] == 2
+
+    test_job = A.cmj_wrapped(1, 2)
+    test_job.update_metadata({"b": 5}, function_filter=A.cmj_wrapped)
+    assert test_job.metadata["b"] == 5
+
+    test_job = A.smj_wrapped(1, 2)
+    test_job.update_metadata({"b": 5}, function_filter=A.smj_wrapped)
+    assert test_job.metadata["b"] == 5
+
+    test_job = A.jcm_wrapped(1, 2)
+    test_job.update_metadata({"b": 5}, function_filter=A.jcm_wrapped)
+    assert test_job.metadata["b"] == 5
+
+    test_job = A.jsm_wrapped(1, 2)
+    test_job.update_metadata({"b": 5}, function_filter=A.jsm_wrapped)
+    assert test_job.metadata["b"] == 5
+
     # test dict mod
     test_job = Job(add, function_args=(1,))
     test_job.metadata = {"b": 2}
     test_job.update_metadata({"_inc": {"b": 5}}, dict_mod=True)
     assert test_job.metadata["b"] == 7
 
+    # test applied dynamic updates
+    @dataclass
+    class TestMaker(Maker):
+        name = "test"
 
-def test_update_config():
-    from jobflow import Job, JobConfig
+        @job
+        def make(self, a, b):
+            return a + b
+
+    @job
+    def use_maker(maker):
+        return Response(replace=maker.make())
+
+    test_job = use_maker(TestMaker())
+    test_job.name = "use"
+    test_job.update_metadata({"b": 2}, name_filter="test")
+    assert "b" not in test_job.metadata
+    response = test_job.run(memory_jobstore)
+    assert response.replace.jobs[0].metadata["b"] == 2
+    assert response.replace.jobs[0].metadata_updates[0]["update"] == {"b": 2}
+
+
+def test_update_config(memory_jobstore):
+    from dataclasses import dataclass
+
+    from jobflow import Job, JobConfig, Maker, Response, job
 
     new_config = JobConfig(
         resolve_references=False,
@@ -1037,6 +1117,9 @@ def test_update_config():
     test_job = Job(add)
     test_job.update_config(new_config)
     assert test_job.config == new_config
+    assert len(test_job.config_updates) == 1
+    test_job.update_config(new_config, dynamic=False)
+    assert len(test_job.config_updates) == 1
 
     # test name filter
     test_job = Job(add)
@@ -1055,6 +1138,56 @@ def test_update_config():
     test_job = Job(add)
     test_job.update_config(new_config, function_filter=list)
     assert test_job.config != new_config
+
+    # test function filter with wrapped job functions
+    @job
+    def add_wrapped(a, b):
+        return a + b
+
+    class A:
+        @classmethod
+        @job
+        def cmj_wrapped(cls, a, b):
+            return a + b
+
+        @staticmethod
+        @job
+        def smj_wrapped(a, b):
+            return a + b
+
+        @job
+        @classmethod
+        def jcm_wrapped(cls, a, b):
+            return a + b
+
+        @job
+        @staticmethod
+        def jsm_wrapped(a, b):
+            return a + b
+
+    test_job = add_wrapped(1, 2)
+    test_job.update_config(new_config, function_filter=add_wrapped)
+    assert test_job.config == new_config
+
+    test_job = add_wrapped(1, 2)
+    test_job.update_config(new_config, function_filter=list)
+    assert test_job.config != new_config
+
+    test_job = A.cmj_wrapped(1, 2)
+    test_job.update_config(new_config, function_filter=A.cmj_wrapped)
+    assert test_job.config == new_config
+
+    test_job = A.smj_wrapped(1, 2)
+    test_job.update_config(new_config, function_filter=A.smj_wrapped)
+    assert test_job.config == new_config
+
+    test_job = A.jcm_wrapped(1, 2)
+    test_job.update_config(new_config, function_filter=A.jcm_wrapped)
+    assert test_job.config == new_config
+
+    test_job = A.jsm_wrapped(1, 2)
+    test_job.update_config(new_config, function_filter=A.jsm_wrapped)
+    assert test_job.config == new_config
 
     # test attributes
     test_job = Job(add)
@@ -1104,3 +1237,24 @@ def test_update_config():
 
     with pytest.raises(ValueError):
         test_job.update_config(new_config_dict, attributes="abc_xyz")
+
+    # test applied dynamic updates
+    @dataclass
+    class TestMaker(Maker):
+        name = "test"
+
+        @job
+        def make(self, a, b):
+            return a + b
+
+    @job
+    def use_maker(maker):
+        return Response(replace=maker.make())
+
+    test_job = use_maker(TestMaker())
+    test_job.name = "use"
+    test_job.update_config(new_config, name_filter="test")
+    assert test_job.config != new_config
+    response = test_job.run(memory_jobstore)
+    assert response.replace.jobs[0].config == new_config
+    assert response.replace.jobs[0].config_updates[0]["config"] == new_config
