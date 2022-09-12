@@ -1,4 +1,4 @@
-monty==2022.4.26
+monty==2022.9.9
 networkx==2.8.6
 pydash==5.1.0
 maggma==0.48.1
