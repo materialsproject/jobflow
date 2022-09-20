@@ -110,7 +110,7 @@ jobflow is released under a modified BSD license; the full text can be found [he
 
 ## Acknowledgements
 
-Jobflow was designed and developed by Alex Ganose while in the group of Anubhav Jain.
+Jobflow was designed by Alex Ganose, Anubhav Jain, Gian-Marco Rignanese, David Waroquiers, and Guido Petretto. Alex Ganose implemented the first version of the package. Later versions have benefited from the contributions of several research groups. A full list of contributors is available [here](https://materialsproject.github.io/jobflow/contributors.html).
 
 [maggma]: https://materialsproject.github.io/maggma/
 [fireworks]: https://materialsproject.github.io/fireworks/
