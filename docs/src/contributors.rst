@@ -13,7 +13,7 @@ jobflow was designed by  **Alex Ganose** |utf| |0000-0002-4486-3321|, **Anubhav 
    :width: 16
    :height: 16
    :alt: ORCID profile for 0000-0001-5893-9967
-   
+
 .. |gmrigna| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/gmrigna
    :width: 16
@@ -24,7 +24,7 @@ jobflow was designed by  **Alex Ganose** |utf| |0000-0002-4486-3321|, **Anubhav 
    :width: 16
    :height: 16
    :alt: ORCID profile for 0000-0002-1422-1205
-   
+
 **Alex Ganose** |utf| |0000-0002-4486-3321| implemented the first version of the package. Later versions have benefited from the contributions of:
 
 .. |utf| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
