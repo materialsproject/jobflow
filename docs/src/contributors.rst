@@ -1,20 +1,7 @@
 Contributors
 ============
 
-jobflow was designed and developed by **Alex Ganose** |utf| |0000-0002-4486-3321|.
-The project was led by **Anubhav Jain** |computron| |0000-0001-5893-9967| at Lawrence
-Berkeley National Laboratory.
-
-.. |utf| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
-   :target: https://github.com/utf
-   :width: 16
-   :height: 16
-   :alt: GitHub profile for utf
-.. |0000-0002-4486-3321| image:: _static/orcid.svg
-   :target: https://orcid.org/0000-0002-4486-3321
-   :width: 16
-   :height: 16
-   :alt: ORCID profile for 0000-0002-4486-3321
+jobflow was designed by  **Alex Ganose** |utf| |0000-0002-4486-3321|, **Anubhav Jain** |computron| |0000-0001-5893-9967|, **Gian-Marco Rignanese** |gmrigna| |0000-0002-1422-1205| , **David Waroquiers** |davidwaroquiers| |0000-0001-8943-9762|, and **Guido Petretto** |gpetretto|.
 
 .. |computron| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/computron
@@ -26,8 +13,30 @@ Berkeley National Laboratory.
    :width: 16
    :height: 16
    :alt: ORCID profile for 0000-0001-5893-9967
+   
+.. |gmrigna| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
+   :target: https://github.com/gmrigna
+   :width: 16
+   :height: 16
+   :alt: GitHub profile for gmrigna
+.. |0000-0002-1422-1205| image:: _static/orcid.svg
+   :target: https://orcid.org/0000-0002-1422-1205
+   :width: 16
+   :height: 16
+   :alt: ORCID profile for 0000-0002-1422-1205
+   
+**Alex Ganose** |utf| |0000-0002-4486-3321| implemented the first version of the package. Later versions have benefited from the contributions of:
 
-Additional contributions provided by:
+.. |utf| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
+   :target: https://github.com/utf
+   :width: 16
+   :height: 16
+   :alt: GitHub profile for utf
+.. |0000-0002-4486-3321| image:: _static/orcid.svg
+   :target: https://orcid.org/0000-0002-4486-3321
+   :width: 16
+   :height: 16
+   :alt: ORCID profile for 0000-0002-4486-3321
 
 | **David Waroquiers** |davidwaroquiers| |0000-0001-8943-9762|
 | Université Catholique de Louvain
