@@ -1,6 +1,27 @@
 Change log
 ==========
 
+v0.1.9
+------
+
+New features
+
+- Delayed updates to config and metadata for dynamic flows. See docstring of
+  `Job.update_metadata` for more details (@gpetretto, #198)
+- Additional stores are now generated on the fly as memory stores if they are not
+  specified  in jobflow settings (@davidwaroquiers, #183)
+
+Bug fixes:
+
+- Optimised calls to update_kwargs (@jmmshn, #177)
+- "job_uuid" and "job_index" are now indexed fields in additional stores (@jmmshn, #165)
+- Fix additional store storing `None` (@mjwen, #160)
+
+Enhancements:
+
+- Docs refactored.
+- Added code of conduct.
+
 v0.1.8
 ------
 
@@ -35,7 +56,6 @@ Bug fixes:
 - Fix home path for loading settings (@gpetretto, #119).
 - Docs updates (@arosen93, #111).
 
-
 v0.1.6
 ------
 
@@ -52,7 +72,6 @@ Bug fixes:
 
 - Remove `JobConfig.pass_metadata` option and instead pass metadata automatically.
 - Fix serialization compatibility with the FireWorks workflow manager.
-
 
 v0.1.4
 ------
