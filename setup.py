@@ -45,7 +45,7 @@ setup(
         ],
         "tests": [
             "pytest==7.1.3",
-            "pytest-cov==3.0.0",
+            "pytest-cov==4.0.0",
             "FireWorks==2.0.3",
             "matplotlib==3.6.0",
             "pydot==1.4.2",
