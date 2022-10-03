@@ -603,7 +603,7 @@ class JobStore(Store):
         return cls.from_dict_spec(store_info, **kwargs)
 
     @classmethod
-    def from_dict_spec(cls, spec: dict, **kwargs) -> T:
+    def from_dict_spec(cls: Type[T], spec: dict, **kwargs) -> T:
         """
         Create an JobStore from a dict specification.
 
