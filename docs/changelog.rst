@@ -1,2 +1,1 @@
-.. mdinclude:: ../../CHANGELOG.md
-   :start-line: 7
+.. mdinclude:: ../CHANGELOG.md

@@ -29,5 +29,5 @@
 Introduction
 ============
 
-.. mdinclude:: ../../README.md
+.. mdinclude:: ../README.md
    :start-line: 7

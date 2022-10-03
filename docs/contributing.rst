@@ -1,2 +1,1 @@
-.. mdinclude:: ../../CONTRIBUTING.md
-   :start-line: 7
+.. mdinclude:: ../CONTRIBUTING.md

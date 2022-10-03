@@ -94,4 +94,4 @@ jobs:
           pip install -e .[docs]
 
       - name: Build
-        run: sphinx-build docs/src docs_build
+        run: sphinx-build docs docs_build
