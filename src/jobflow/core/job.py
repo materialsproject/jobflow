@@ -1098,8 +1098,15 @@ class Job(MSONable):
             self.hosts.extend(hosts_uuids)
 
 
+# For type checking, the Response output type can be specified
+# in a type hint via this type variable.
+# For example, a signature `-> Response[int]` would require
+# that the Response.output is an int.
+T = typing.TypeVar("T")
+
+
 @dataclass
-class Response:
+class Response(typing.Generic[T]):
     """
     The :obj:`Response` contains the output, detours, and stop commands of a job.
 
@@ -1121,7 +1128,7 @@ class Response:
         Stop executing all remaining jobs.
     """
 
-    output: Any | None = None
+    output: T | None = None
     detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
     addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
     replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
