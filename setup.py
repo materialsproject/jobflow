@@ -49,7 +49,7 @@ setup(
             "FireWorks==2.0.3",
             "matplotlib==3.6.0",
             "pydot==1.4.2",
-            "moto==4.0.6",
+            "moto==4.0.7",
         ],
         "dev": ["pre-commit>=2.12.1"],
         "vis": ["matplotlib", "pydot"],
