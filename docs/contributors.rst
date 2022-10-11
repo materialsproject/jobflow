@@ -101,8 +101,8 @@ jobflow was designed by  **Alex Ganose** |utf| |0000-0002-4486-3321|, **Anubhav 
    :alt: GitHub profile for janosh
 
 | **Mingjian Wen** |mjwen| |0000-0003-0013-575X|
-| Postdoctoral researcher
-| Lawrence Berkeley National Laboratory
+| Assistant Professor
+| University of Houston
 
 .. |mjwen| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
    :target: https://github.com/mjwen
