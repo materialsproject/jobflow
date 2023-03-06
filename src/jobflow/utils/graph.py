@@ -85,7 +85,7 @@ def draw_graph(
     if layout_function is None:
         try:
             pos = nx.nx_pydot.graphviz_layout(graph, prog="dot")
-        except (ImportError, ModuleNotFoundError, FileNotFoundError):
+        except (ImportError, FileNotFoundError):
             # graphviz not installed
             pos = nx.planar_layout(graph)
     else:
