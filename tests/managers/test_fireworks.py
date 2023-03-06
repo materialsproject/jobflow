@@ -5,7 +5,6 @@ def test_flow_to_workflow(
     memory_jobstore, simple_job, simple_flow, connected_flow, nested_flow
 ):
     from fireworks import Workflow
-
     from jobflow import OnMissing
     from jobflow.managers.fireworks import flow_to_workflow
 
@@ -74,7 +73,6 @@ def test_job_to_firework(
     memory_jobstore, simple_job, simple_flow, connected_flow, nested_flow
 ):
     from fireworks import Firework
-
     from jobflow.managers.fireworks import job_to_firework
 
     # test simple job
@@ -98,7 +96,6 @@ def test_job_to_firework(
 
 def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = simple_flow()
@@ -128,7 +125,6 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
 
 def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow import SETTINGS
     from jobflow.managers.fireworks import flow_to_workflow
 
@@ -159,7 +155,6 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
 
 def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = simple_flow()
@@ -201,7 +196,6 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = connected_flow()
@@ -230,7 +224,6 @@ def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
 
 def test_nested_flow(lpad, mongo_jobstore, fw_dir, nested_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = nested_flow()
@@ -265,7 +258,6 @@ def test_nested_flow(lpad, mongo_jobstore, fw_dir, nested_flow, capsys):
 
 def test_addition_flow(lpad, mongo_jobstore, fw_dir, addition_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = addition_flow()
@@ -295,7 +287,6 @@ def test_addition_flow(lpad, mongo_jobstore, fw_dir, addition_flow, capsys):
 
 def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = detour_flow()
@@ -331,7 +322,6 @@ def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
 
 def test_replace_flow(lpad, mongo_jobstore, fw_dir, replace_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = replace_flow()
@@ -365,7 +355,6 @@ def test_replace_flow(lpad, mongo_jobstore, fw_dir, replace_flow, capsys):
 
 def test_stop_jobflow_flow(lpad, mongo_jobstore, fw_dir, stop_jobflow_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stop_jobflow_flow()
@@ -394,7 +383,6 @@ def test_stop_jobflow_flow(lpad, mongo_jobstore, fw_dir, stop_jobflow_flow, caps
 
 def test_stop_jobflow_job(lpad, mongo_jobstore, fw_dir, stop_jobflow_job, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     job = stop_jobflow_job()
@@ -422,7 +410,6 @@ def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, ca
     from collections import Counter
 
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stop_children_flow()
@@ -456,7 +443,6 @@ def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, ca
 
 def test_error_flow(lpad, mongo_jobstore, fw_dir, error_flow):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = error_flow()
@@ -480,7 +466,6 @@ def test_error_flow(lpad, mongo_jobstore, fw_dir, error_flow):
 
 def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stored_data_flow()
@@ -504,7 +489,6 @@ def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys
 
 def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = detour_stop_flow()
@@ -539,7 +523,6 @@ def test_replace_and_detour_flow(
     lpad, mongo_jobstore, fw_dir, replace_and_detour_flow, capsys
 ):
     from fireworks.core.rocket_launcher import rapidfire
-
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = replace_and_detour_flow()

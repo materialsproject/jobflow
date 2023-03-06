@@ -5,6 +5,7 @@ from jobflow import Flow, job, run_locally
 
 @job
 def read_websites():
+    """Read list of websites from a file."""
     from pathlib import Path
 
     file_contents = Path("websites.txt").read_text()
@@ -13,6 +14,7 @@ def read_websites():
 
 @job
 def time_website(website: str):
+    """Time how long it takes to load a website."""
     import urllib.request
     from time import perf_counter
 
@@ -26,6 +28,7 @@ def time_website(website: str):
 
 @job
 def start_timing_jobs(websites: List[str]):
+    """Time a list of websites."""
     from jobflow.core.job import Response
 
     jobs = []
@@ -40,6 +43,7 @@ def start_timing_jobs(websites: List[str]):
 
 @job
 def sum_times(times: List[float]):
+    """Sum a list of loading times."""
     return sum(times)
 
 

@@ -5,11 +5,14 @@ from jobflow import Flow, Maker, job, run_locally
 
 @dataclass
 class AddMaker(Maker):
+    """Maker to add numbers."""
+
     name: str = "add"
     c: int = 10
 
     @job
     def make(self, a, b, d=0.5):
+        """Add numbers."""
         return a + b + self.c + d
 
 

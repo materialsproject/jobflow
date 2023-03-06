@@ -149,8 +149,9 @@ class Maker(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name. Only Makers with a matching name will be updated.
-            Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
+            A filter for the Maker name. Only Makers with a matching name will be
+            updated. Includes partial matches, e.g. "ad" will match a Maker with the
+            name "adder".
         class_filter
             A filter for the maker class. Only Makers with a matching class will be
             updated. Note the class filter will match any subclasses.
@@ -281,13 +282,11 @@ def recursive_call(
     # 2. Regenerate the classes and check if they are a Maker
     # 3. Call the functions on the deepest classes first
     # 4. Call the function or update on the deepest classes and move up the tree
-    # 5. Finally replace the call/update the object itself
+    # 5. Finally, replace the call/update the object itself
 
     # find all classes in the serialized maker kwargs
-    if nested:
-        locations = find_key(d, "@class", nested=True)
-    else:
-        locations = [[]]  # will only look at the top level if nested=False
+    # will only look at the top level if nested=False
+    locations = find_key(d, "@class", nested=True) if nested else [[]]
 
     for location in sorted(
         locations, key=len, reverse=True

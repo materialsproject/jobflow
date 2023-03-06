@@ -66,7 +66,7 @@ class DictMods:
     @staticmethod
     def unset(input_dict, settings):
         """Unset a value."""
-        for k in settings.keys():
+        for k in settings:
             (d, key) = _get_nested_dict(input_dict, k)
             del d[key]
 

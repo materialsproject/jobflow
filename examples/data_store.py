@@ -4,9 +4,8 @@ In this example, we show case the ability of jobflow to use multiple stores.
 Jobs that use additional stores must be run with a JobStore that supports those stores.
 """
 
-from maggma.stores import MemoryStore
-
 from jobflow import JobStore, job, run_locally
+from maggma.stores import MemoryStore
 
 
 @job(data=True)

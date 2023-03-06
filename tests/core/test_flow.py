@@ -463,9 +463,8 @@ def test_dag_validation():
 def test_serialization():
     import json
 
-    from monty.json import MontyDecoder, MontyEncoder
-
     from jobflow import Flow
+    from monty.json import MontyDecoder, MontyEncoder
 
     flow = Flow([])
     flow_host = Flow([flow])

@@ -30,10 +30,9 @@ def test_additional(memory_store):
     from copy import deepcopy
 
     import boto3
+    from jobflow import JobStore
     from maggma.stores import MemoryStore, S3Store
     from moto import mock_s3
-
-    from jobflow import JobStore
 
     with mock_s3():
         conn = boto3.resource("s3", region_name="us-east-1")

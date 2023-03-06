@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field
-
 from jobflow import job
+from pydantic import BaseModel, Field
 
 
 class ComputeSchema(BaseModel):
@@ -12,6 +11,7 @@ class ComputeSchema(BaseModel):
 
 @job(output_schema=ComputeSchema)
 def compute(a: float, b: float):
+    """Do a calculation."""
     return ComputeSchema(total=a + b, product=a * b)
 
 

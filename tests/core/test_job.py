@@ -402,8 +402,8 @@ def test_job_input_references():
     test_job = Job(add, function_args=(ref1,), function_kwargs={"b": ref2})
     assert set(test_job.input_references) == {ref1, ref2}
     assert set(test_job.input_uuids) == {"12345"}
-    assert set(list(test_job.input_references_grouped)) == {"12345"}
-    assert set(list(test_job.input_references_grouped["12345"])) == {ref1, ref2}
+    assert set(test_job.input_references_grouped) == {"12345"}
+    assert set(test_job.input_references_grouped["12345"]) == {ref1, ref2}
 
 
 def test_job_resolve_args(memory_jobstore):
@@ -505,9 +505,8 @@ def test_job_decorator():
 def test_response():
     # no need to test init as it is just a dataclass, instead test from_job_returns
     # test no job returns
-    from pydantic import BaseModel
-
     from jobflow.core.job import Response
+    from pydantic import BaseModel
 
     response = Response.from_job_returns(None)
     assert response == Response()
@@ -559,9 +558,8 @@ def test_response():
 def test_serialization():
     import json
 
-    from monty.json import MontyDecoder, MontyEncoder
-
     from jobflow import Job
+    from monty.json import MontyDecoder, MontyEncoder
 
     test_job = Job(function=add, function_args=(1,), function_kwargs={"b": 2})
 
@@ -840,9 +838,8 @@ def test_append_name():
 
 
 def test_output_schema(memory_jobstore):
-    from pydantic import BaseModel
-
     from jobflow import Job, Response, job
+    from pydantic import BaseModel
 
     class AddSchema(BaseModel):
         result: int

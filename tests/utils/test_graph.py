@@ -4,9 +4,8 @@ import pytest
 
 
 def test_itergraph():
-    from networkx import DiGraph
-
     from jobflow.utils.graph import itergraph
+    from networkx import DiGraph
 
     # test linear
     graph = DiGraph([("a", "b"), ("b", "c")])
@@ -38,9 +37,8 @@ def test_itergraph():
 
 
 def test_draw_graph():
-    from networkx import DiGraph, planar_layout
-
     from jobflow.utils.graph import draw_graph
+    from networkx import DiGraph, planar_layout
 
     graph = DiGraph([("a", "b", {"properties": "1"}), ("b", "c", {"properties": "x"})])
     assert draw_graph(graph)
@@ -50,9 +48,8 @@ def test_draw_graph():
 
 @pytest.mark.usefixtures("no_pydot")
 def test_draw_graph_no_pydot():
-    from networkx import DiGraph
-
     from jobflow.utils.graph import draw_graph
+    from networkx import DiGraph
 
     graph = DiGraph([("a", "b", {"properties": "1"}), ("b", "c", {"properties": "x"})])
     assert draw_graph(graph)
@@ -60,9 +57,8 @@ def test_draw_graph_no_pydot():
 
 @pytest.mark.usefixtures("no_matplotlib")
 def test_draw_graph_no_matplotlib():
-    from networkx import DiGraph
-
     import jobflow.utils.graph
+    from networkx import DiGraph
 
     importlib.reload(jobflow.utils.graph)
 

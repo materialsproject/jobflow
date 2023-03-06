@@ -88,18 +88,18 @@ def find_key(
 
             if key in obj:
                 if include_end:
-                    found_items.add(path + (key,))
+                    found_items.add((*path, key))
                 else:
                     found_items.add(path)
                 found = True
 
             if not found or nested:
                 for k, v in obj.items():
-                    _lookup(v, path + (k,))
+                    _lookup(v, (*path, k))
 
         elif isinstance(obj, (list, tuple)):
             for i, v in enumerate(obj):
-                _lookup(v, path + (i,))
+                _lookup(v, (*path, i))
 
     _lookup(d)
     return [list(path) for path in found_items]
@@ -146,11 +146,11 @@ def find_key_value(
                 found_items.add(path)
 
             for k, v in obj.items():
-                _lookup(v, path + (k,))
+                _lookup(v, (*path, k))
 
         elif isinstance(obj, (list, tuple)):
             for i, v in enumerate(obj):
-                _lookup(v, path + (i,))
+                _lookup(v, (*path, i))
 
     _lookup(d)
     return tuple(list(path) for path in found_items)

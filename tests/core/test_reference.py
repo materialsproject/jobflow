@@ -151,9 +151,8 @@ def test_set_uuid():
 
 
 def test_schema():
-    from pydantic import BaseModel
-
     from jobflow import OutputReference
+    from pydantic import BaseModel
 
     class InnerSchema(BaseModel):
         n: float
@@ -452,7 +451,7 @@ def test_reference_in_output(memory_jobstore):
     task_data2 = {"uuid": ref2.uuid, "index": 1, "output": "xyz"}
     memory_jobstore.update(task_data1)
     memory_jobstore.update(task_data2)
-    assert "xyz" == ref1.resolve(memory_jobstore)
+    assert ref1.resolve(memory_jobstore) == "xyz"
 
     # test missing reference in output
     ref1 = OutputReference("12345")
