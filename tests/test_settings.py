@@ -22,9 +22,10 @@ def test_settings_object(clean_dir, test_data):
     import os
     from pathlib import Path
 
+    from monty.serialization import dumpfn
+
     from jobflow import JobStore
     from jobflow.settings import JobflowSettings
-    from monty.serialization import dumpfn
 
     monty_spec = {
         "@module": "jobflow.core.store",

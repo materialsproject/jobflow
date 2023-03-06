@@ -110,9 +110,10 @@ def test_flow_maker():
 def test_update_kwargs():
     from dataclasses import dataclass
 
+    from monty.json import MSONable
+
     from jobflow.core.job import Response, job
     from jobflow.core.maker import Maker
-    from monty.json import MSONable
 
     # this is needed to get monty to deserialize them correctly
     global AddMaker

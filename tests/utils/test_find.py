@@ -1,6 +1,7 @@
 def test_find_key():
-    from jobflow.utils import find_key
     from monty.json import MSONable, jsanitize
+
+    from jobflow.utils import find_key
 
     data = {"a": [0, {"b": 1, "x": 3}], "c": {"d": {"x": 3}}}
     result = find_key(data, "x")

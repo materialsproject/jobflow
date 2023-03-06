@@ -505,8 +505,9 @@ def test_job_decorator():
 def test_response():
     # no need to test init as it is just a dataclass, instead test from_job_returns
     # test no job returns
-    from jobflow.core.job import Response
     from pydantic import BaseModel
+
+    from jobflow.core.job import Response
 
     response = Response.from_job_returns(None)
     assert response == Response()
@@ -558,8 +559,9 @@ def test_response():
 def test_serialization():
     import json
 
-    from jobflow import Job
     from monty.json import MontyDecoder, MontyEncoder
+
+    from jobflow import Job
 
     test_job = Job(function=add, function_args=(1,), function_kwargs={"b": 2})
 
@@ -838,8 +840,9 @@ def test_append_name():
 
 
 def test_output_schema(memory_jobstore):
-    from jobflow import Job, Response, job
     from pydantic import BaseModel
+
+    from jobflow import Job, Response, job
 
     class AddSchema(BaseModel):
         result: int

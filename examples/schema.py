@@ -1,5 +1,6 @@
-from jobflow import job
 from pydantic import BaseModel, Field
+
+from jobflow import job
 
 
 class ComputeSchema(BaseModel):

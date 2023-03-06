@@ -151,8 +151,9 @@ def test_set_uuid():
 
 
 def test_schema():
-    from jobflow import OutputReference
     from pydantic import BaseModel
+
+    from jobflow import OutputReference
 
     class InnerSchema(BaseModel):
         n: float
