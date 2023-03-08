@@ -35,9 +35,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "m2r2",
+    "myst_parser",
     "nbsphinx",
-    "nbsphinx_link",
     "sphinxcontrib.autodoc_pydantic",
 ]
 
@@ -79,16 +78,8 @@ autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_field_show_constraints = False
 
 # Config nbsphinx
-
-# Ensure env.metadata[env.docname]['nbsphinx-link-target'] points relative to repo root:
-nbsphinx_link_target_root = os.path.join(__file__, "..", "..")
-
 nbsphinx_prolog = r"""
-{% if env.metadata[env.docname]['nbsphinx-link-target'] %}
-{% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
-{% else %}
-{% set docpath = env.doc2path(env.docname, base='docs/source/') %}
-{% endif %}
+{% set docpath = env.doc2path(env.docname, base=False) %}
 
 .. only:: html
 
@@ -98,7 +89,7 @@ nbsphinx_prolog = r"""
     .. nbinfo::
         This page is available as a Jupyter notebook: `{{ docpath }}`__.
 
-    __ https://github.com/materialsproject/jobflow/tree/main/{{ docpath }}"""
+    __ https://github.com/materialsproject/jobflow/tree/main/docs/{{ docpath }}"""
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -158,5 +149,5 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3.8", None),
     "matplotlib": ("http://matplotlib.org", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
-    "monty": ("https://guide.materialsvirtuallab.org/monty/", None),
+    "monty": ("https://materialsvirtuallab.github.io/monty/", None),
 }

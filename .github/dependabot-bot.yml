@@ -7,10 +7,9 @@ safe:
  - PyYAML
  - sphinx
  - furo
- - m2r2
+ - myst_parser
  - ipython
  - nbsphinx
- - nbsphinx-link
  - autodoc_pydantic
  - pytest
  - pytest-cov
