@@ -13,20 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
-          cache: pip
-          cache-dependency-path: pyproject.toml
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install .[strict,tests,dev]
-
-      - name: Lint
-        run: pre-commit run --all-files --show-diff-on-failure
+      - uses: pre-commit/action@v3.0.0
 
   test:
     services:
