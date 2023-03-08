@@ -1,6 +1,13 @@
 Change log
 ==========
 
+
+v0.1.10
+------
+
+- Move project configuration to `pyproject.toml`.
+- Add tutorial on generalized makers (@jmmshn, #268)
+
 v0.1.9
 ------
 
