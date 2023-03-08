@@ -1,0 +1,21 @@
+safe:
+ - monty
+ - pydash
+ - networkx
+ - maggma
+ - pydantic
+ - PyYAML
+ - sphinx
+ - furo
+ - m2r2
+ - ipython
+ - nbsphinx
+ - nbsphinx-link
+ - autodoc_pydantic
+ - pytest
+ - pytest-cov
+ - FireWorks
+ - matplotlib
+ - pydot
+ - moto
+ - pre-commit

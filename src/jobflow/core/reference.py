@@ -183,12 +183,8 @@ class OutputReference(MSONable):
         cache[self.uuid][index] = data
 
         for attr_type, attr in self.attributes:
-            if attr_type == "i":
-                # index
-                data = data[attr]
-            else:
-                # attribute access
-                data = getattr(data, attr)
+            # i means index else use attribute access
+            data = data[attr] if attr_type == "i" else getattr(data, attr)
 
         return data
 
@@ -226,7 +222,7 @@ class OutputReference(MSONable):
             _, subschema = validate_schema_access(self.output_schema, item)
 
         return OutputReference(
-            self.uuid, self.attributes + (("i", item),), output_schema=subschema
+            self.uuid, (*self.attributes, ("i", item)), output_schema=subschema
         )
 
     def __getattr__(self, item) -> OutputReference:
@@ -242,7 +238,7 @@ class OutputReference(MSONable):
             _, subschema = validate_schema_access(self.output_schema, item)
 
         return OutputReference(
-            self.uuid, self.attributes + (("a", item),), output_schema=subschema
+            self.uuid, (*self.attributes, ("a", item)), output_schema=subschema
         )
 
     def __setattr__(self, attr, val):
@@ -390,7 +386,7 @@ def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
 
     if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
-        return tuple([arg])
+        return (arg,)
 
     elif isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here

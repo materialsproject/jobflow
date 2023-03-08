@@ -149,8 +149,9 @@ class Maker(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name. Only Makers with a matching name will be updated.
-            Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
+            A filter for the Maker name. Only Makers with a matching name will be
+            updated. Includes partial matches, e.g. "ad" will match a Maker with the
+            name "adder".
         class_filter
             A filter for the maker class. Only Makers with a matching class will be
             updated. Note the class filter will match any subclasses.
@@ -232,7 +233,7 @@ class Maker(MSONable):
 
 def recursive_call(
     obj: Maker,
-    func: Callable[[Maker], Any],
+    func: Callable[[Maker], Maker],
     name_filter: str | None = None,
     class_filter: type[Maker] | None = None,
     nested: bool = True,
@@ -281,13 +282,11 @@ def recursive_call(
     # 2. Regenerate the classes and check if they are a Maker
     # 3. Call the functions on the deepest classes first
     # 4. Call the function or update on the deepest classes and move up the tree
-    # 5. Finally replace the call/update the object itself
+    # 5. Finally, replace the call/update the object itself
 
     # find all classes in the serialized maker kwargs
-    if nested:
-        locations = find_key(d, "@class", nested=True)
-    else:
-        locations = [[]]  # will only look at the top level if nested=False
+    # will only look at the top level if nested=False
+    locations = find_key(d, "@class", nested=True) if nested else [[]]
 
     for location in sorted(
         locations, key=len, reverse=True
@@ -298,7 +297,7 @@ def recursive_call(
         if _filter(nested_class):
             # either update or call the function on the nested Maker
             modified_class = func(nested_class)
-            if not isinstance(modified_class, Maker):  # pragma: no cover
+            if not isinstance(modified_class, Maker):
                 raise ValueError(
                     "Function must return a Maker object. "
                     f"Got {type(modified_class)} instead."

@@ -12,6 +12,7 @@ class ComputeSchema(BaseModel):
 
 @job(output_schema=ComputeSchema)
 def compute(a: float, b: float):
+    """Do a calculation."""
     return ComputeSchema(total=a + b, product=a * b)
 
 

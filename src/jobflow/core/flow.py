@@ -173,7 +173,8 @@ class Flow(MSONable):
         """
         Set the output of the Flow.
 
-        The output should be compatible with the list of Jobs/Flows contained in the Flow.
+        The output should be compatible with the list of Jobs/Flows contained in the
+        Flow.
 
         Parameters
         ----------
@@ -406,8 +407,9 @@ class Flow(MSONable):
         update
             The updates to apply.
         name_filter
-            A filter for the Maker name. Only Makers with a matching name will be updated.
-            Includes partial matches, e.g. "ad" will match a Maker with the name "adder".
+            A filter for the Maker name. Only Makers with a matching name will be
+            updated. Includes partial matches, e.g. "ad" will match a Maker with the
+            name "adder".
         class_filter
             A filter for the maker class. Only Makers with a matching class will be
             updated. Note the class filter will match any subclasses.
@@ -533,7 +535,8 @@ class Flow(MSONable):
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
         dynamic
-            The updates will be propagated to Jobs/Flows dynamically generated at runtime.
+            The updates will be propagated to Jobs/Flows dynamically generated at
+            runtime.
 
         Examples
         --------
@@ -587,7 +590,8 @@ class Flow(MSONable):
             Which attributes of the job config to set. Can be specified as one or more
             attributes specified by their name.
         dynamic
-            The updates will be propagated to Jobs/Flows dynamically generated at runtime.
+            The updates will be propagated to Jobs/Flows dynamically generated at
+            runtime.
 
         Examples
         --------
@@ -678,7 +682,7 @@ class Flow(MSONable):
             jobs = [jobs]
 
         job_ids = set(self.all_uuids)
-        hosts = [self.uuid] + self.hosts
+        hosts = [self.uuid, *self.hosts]
         for job in jobs:
             if job.host is not None and job.host != self.uuid:
                 raise ValueError(

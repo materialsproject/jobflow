@@ -603,7 +603,7 @@ class JobStore(Store):
         return cls.from_dict_spec(store_info, **kwargs)
 
     @classmethod
-    def from_dict_spec(cls: Type[T], spec: dict, **kwargs) -> T:
+    def from_dict_spec(cls: type[T], spec: dict, **kwargs) -> T:
         """
         Create an JobStore from a dict specification.
 
@@ -749,7 +749,7 @@ def _filter_blobs(
 
     new_blobs = []
     new_locations = []
-    for store_name, store_load in load.items():
+    for _store_name, store_load in load.items():
         for blob, location in zip(blob_infos, locations):
             if store_load is True:
                 new_blobs.append(blob)
@@ -763,10 +763,7 @@ def _filter_blobs(
                         isinstance(ltype, tuple)
                         and blob.get("@class", None) == ltype[1]
                         and blob.get("@module", None) == ltype[0]
-                    ):
-                        new_blobs.append(blob)
-                        new_locations.append(location)
-                    elif location[-1] == ltype:
+                    ) or location[-1] == ltype:
                         new_blobs.append(blob)
                         new_locations.append(location)
 

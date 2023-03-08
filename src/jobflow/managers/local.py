@@ -147,7 +147,7 @@ def run_locally(
             if response is False:
                 return False
 
-        return True if response is not None else False
+        return response is not None
 
     logger.info("Started executing jobs locally")
     finished_successfully = _run(flow)

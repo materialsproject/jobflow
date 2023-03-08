@@ -24,10 +24,13 @@ __all__ = ["CURRENT_JOB"]
 
 @singleton
 class State:
+    """State of the current job and store."""
+
     job: jobflow.Job | None = None
     store: jobflow.JobStore | None = None
 
     def reset(self):
+        """Reset the current state."""
         self.job = None
         self.store = None
 
