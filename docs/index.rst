@@ -30,5 +30,5 @@ Introduction
 ============
 
 .. include:: ../README.md
-   :start-line: 7
+   :start-line: 9
    :parser: myst_parser.sphinx_
