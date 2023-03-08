@@ -76,7 +76,7 @@ the jobs is determined automatically and can be visualised using the flow graph.
 
 ## Installation
 
-The jobflow is a Python 3.7+ library and can be installed using pip.
+The jobflow is a Python 3.8+ library and can be installed using pip.
 
 ```bash
 pip install jobflow
