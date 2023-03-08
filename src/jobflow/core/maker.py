@@ -233,7 +233,7 @@ class Maker(MSONable):
 
 def recursive_call(
     obj: Maker,
-    func: Callable[[Maker], Any],
+    func: Callable[[Maker], Maker],
     name_filter: str | None = None,
     class_filter: type[Maker] | None = None,
     nested: bool = True,
