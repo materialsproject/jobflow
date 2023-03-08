@@ -35,9 +35,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "m2r2",
+    "myst_parser",
     "nbsphinx",
-    "nbsphinx_link",
     "sphinxcontrib.autodoc_pydantic",
 ]
 
@@ -81,7 +80,7 @@ autodoc_pydantic_field_show_constraints = False
 # Config nbsphinx
 
 # Ensure env.metadata[env.docname]['nbsphinx-link-target'] points relative to repo root:
-nbsphinx_link_target_root = os.path.join(__file__, "..", "..")
+nbsphinx_link_target_root = os.path.join(__file__, "..")
 
 nbsphinx_prolog = r"""
 {% if env.metadata[env.docname]['nbsphinx-link-target'] %}
@@ -158,5 +157,5 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3.8", None),
     "matplotlib": ("http://matplotlib.org", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
-    "monty": ("https://guide.materialsvirtuallab.org/monty/", None),
+    "monty": ("https://materialsvirtuallab.github.io/monty/", None),
 }

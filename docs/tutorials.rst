@@ -10,3 +10,4 @@ Tutorials
    tutorials/1-quickstart
    tutorials/2-introduction
    tutorials/3-defining-jobs
+   tutorials/4-generalized-makers
