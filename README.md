@@ -5,6 +5,8 @@
 <a href="https://pypi.org/project/jobflow"><img alt="pypi version" src="https://img.shields.io/pypi/v/jobflow?color=blue"></a>
 <img alt="supported python versions" src="https://img.shields.io/pypi/pyversions/jobflow">
 
+[Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow)
+
 Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
 arbitrary computing resources using the [FireWorks][fireworks] workflow manager.
