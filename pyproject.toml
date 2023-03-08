@@ -62,7 +62,7 @@ strict = [
 
 [project.urls]
 homepage = "https://materialsproject.github.io/jobflow/"
-repository = "https://github.com/hackingmaterials/jobflow"
+repository = "https://github.com/materialsproject/jobflow"
 documentation = "https://materialsproject.github.io/jobflow/"
 changelog = "https://github.com/materialsproject/jobflow/blob/main/CHANGELOG.md"
 
