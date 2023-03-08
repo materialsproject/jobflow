@@ -41,7 +41,6 @@ docs = [
     "myst_parser==1.0.0",
     "ipython==8.11.0",
     "nbsphinx==0.8.12",
-    "FireWorks==2.0.3",
     "autodoc_pydantic==1.8.0",
 ]
 dev = ["pre-commit>=2.12.1"]
