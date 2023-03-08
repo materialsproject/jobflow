@@ -233,7 +233,7 @@ class Maker(MSONable):
 
 def recursive_call(
     obj: Maker,
-    func: Callable[[Maker], Any],
+    func: Callable[[Maker], Maker],
     name_filter: str | None = None,
     class_filter: type[Maker] | None = None,
     nested: bool = True,
@@ -297,7 +297,7 @@ def recursive_call(
         if _filter(nested_class):
             # either update or call the function on the nested Maker
             modified_class = func(nested_class)
-            if not isinstance(modified_class, Maker):  # pragma: no cover
+            if not isinstance(modified_class, Maker):
                 raise ValueError(
                     "Function must return a Maker object. "
                     f"Got {type(modified_class)} instead."

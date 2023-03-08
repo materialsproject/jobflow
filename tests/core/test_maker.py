@@ -208,3 +208,50 @@ def test_update_kwargs():
     maker = FakeDetourMaker()
     maker = maker.update_kwargs({"c": 10}, class_filter=NotAMaker, nested=True)
     assert maker.add_maker.c == 5
+
+
+def test_recursive_call():
+    from dataclasses import dataclass, field
+
+    from jobflow.core.job import Response, job
+    from jobflow.core.maker import Maker, recursive_call
+
+    # this is needed to get monty to deserialize them correctly
+    global AddMaker
+    global DetourMaker
+
+    @dataclass
+    class AddMaker(Maker):
+        name: str = "add"
+        c: int = 5
+
+        @job
+        def make(self, a, b):
+            return a + b + self.c
+
+    @dataclass
+    class DetourMaker(Maker):
+        name: str = "add"
+        c: int = 10
+        add_maker: Maker = field(default_factory=AddMaker)
+
+        def make(self, a, b):
+            detour = self.add_maker.make(a, b)
+            return Response(detour=detour)
+
+    def func(maker: Maker) -> Maker:
+        maker.c = 2
+        return maker
+
+    # test normal recursive call
+    maker = DetourMaker()
+    new_maker = recursive_call(maker, func)
+    assert new_maker.c == 2
+    assert new_maker.add_maker.c == 2
+
+    def bad_func(_: Maker) -> int:
+        return 1
+
+    # test bad recursive call
+    with pytest.raises(ValueError):
+        recursive_call(maker, bad_func)
