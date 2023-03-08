@@ -78,16 +78,8 @@ autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_field_show_constraints = False
 
 # Config nbsphinx
-
-# Ensure env.metadata[env.docname]['nbsphinx-link-target'] points relative to repo root:
-nbsphinx_link_target_root = os.path.join(__file__, "..")
-
 nbsphinx_prolog = r"""
-{% if env.metadata[env.docname]['nbsphinx-link-target'] %}
-{% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
-{% else %}
-{% set docpath = env.doc2path(env.docname, base='docs/source/') %}
-{% endif %}
+{% set docpath = env.doc2path(env.docname, base=False) %}
 
 .. only:: html
 
@@ -97,7 +89,7 @@ nbsphinx_prolog = r"""
     .. nbinfo::
         This page is available as a Jupyter notebook: `{{ docpath }}`__.
 
-    __ https://github.com/materialsproject/jobflow/tree/main/{{ docpath }}"""
+    __ https://github.com/materialsproject/jobflow/tree/main/docs/{{ docpath }}"""
 
 
 # -- Options for HTML output -------------------------------------------------
