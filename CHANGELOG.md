@@ -1,6 +1,10 @@
 Change log
 ==========
 
+v0.1.11
+------
+
+- Enable serialisation of bson.
 
 v0.1.10
 ------
