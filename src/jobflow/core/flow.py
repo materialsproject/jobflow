@@ -140,7 +140,7 @@ class Flow(MSONable):
         self.uuid = uuid
         self.hosts = hosts or []
 
-        self._jobs: tuple[Flow | Job, ...] = tuple()
+        self._jobs: tuple[Flow | Job, ...] = ()
         self.add_jobs(jobs)
         self.output = output
 

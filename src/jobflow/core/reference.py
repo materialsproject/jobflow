@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import typing
 from typing import Any, Sequence
 
@@ -93,7 +94,7 @@ class OutputReference(MSONable):
     def __init__(
         self,
         uuid: str,
-        attributes: tuple[tuple[str, Any], ...] = tuple(),
+        attributes: tuple[tuple[str, Any], ...] = (),
         output_schema: type[BaseModel] | None = None,
     ):
         super().__init__()
@@ -157,12 +158,10 @@ class OutputReference(MSONable):
         index = None if result is None else result["index"]
 
         if index is not None and index not in cache[self.uuid]:
-            try:
+            with contextlib.suppress(ValueError):
                 cache[self.uuid][index] = store.get_output(
                     self.uuid, which="last", load=True, on_missing=on_missing
                 )
-            except ValueError:
-                pass
 
         if on_missing == OnMissing.ERROR and index not in cache[self.uuid]:
             istr = f" ({index})" if index is not None else ""
@@ -390,7 +389,7 @@ def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
 
     elif isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
-        return tuple()
+        return ()
 
     arg = jsanitize(arg, strict=True, enum_values=True, allow_bson=True)
 

@@ -23,11 +23,11 @@ def test_job_init():
     assert test_job.output.uuid == test_job.uuid
 
     # test init no args
-    test_job = Job(function=add, function_args=tuple())
+    test_job = Job(function=add, function_args=())
     assert test_job
     assert test_job.function == add
     assert test_job.name == "add"
-    assert test_job.function_args == tuple()
+    assert test_job.function_args == ()
     assert test_job.function_kwargs == {}
     assert test_job.uuid is not None
     assert test_job.output.uuid == test_job.uuid
@@ -452,7 +452,7 @@ def test_job_decorator():
     test_job = decorated()
     assert test_job
     assert test_job.function == print
-    assert test_job.function_args == tuple()
+    assert test_job.function_args == ()
     assert test_job.function_kwargs == {}
     assert test_job.name == "print"
     assert type(test_job.output).__name__ == "OutputReference"

@@ -210,7 +210,7 @@ class JobStore(Store):
                         properties=["blob_uuid", "data"],
                     )
                     object_map = {o["blob_uuid"]: o["data"] for o in objects}
-                    inserts = {tuple(l): object_map[o] for o, l in object_info.items()}
+                    inserts = {tuple(v): object_map[k] for k, v in object_info.items()}
                     to_insert.update(inserts)
 
                 update_in_dictionary(doc, to_insert)
@@ -737,7 +737,7 @@ def _filter_blobs(
     from collections import defaultdict
 
     def _group_blobs(infos, locs):
-        grouped = defaultdict(lambda: (list(), list()))
+        grouped = defaultdict(lambda: ([], []))
         for info, loc in zip(infos, locs):
             grouped[info["store"]][0].append(info)
             grouped[info["store"]][1].append(loc)

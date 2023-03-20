@@ -1,4 +1,5 @@
 """A demonstration of how to enforce linear ordering of jobs."""
+
 from jobflow import Flow, JobOrder, job
 
 

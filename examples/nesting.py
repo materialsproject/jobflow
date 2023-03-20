@@ -1,3 +1,5 @@
+"""A demonstration of how flows can be nested inside of other flows."""
+
 import random
 
 from jobflow import Flow, job, run_locally

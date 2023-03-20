@@ -8,7 +8,7 @@ def test_access():
 
     # test empty
     ref = OutputReference("123")
-    assert ref.attributes == tuple()
+    assert ref.attributes == ()
 
     # test bad init
     with pytest.raises(ValueError):
@@ -172,7 +172,7 @@ def test_schema():
         nested: MediumSchema
 
     ref = OutputReference("123", output_schema=MySchema)
-    assert ref.attributes == tuple()
+    assert ref.attributes == ()
 
     # check valid schema access works
     new_ref = ref.number
