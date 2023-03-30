@@ -303,6 +303,7 @@ class JobStore(Store):
                     for save_key in store_save:
                         locations.extend(find_key(doc, save_key, include_end=True))
 
+                    locations = _get_root_locations(locations)
                     objects = [get(doc, list(loc)) for loc in locations]
                     object_map = {
                         tuple(k): o for k, o in zip(locations, objects) if o is not None
@@ -785,3 +786,21 @@ def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
         "blob_uuid": suuid(),
         "store": store_name,
     }
+
+
+def _get_root_locations(locations):
+    """Get only the lowest level locations.
+
+    If a parent location is in the list, the child location is removed
+
+    Example usage:
+        >>> _get_root_locations([["a", "b"], ["a"], ["c", "d"]])
+        [["a"], ["c", "d"]]
+    """
+    sorted_locs = sorted(locations, key=lambda x: len(x))
+    root_locations = []
+    for loc in sorted_locs:
+        if any([loc[: len(rloc)] == rloc for rloc in root_locations]):
+            continue
+        root_locations.append(loc)
+    return root_locations
