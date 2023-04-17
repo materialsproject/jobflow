@@ -50,7 +50,7 @@ fireworks = ["FireWorks"]
 strict = [
     "monty==2023.4.10",
     "networkx==3.1",
-    "pydash==6.0.2",
+    "pydash==7.0.1",
     "maggma==0.50.3",
     "pydantic==1.10.7",
     "PyYAML==6.0",
