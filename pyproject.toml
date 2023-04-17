@@ -44,7 +44,7 @@ docs = [
     "autodoc_pydantic==1.8.0",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["pytest==7.3.0", "pytest-cov==4.0.0"]
+tests = ["pytest==7.3.1", "pytest-cov==4.0.0"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
