@@ -220,3 +220,31 @@ def contains_flow_or_job(obj: Any) -> bool:
     locations += find_key_value(obj, "@class", "Job")
 
     return len(locations) > 0
+
+
+def get_root_locations(locations):
+    """Get only the lowest level locations.
+
+    If a parent location is in the list, the child location is removed
+
+    Parameters
+    ----------
+    locations : list[list]
+        A list of locations.
+
+    Returns
+    -------
+    list[list]
+        A list of locations with only the lowest level locations.
+
+    Example usage:
+        >>> _get_root_locations([["a", "b"], ["a"], ["c", "d"]])
+        [["a"], ["c", "d"]]
+    """
+    sorted_locs = sorted(locations, key=lambda x: len(x))
+    root_locations = []
+    for loc in sorted_locs:
+        if any([loc[: len(rloc)] == rloc for rloc in root_locations]):
+            continue
+        root_locations.append(loc)
+    return root_locations
