@@ -223,7 +223,7 @@ def contains_flow_or_job(obj: Any) -> bool:
 
 
 def get_root_locations(locations):
-    """Get only the lowest level locations.
+    """Filter for the the lowest level locations.
 
     If a parent location is in the list, the child location is removed
 
