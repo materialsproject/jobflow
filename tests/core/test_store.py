@@ -1,5 +1,7 @@
 import pytest
 
+from jobflow.core.store import JobStore
+
 
 @pytest.fixture
 def memory_store():
@@ -224,6 +226,28 @@ def test_data_update(memory_data_jobstore):
     assert data2 in data_fields
     assert data3 in data_fields
     assert None not in data_fields
+
+
+def test_nested_msonable(memory_data_jobstore):
+    from monty.json import MSONable
+
+    class Child(MSONable):
+        def __init__(self, x):
+            self.x = x
+
+    class Parent(MSONable):
+        def __init__(self, child):
+            self.child = child
+
+    parent = Parent(child=Child(x=5))
+    d = {"index": 1, "uuid": 1, "parent": parent}
+    memory_data_jobstore: JobStore
+    memory_data_jobstore.update(d, save={"data": [Parent, Child]})
+    ds = memory_data_jobstore.additional_stores["data"]
+    classes = ds.distinct("@class")
+    assert set(classes) == {
+        "Parent",
+    }
 
 
 def test_count(memory_jobstore):

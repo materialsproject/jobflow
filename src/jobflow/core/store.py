@@ -8,6 +8,7 @@ from maggma.core import Store
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
+from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
     from enum import Enum
@@ -303,6 +304,7 @@ class JobStore(Store):
                     for save_key in store_save:
                         locations.extend(find_key(doc, save_key, include_end=True))
 
+                    locations = get_root_locations(locations)
                     objects = [get(doc, list(loc)) for loc in locations]
                     object_map = {
                         tuple(k): o for k, o in zip(locations, objects) if o is not None
