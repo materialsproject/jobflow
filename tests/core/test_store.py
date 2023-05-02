@@ -1,7 +1,5 @@
 import pytest
 
-from jobflow.core.store import JobStore
-
 
 @pytest.fixture
 def memory_store():
@@ -230,6 +228,8 @@ def test_data_update(memory_data_jobstore):
 
 def test_nested_msonable(memory_data_jobstore):
     from monty.json import MSONable
+
+    from jobflow.core.store import JobStore
 
     class Child(MSONable):
         def __init__(self, x):
