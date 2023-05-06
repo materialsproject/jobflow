@@ -215,7 +215,7 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
 
     To render the graph, go to mermaid.live and paste the contents of ``graph_source``.
     """
-    from jobflow.core.flow import Flow
+    from jobflow import Flow
 
     lines = ["flowchart TD"]
     nodes = flow.graph.nodes(data=True)
@@ -230,18 +230,21 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
         lines.append(line)
 
     # add subgraphs
-    def add_subgraph(nested_flow, prefix="    "):
+    def add_subgraph(nested_flow, indent_level=1):
+        prefix = "    " * indent_level
+
         for job in nested_flow.jobs:
             if isinstance(job, Flow):
                 if show_flow_boxes:
                     lines.append(f"{prefix}subgraph {job.uuid} [{job.name}]")
 
-                add_subgraph(job, prefix=prefix + "    ")
+                add_subgraph(job, indent_level=indent_level + 1)
 
                 if show_flow_boxes:
                     lines.append(f"{prefix}end")
             else:
-                lines.append(f"{prefix}{job.uuid}({job.name})")
+                if indent_level != 1:
+                    lines.append(f"{prefix}{job.uuid}({job.name})")
 
     add_subgraph(flow)
 

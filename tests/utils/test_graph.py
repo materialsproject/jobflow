@@ -121,7 +121,7 @@ def test_to_mermaid():
     flow2 = Flow([add_job3, add_job4])
     main_flow = Flow([flow1, flow2])
 
-    mermaid = to_mermaid(main_flow)
+    mermaid = to_mermaid(main_flow, show_flow_boxes=True)
     assert "subgraph" in mermaid
 
     # test without flow boxes
