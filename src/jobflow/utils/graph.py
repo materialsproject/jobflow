@@ -179,3 +179,72 @@ def to_pydot(flow: jobflow.Flow):
     add_cluster(flow, pydot_graph)
 
     return pydot_graph
+
+
+def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = True) -> str:
+    """
+    Convert a flow to a mermaid graph.
+
+    Mermaid syntax allows graphs to be displayed interactively via GitHub, the
+    Mermaid Live Editor at mermaid.live, using the mermaid-cli.
+
+    Parameters
+    ----------
+    flow : Flow
+        A flow.
+    show_flow_boxes : bool
+        Whether to show the boxes around nested flows.
+
+    Returns
+    -------
+    str
+        Mermaid commands to render the graph.
+
+    Examples
+    --------
+    The mermaid syntax can be generated from a flow using:
+
+    >>> from jobflow import job, Flow
+    >>> @job
+    ... def add(a, b):
+    ...     return a + b
+    >>> add_first = add(1, 2)
+    >>> add_second = add(add_first.output, 2)
+    >>> my_flow = Flow(jobs=[add_first, add_second])
+    >>> graph_source = to_mermaid(my_flow)
+
+    To render the graph, go to mermaid.live and paste the contents of ``graph_source``.
+    """
+    from jobflow.core.flow import Flow
+
+    lines = ["flowchart TD"]
+    nodes = flow.graph.nodes(data=True)
+
+    # add edges
+    seen_nodes = set()
+    for u, v, d in flow.graph.edges(data=True):
+        if isinstance(d["properties"], list):
+            props = ", ".join(d["properties"])
+        else:
+            props = d["properties"]
+        line = f"    {u}({nodes[u]['label']}) -->|{props}| {v}({nodes[v]['label']})"
+        lines.append(line)
+        seen_nodes.update({u, v})
+
+    # add subgraphs
+    def add_subgraph(nested_flow, prefix="    "):
+        for job in nested_flow.jobs:
+            if isinstance(job, Flow):
+                if show_flow_boxes:
+                    lines.append(f"{prefix}subgraph {job.uuid} [{job.name}]")
+
+                add_subgraph(job, prefix=prefix + "    ")
+
+                if show_flow_boxes:
+                    lines.append(f"{prefix}end")
+            else:
+                lines.append(f"{prefix}{job.uuid}({job.name})")
+
+    add_subgraph(flow)
+
+    return "\n".join(lines)
