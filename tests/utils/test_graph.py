@@ -112,6 +112,14 @@ def test_to_mermaid():
     mermaid = to_mermaid(flow)
     assert mermaid is not None
 
+    # test list of properties
+    add_job1 = Job(add, function_args=(1, 2))
+    add_job2 = Job(add, function_args=(add_job1.output.prop1, add_job1.output.prop2))
+    flow = Flow([add_job1, add_job2])
+
+    mermaid = to_mermaid(flow)
+    assert "prop1, prop2" in mermaid
+
     # test nested
     add_job1 = Job(add, function_args=(1, 2))
     add_job2 = Job(add, function_args=(1, 2))
