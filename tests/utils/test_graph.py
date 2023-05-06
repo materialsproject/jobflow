@@ -118,7 +118,7 @@ def test_to_mermaid():
     flow = Flow([add_job1, add_job2])
 
     mermaid = to_mermaid(flow)
-    assert "prop1, prop2" in mermaid
+    assert ("prop1, prop2" in mermaid) or ("prop2, prop1" in mermaid)
 
     # test nested
     add_job1 = Job(add, function_args=(1, 2))
