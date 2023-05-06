@@ -181,7 +181,7 @@ def to_pydot(flow: jobflow.Flow):
     return pydot_graph
 
 
-def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = True) -> str:
+def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
     """
     Convert a flow to a mermaid graph.
 
@@ -221,7 +221,6 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = True) -> str:
     nodes = flow.graph.nodes(data=True)
 
     # add edges
-    seen_nodes = set()
     for u, v, d in flow.graph.edges(data=True):
         if isinstance(d["properties"], list):
             props = ", ".join(d["properties"])
@@ -229,7 +228,6 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = True) -> str:
             props = d["properties"]
         line = f"    {u}({nodes[u]['label']}) -->|{props}| {v}({nodes[v]['label']})"
         lines.append(line)
-        seen_nodes.update({u, v})
 
     # add subgraphs
     def add_subgraph(nested_flow, prefix="    "):
