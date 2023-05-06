@@ -98,3 +98,40 @@ def test_to_pydot():
 
     pydot = to_pydot(main_flow)
     assert pydot is not None
+
+
+def test_to_mermaid():
+    from jobflow import Flow, Job
+    from jobflow.utils.graph import to_mermaid
+
+    # test edges
+    add_job1 = Job(add, function_args=(1, 2))
+    add_job2 = Job(add, function_args=(1, add_job1.output))
+    flow = Flow([add_job1, add_job2])
+
+    mermaid = to_mermaid(flow)
+    assert mermaid is not None
+
+    # test list of properties
+    add_job1 = Job(add, function_args=(1, 2))
+    add_job2 = Job(add, function_args=(add_job1.output.prop1, add_job1.output.prop2))
+    flow = Flow([add_job1, add_job2])
+
+    mermaid = to_mermaid(flow)
+    assert ("prop1, prop2" in mermaid) or ("prop2, prop1" in mermaid)
+
+    # test nested
+    add_job1 = Job(add, function_args=(1, 2))
+    add_job2 = Job(add, function_args=(1, 2))
+    add_job3 = Job(add, function_args=(1, 2))
+    add_job4 = Job(add, function_args=(1, 2))
+    flow1 = Flow([add_job1, add_job2])
+    flow2 = Flow([add_job3, add_job4])
+    main_flow = Flow([flow1, flow2])
+
+    mermaid = to_mermaid(main_flow, show_flow_boxes=True)
+    assert "subgraph" in mermaid
+
+    # test without flow boxes
+    mermaid = to_mermaid(main_flow, show_flow_boxes=False)
+    assert "subgraph" not in mermaid
