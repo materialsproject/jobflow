@@ -48,7 +48,7 @@ tests = ["pytest==7.3.1", "pytest-cov==4.0.0"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
-    "monty==2023.4.10",
+    "monty==2023.5.8",
     "networkx==3.1",
     "pydash==7.0.2",
     "maggma==0.50.4",
