@@ -153,7 +153,7 @@ def job(method: Callable | None = None, **job_kwargs):
 
     >>> @job(large_data="data", graphs="graph")
     ... def compute(a, b):
-    ...     return {"large_data": b, "graph": a }
+    ...     return {"data": b, "graph": a }
 
     .. Note::
         Using additional stores requires the :obj:`.JobStore` to be configured with
