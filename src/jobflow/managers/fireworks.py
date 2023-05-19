@@ -155,7 +155,7 @@ class JobFiretask(FiretaskBase):
 
         if store is None:
             store = SETTINGS.JOB_STORE
-        if os.environ["FW_DATASERVER_PORT"]:
+        if "FW_DATASERVER_PORT" in os.environ:
             ds = DataServer(address=("127.0.0.1", int(os.environ["FW_DATASERVER_PORT"])),
                             authkey=DS_PASSWORD)
             ds.connect()
