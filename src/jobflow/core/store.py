@@ -444,6 +444,30 @@ class JobStore(Store):
                 store.remove_docs({"job_uuid": doc["uuid"], "job_index": doc["index"]})
         self.docs_store.remove_docs(criteria)
 
+    
+    def __eq__(self, other: object) -> bool:
+        """
+        Check equality for JobStore
+        Args:
+            other: other JobStore to compare with
+        """
+        if not isinstance(other, JobStore):
+            return False
+
+        fields = [
+            "docs_store",
+            "save",
+            "load"
+        ]
+
+        # Check equality of all additional_stores
+        if len(self.additional_stores) == len(other.additional_stores):
+            if self.additional_stores == other.additional_stores:
+                return all(getattr(self, f) == getattr(other, f) for f in fields)        
+        
+        return False
+
+
     def get_output(
         self,
         uuid: str,
