@@ -153,6 +153,8 @@ class JobFiretask(FiretaskBase):
             store = SETTINGS.JOB_STORE
         store.connect()
 
+        job.metadata.update({"fw_spec":fw_spec})
+
         if hasattr(self, "fw_id"):
             job.metadata.update({"fw_id": self.fw_id})
 
