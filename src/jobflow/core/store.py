@@ -8,6 +8,7 @@ from maggma.core import Store
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
+from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
     from enum import Enum
@@ -210,7 +211,7 @@ class JobStore(Store):
                         properties=["blob_uuid", "data"],
                     )
                     object_map = {o["blob_uuid"]: o["data"] for o in objects}
-                    inserts = {tuple(l): object_map[o] for o, l in object_info.items()}
+                    inserts = {tuple(v): object_map[k] for k, v in object_info.items()}
                     to_insert.update(inserts)
 
                 update_in_dictionary(doc, to_insert)
@@ -303,6 +304,7 @@ class JobStore(Store):
                     for save_key in store_save:
                         locations.extend(find_key(doc, save_key, include_end=True))
 
+                    locations = get_root_locations(locations)
                     objects = [get(doc, list(loc)) for loc in locations]
                     object_map = {
                         tuple(k): o for k, o in zip(locations, objects) if o is not None
@@ -737,7 +739,7 @@ def _filter_blobs(
     from collections import defaultdict
 
     def _group_blobs(infos, locs):
-        grouped = defaultdict(lambda: (list(), list()))
+        grouped = defaultdict(lambda: ([], []))
         for info, loc in zip(infos, locs):
             grouped[info["store"]][0].append(info)
             grouped[info["store"]][1].append(loc)

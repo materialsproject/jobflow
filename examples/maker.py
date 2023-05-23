@@ -1,3 +1,5 @@
+"""A demonstration of using Maker classes to store inputs for jobs."""
+
 from dataclasses import dataclass
 
 from jobflow import Flow, Maker, job, run_locally

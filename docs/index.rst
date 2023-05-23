@@ -29,5 +29,6 @@
 Introduction
 ============
 
-.. mdinclude:: ../README.md
-   :start-line: 7
+.. include:: ../README.md
+   :start-line: 9
+   :parser: myst_parser.sphinx_

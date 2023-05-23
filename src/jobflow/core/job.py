@@ -153,7 +153,7 @@ def job(method: Callable | None = None, **job_kwargs):
 
     >>> @job(large_data="data", graphs="graph")
     ... def compute(a, b):
-    ...     return {"large_data": b, "graph": a }
+    ...     return {"data": b, "graph": a }
 
     .. Note::
         Using additional stores requires the :obj:`.JobStore` to be configured with
@@ -324,7 +324,7 @@ class Job(MSONable):
 
         from jobflow.utils.find import contains_flow_or_job
 
-        function_args = tuple() if function_args is None else function_args
+        function_args = () if function_args is None else function_args
         function_kwargs = {} if function_kwargs is None else function_kwargs
         uuid = suuid() if uuid is None else uuid
         metadata = {} if metadata is None else metadata
@@ -585,12 +585,14 @@ class Job(MSONable):
                 pass_manager_config(response.replace, passed_config)
 
         try:
-            output = jsanitize(response.output, strict=True, enum_values=True)
-        except AttributeError:
+            output = jsanitize(
+                response.output, strict=True, enum_values=True, allow_bson=True
+            )
+        except AttributeError as err:
             raise RuntimeError(
                 "Job output contained an object that is not MSONable and therefore "
                 "could not be serialized."
-            )
+            ) from err
 
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
         data = {
@@ -905,12 +907,12 @@ class Job(MSONable):
         from jobflow.utils.dict_mods import apply_mod
 
         if dynamic:
-            dict_input = dict(
-                update=update,
-                name_filter=name_filter,
-                function_filter=function_filter,
-                dict_mod=dict_mod,
-            )
+            dict_input = {
+                "update": update,
+                "name_filter": name_filter,
+                "function_filter": function_filter,
+                "dict_mod": dict_mod,
+            }
             self.metadata_updates.append(dict_input)
 
         # unwrap the functions in case the job is a decorated one
@@ -1014,12 +1016,12 @@ class Job(MSONable):
         only be set for the `test_job` and not for the generated Jobs.
         """
         if dynamic:
-            dict_input = dict(
-                config=config,
-                name_filter=name_filter,
-                function_filter=function_filter,
-                attributes=attributes,
-            )
+            dict_input = {
+                "config": config,
+                "name_filter": name_filter,
+                "function_filter": function_filter,
+                "attributes": attributes,
+            }
             self.config_updates.append(dict_input)
 
         # unwrap the functions in case the job is a decorated one

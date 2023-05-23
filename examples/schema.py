@@ -1,3 +1,5 @@
+"""A demonstration of using a schema to check output access."""
+
 from pydantic import BaseModel, Field
 
 from jobflow import job
