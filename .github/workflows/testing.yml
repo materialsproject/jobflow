@@ -82,3 +82,14 @@ jobs:
 
       - name: Build
         run: sphinx-build docs docs_build
+
+  automerge:
+    needs: [lint, test, docs]
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: fastify/github-action-merge-dependabot@v3
