@@ -7,7 +7,7 @@ import typing
 from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_serialize
 from fireworks.utilities.fw_utilities import DataServer
 from fireworks.fw_config import DS_PASSWORD
-from maggma.stores.shared_stores import MultiStoreFacade
+from maggma.stores.shared_stores import StoreFacade
 import os
 
 if typing.TYPE_CHECKING:
@@ -156,11 +156,13 @@ class JobFiretask(FiretaskBase):
         if store is None:
             store = SETTINGS.JOB_STORE
         if "FW_DATASERVER_PORT" in os.environ:
-            ds = DataServer(address=("127.0.0.1", int(os.environ["FW_DATASERVER_PORT"])),
-                            authkey=DS_PASSWORD)
+            ds = DataServer(
+                address=("127.0.0.1", int(os.environ["FW_DATASERVER_PORT"])),
+                authkey=DS_PASSWORD
+            )
             ds.connect()
             multistore = ds.MultiStore()
-            store = MultiStoreFacade(store, multistore)
+            store = StoreFacade(store, multistore)
         else:        
             store.connect()
 
