@@ -448,6 +448,7 @@ class JobStore(Store):
     def __eq__(self, other: object) -> bool:
         """
         Check equality for JobStore
+
         Args:
             other: other JobStore to compare with.
         """
@@ -457,9 +458,8 @@ class JobStore(Store):
         fields = ["docs_store", "save", "load"]
 
         # Check equality of all additional_stores
-        if len(self.additional_stores) == len(other.additional_stores):
-            if self.additional_stores == other.additional_stores:
-                return all(getattr(self, f) == getattr(other, f) for f in fields)
+        if self.additional_stores == other.additional_stores:
+            return all(getattr(self, f) == getattr(other, f) for f in fields)
 
         return False
 
