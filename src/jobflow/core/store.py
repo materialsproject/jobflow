@@ -447,7 +447,7 @@ class JobStore(Store):
 
     def __eq__(self, other: object) -> bool:
         """
-        Check equality for JobStore
+        Check equality for JobStore.
 
         Args:
             other: other JobStore to compare with.
