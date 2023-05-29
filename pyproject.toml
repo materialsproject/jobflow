@@ -40,7 +40,7 @@ docs = [
     "furo==2023.5.20",
     "myst_parser==1.0.0",
     "ipython==8.13.2",
-    "nbsphinx==0.9.1",
+    "nbsphinx==0.9.2",
     "autodoc_pydantic==1.8.0",
 ]
 dev = ["pre-commit>=2.12.1"]
