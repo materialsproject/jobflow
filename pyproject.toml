@@ -52,7 +52,7 @@ strict = [
     "networkx==3.1",
     "pydash==7.0.3",
     "maggma==0.51.1",
-    "pydantic==1.10.7",
+    "pydantic==1.10.8",
     "PyYAML==6.0",
     "FireWorks==2.0.3",
     "matplotlib==3.7.1",
