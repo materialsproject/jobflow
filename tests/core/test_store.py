@@ -434,6 +434,44 @@ def test_from_db_file(test_data):
         JobStore.from_file(test_data / "db_bad.yaml")
 
 
+def test_from_dict_spec():
+    from jobflow import JobStore
+    dict_spec = {
+        'docs_store': {
+            'type': 'MongoStore',
+            'database': 'jobflow_unittest',
+            'collection_name': 'outputs',
+            'host': 'localhost',
+            'port': 27017
+        }
+    }
+    JobStore.from_dict_spec(dict_spec)
+    assert 'type' in dict_spec['docs_store']
+    dict_spec = {
+        'docs_store': {
+            'type': 'MongoStore',
+            'database': 'jobflow_unittest',
+            'collection_name': 'outputs',
+            'host': 'localhost',
+            'port': 27017,
+        },
+        'additional_stores': {
+            'data': {
+                'type': 'GridFSStore',
+                'database': 'jobflow_unittest',
+                'collection_name': 'outputs_blobs',
+                'host': 'localhost',
+                'port': 27017,
+            }
+        }
+    }
+    JobStore.from_dict_spec(dict_spec)
+    assert 'type' in dict_spec['docs_store']
+    assert dict_spec['docs_store']['type'] == 'MongoStore'
+    assert 'type' in dict_spec['additional_stores']['data']
+    assert dict_spec['additional_stores']['data']['type'] == 'GridFSStore'
+
+
 def test_ensure_index(memory_jobstore):
     assert memory_jobstore.ensure_index("test_key")
     # TODO: How to check for exception?
