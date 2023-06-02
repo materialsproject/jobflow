@@ -679,7 +679,8 @@ def _construct_store(spec_dict, valid_stores):
     (e.g. stored in a database), or if there is some validation by a pydantic
     schema.
     This does not occur when using jobflow's standard loading of a config file
-    as it is only called once."""
+    as it is only called once.
+    """
     _spec_dict = dict(spec_dict)
     store_type = _spec_dict.pop("type")
     for k, v in _spec_dict.items():

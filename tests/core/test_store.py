@@ -436,40 +436,41 @@ def test_from_db_file(test_data):
 
 def test_from_dict_spec():
     from jobflow import JobStore
+
     dict_spec = {
-        'docs_store': {
-            'type': 'MongoStore',
-            'database': 'jobflow_unittest',
-            'collection_name': 'outputs',
-            'host': 'localhost',
-            'port': 27017
+        "docs_store": {
+            "type": "MongoStore",
+            "database": "jobflow_unittest",
+            "collection_name": "outputs",
+            "host": "localhost",
+            "port": 27017,
         }
     }
     JobStore.from_dict_spec(dict_spec)
-    assert 'type' in dict_spec['docs_store']
+    assert "type" in dict_spec["docs_store"]
     dict_spec = {
-        'docs_store': {
-            'type': 'MongoStore',
-            'database': 'jobflow_unittest',
-            'collection_name': 'outputs',
-            'host': 'localhost',
-            'port': 27017,
+        "docs_store": {
+            "type": "MongoStore",
+            "database": "jobflow_unittest",
+            "collection_name": "outputs",
+            "host": "localhost",
+            "port": 27017,
         },
-        'additional_stores': {
-            'data': {
-                'type': 'GridFSStore',
-                'database': 'jobflow_unittest',
-                'collection_name': 'outputs_blobs',
-                'host': 'localhost',
-                'port': 27017,
+        "additional_stores": {
+            "data": {
+                "type": "GridFSStore",
+                "database": "jobflow_unittest",
+                "collection_name": "outputs_blobs",
+                "host": "localhost",
+                "port": 27017,
             }
-        }
+        },
     }
     JobStore.from_dict_spec(dict_spec)
-    assert 'type' in dict_spec['docs_store']
-    assert dict_spec['docs_store']['type'] == 'MongoStore'
-    assert 'type' in dict_spec['additional_stores']['data']
-    assert dict_spec['additional_stores']['data']['type'] == 'GridFSStore'
+    assert "type" in dict_spec["docs_store"]
+    assert dict_spec["docs_store"]["type"] == "MongoStore"
+    assert "type" in dict_spec["additional_stores"]["data"]
+    assert dict_spec["additional_stores"]["data"]["type"] == "GridFSStore"
 
 
 def test_ensure_index(memory_jobstore):
