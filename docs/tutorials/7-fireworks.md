@@ -87,6 +87,12 @@ for job, _ in flow.iterflow():
         job.update_config({"manager_config": {"_fworker": "fworker2"}})
 ```
 
+To make the process a bit easier, the `{obj}update_config()` function can also be applied directly to a flow in conjunction with a filter. The logic above can then be simplified to:
+
+```python
+flow.update_config({"manager_config": {"_fworker": "fworker1"}}, name_filter="job1")
+```
+
 ### Launching the Jobs
 
 As described above, convert the flow to a workflow via {obj}`flow_to_workflow` and add it to your launch pad.
