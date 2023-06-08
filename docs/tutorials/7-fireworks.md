@@ -34,7 +34,7 @@ lpad.add_wf(wf)
 
 With a workflow added to your launch pad, on the desired machine of choice, you can run `qlaunch rapidfire --nlaunches <N>` (where `<N>` is the number of jobs to submit) in the command line to submit your workflows to the job scheduler.
 
-## Setting where Jobs and Flows are Dispatched
+## Setting where Jobs are Dispatched
 
 In many cases, you may wish to submit individual jobs in a flow to different machines or with different job submission options (e.g. different compute resources).
 
