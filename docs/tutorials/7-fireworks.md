@@ -82,9 +82,9 @@ To achieve this, set the name of each `fworker` (i.e. the `name` variable in `my
 ```python
 for job, _ in flow.iterflow():
     if job.name == "job1":
-        job.config.manager_config["_fworker"] = "fworker1"
+        job.update_config({"manager_config": {"_fworker": "fworker1"}})
     else:
-        job.config.manager_config["_fworker"] = "fworker2"
+        job.update_config({"manager_config": {"_fworker": "fworker2"}})
 ```
 
 ### Launching the Jobs
