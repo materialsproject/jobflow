@@ -127,5 +127,6 @@ Jobflow was designed by Alex Ganose, Anubhav Jain, Gian-Marco Rignanese, David W
 [defining-jobs]: https://materialsproject.github.io/jobflow/tutorials/3-defining-jobs.html
 [creating-flows]: https://materialsproject.github.io/jobflow/tutorials/4-creating-flows.html
 [dynamic-flows]: https://materialsproject.github.io/jobflow/tutorials/5-dynamic-flows.html
-[jobflow-database]: https://materialsproject.github.io/jobflow/tutorials/6-jobflow-database.html
-[jobflow-fireworks]: https://materialsproject.github.io/jobflow/tutorials/7-fireworks.html
+[makers]: https://materialsproject.github.io/jobflow/tutorials/6-makers.html
+[generalized-makers]: https://materialsproject.github.io/jobflow/tutorials/7-generalized-makers.html
+[jobflow-fireworks]: https://materialsproject.github.io/jobflow/tutorials/8-fireworks.html

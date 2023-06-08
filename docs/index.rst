@@ -4,6 +4,7 @@
 
    Introduction <self>
    Install jobflow <install>
+   Install FireWorks (Optional) <install_fireworks>
    Tutorials <tutorials>
 
 .. toctree::
