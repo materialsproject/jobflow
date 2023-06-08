@@ -12,5 +12,6 @@ Tutorials
    tutorials/3-defining-jobs
    tutorials/4-creating-flows
    tutorials/5-dynamic-flows
-   tutorials/6-generalized-makers
-   tutorials/7-fireworks
+   tutorials/6-makers
+   tutorials/7-generalized-makers
+   tutorials/8-fireworks
