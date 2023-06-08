@@ -91,9 +91,9 @@ for job, _ in flow.iterflow():
 
 As described above, convert the flow to a workflow via {obj}`flow_to_workflow` and add it to your launch pad.
 
-Finally, use the `-c` command-line option when launching your fireworks to specify the FireWorks configuration directory you wish to use.
+Finally, use the `-c` ("config") command-line option when launching your fireworks to specify the FireWorks configuration directory you wish to use.
 
-To launch all fireworks tied to `fw_config1`, run: `qlaunch rapidfire -c $FW_CONFIG1 --nlaunches <N>`. To launch all fireworks tied to `fw_config2`, run: `qlaunch rapidfire -c $FW_CONFIG2 --nlaunches <N>`.
+To launch all fireworks tied to `fw_config1`, run `qlaunch rapidfire -c $FW_CONFIG1 --nlaunches <N>`. To launch all fireworks tied to `fw_config2`, run `qlaunch rapidfire -c $FW_CONFIG2 --nlaunches <N>`. As always, the jobs won't actually run until any prior jobs they depend on are completed.
 
 ## Learn More
 
