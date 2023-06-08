@@ -97,6 +97,6 @@ To launch all fireworks tied to `fw_config1`, run `qlaunch rapidfire -c $FW_CONF
 
 ## Learn More
 
-For additional FireWorks-related options in Jobflow, see the `jobflow.managers.fireworks` section of the [Jobflow API](https://materialsproject.github.io/jobflow/jobflow.managers.html#module-jobflow.managers.fireworks).
+For additional FireWorks-related options in Jobflow, see the {obj}`jobflow.managers.fireworks` section of the [Jobflow API](https://materialsproject.github.io/jobflow/jobflow.managers.html#module-jobflow.managers.fireworks).
 
 For documentation on how to submit jobs to the queue that are in your launchpad, refer to the "Queue Tutorial" in the [FireWorks Documentation](https://materialsproject.github.io/fireworks/queue_tutorial.html#submit-a-job).
