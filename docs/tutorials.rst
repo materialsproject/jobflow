@@ -6,6 +6,7 @@ Tutorials
     features of jobflow will be added soon.
 
 .. toctree::
+   :maxdepth: 1
 
    tutorials/1-quickstart
    tutorials/2-introduction
