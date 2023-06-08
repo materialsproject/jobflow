@@ -1,2 +1,0 @@
-Configuring the jobflow database
-================================
