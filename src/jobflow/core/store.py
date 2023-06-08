@@ -672,12 +672,21 @@ class JobStore(Store):
 
 
 def _construct_store(spec_dict, valid_stores):
-    """Parse the dict containing {"type": <StoreType>} recursively."""
-    store_type = spec_dict.pop("type")
-    for k, v in spec_dict.items():
+    """Parse the dict containing {"type": <StoreType>} recursively.
+
+    Note: the spec is copied so that if this is used programmatically, the type
+    is not removed from the original spec_dict, which may be used afterwards,
+    (e.g. stored in a database), or if there is some validation by a pydantic
+    schema.
+    This does not occur when using jobflow's standard loading of a config file
+    as it is only called once.
+    """
+    _spec_dict = dict(spec_dict)
+    store_type = _spec_dict.pop("type")
+    for k, v in _spec_dict.items():
         if isinstance(v, dict) and "type" in v:
-            spec_dict[k] = _construct_store(v, valid_stores)
-    return valid_stores[store_type](**spec_dict)
+            _spec_dict[k] = _construct_store(v, valid_stores)
+    return valid_stores[store_type](**_spec_dict)
 
 
 def _prepare_load(
