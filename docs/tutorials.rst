@@ -11,4 +11,4 @@ Tutorials
    tutorials/2-introduction
    tutorials/3-defining-jobs
    tutorials/4-generalized-makers
-   tutorials/7-fireworks.md
+   tutorials/7-fireworks
