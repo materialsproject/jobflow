@@ -87,7 +87,7 @@ for job, _ in flow.iterflow():
         job.update_config({"manager_config": {"_fworker": "fworker2"}})
 ```
 
-To make the process a bit easier, the `{obj}update_config()` function can also be applied directly to a flow in conjunction with a filter. The logic above can then be simplified to:
+To make the process a bit easier, the {obj}`update_config()` function can also be applied directly to a flow in conjunction with a filter. The logic above can then be simplified to:
 
 ```python
 flow.update_config({"manager_config": {"_fworker": "fworker1"}}, name_filter="job1")
