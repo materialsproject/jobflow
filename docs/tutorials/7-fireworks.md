@@ -91,6 +91,7 @@ To make the process a bit easier, the `{obj}update_config()` function can also b
 
 ```python
 flow.update_config({"manager_config": {"_fworker": "fworker1"}}, name_filter="job1")
+flow.update_config({"manager_config": {"_fworker": "fworker2"}}, name_filter="job2")
 ```
 
 ### Launching the Jobs
