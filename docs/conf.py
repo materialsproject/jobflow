@@ -40,6 +40,7 @@ extensions = [
     "myst_parser",
     "nbsphinx",
     "sphinxcontrib.autodoc_pydantic",
+    "sphinx_copybutton",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
