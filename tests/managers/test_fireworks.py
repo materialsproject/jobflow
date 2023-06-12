@@ -199,6 +199,24 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
     result = mongo_jobstore.query_one({"uuid": uuid})
     assert result["metadata"] == {}
 
+    # Test flow with metadata added after conversion to workflow
+    # (for example: if an atomate powerup is used to add metadata)
+    flow = simple_flow()
+    uuid = flow.jobs[0].uuid
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    wf.metadata = ["my_flow"]
+    for idx_fw in range(len(wf.fws)):
+        wf.fws[idx_fw].spec["tags"] = ["my_flow"]
+
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    result = mongo_jobstore.query_one({"uuid": uuid})
+    fw_id = list(fw_ids.values())[0]
+    assert result["metadata"] = {"fw_id": fw_id, "tags": ["my_flow"]}
+
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
