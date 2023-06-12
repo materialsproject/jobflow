@@ -215,7 +215,7 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
 
     result = mongo_jobstore.query_one({"uuid": uuid})
     fw_id = list(fw_ids.values())[0]
-    assert result["metadata"] = {"fw_id": fw_id, "tags": ["my_flow"]}
+    assert result["metadata"] == {"fw_id": fw_id, "tags": ["my_flow"]}
 
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
