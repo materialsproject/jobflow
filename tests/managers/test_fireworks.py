@@ -183,7 +183,7 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
     result = mongo_jobstore.query_one({"uuid": uuid})
     assert result["output"] == "12345_end"
     assert result["metadata"]["fw_id"] == fw_id
-    assert result["metadata"]["tags] == ["my_flow"]
+    assert result["metadata"]["tags"] == ["my_flow"]
 
     # test override
     flow = simple_flow()
