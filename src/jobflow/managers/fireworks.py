@@ -155,7 +155,7 @@ class JobFiretask(FiretaskBase):
 
         # Add the metadata from the fw_spec
         fw_tags = fw_spec.get("tags", {})
-        job.metadata.update({"tags": fw_spec["tags"]})
+        job.metadata.update({"tags": fw_tags]})
 
         if hasattr(self, "fw_id"):
             job.metadata.update({"fw_id": self.fw_id})
