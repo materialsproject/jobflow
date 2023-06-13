@@ -542,7 +542,11 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
     uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
-    assert list(wf.fw_states.values()) == ["DEFUSED", "COMPLETED", "COMPLETED"]
+
+    # Sort by firework id explicitly instead of assuming they are sorted    
+    states_dict = {key: val for key, val in zip(list(wf.id_fw.keys()), list(wf.fw_states.values()))}
+    sorted_states_dict = dict(sorted(states_dict.items()))
+    assert list(sorted_states_dict.values()) == ["DEFUSED", "COMPLETED", "COMPLETED"]
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
