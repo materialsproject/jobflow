@@ -543,7 +543,7 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
     uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
 
-    # Sort by firework id explicitly instead of assuming they are sorted    
+    # Sort by firework id explicitly instead of assuming they are sorted
     states_dict = {
         key: val for key, val in zip(list(wf.id_fw.keys()), list(wf.fw_states.values()))
     }
