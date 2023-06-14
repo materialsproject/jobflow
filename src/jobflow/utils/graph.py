@@ -181,7 +181,7 @@ def to_pydot(flow: jobflow.Flow):
     return pydot_graph
 
 
-def to_mermaid(flow: jobflow.Flow|jobflow.Job, show_flow_boxes: bool = False) -> str:
+def to_mermaid(flow: jobflow.Flow | jobflow.Job, show_flow_boxes: bool = False) -> str:
     """
     Convert a flow to a mermaid graph.
 
@@ -216,8 +216,9 @@ def to_mermaid(flow: jobflow.Flow|jobflow.Job, show_flow_boxes: bool = False) ->
     To render the graph, go to mermaid.live and paste the contents of ``graph_source``.
     """
     from jobflow import Flow, Job
+
     if isinstance(flow, Job):
-        flow=Flow(jobs=[flow])
+        flow = Flow(jobs=[flow])
 
     lines = ["flowchart TD"]
     nodes = flow.graph.nodes(data=True)
