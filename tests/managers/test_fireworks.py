@@ -235,11 +235,15 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, connect
 
     result = mongo_jobstore.query_one({"uuid": uuid0})
     fw_id = list(fw_ids.values())[0]
-    assert result["metadata"] == {"fw_id": fw_id, "tags": ["some tag", "my_flow"]}
+    assert result["metadata"] == {
+        "fw_id": fw_id, "tags": ["some tag", "my_flow"]
+    }
 
     result = mongo_jobstore.query_one({"uuid": uuid1})
     fw_id = list(fw_ids.values())[1]
-    assert result["metadata"] == {"fw_id": fw_id, "tags": ["tag, you're it", "my_flow"]} 
+    assert result["metadata"] == {
+        "fw_id": fw_id, "tags": ["tag, you're it", "my_flow"]
+    }
 
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
