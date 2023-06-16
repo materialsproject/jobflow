@@ -157,7 +157,7 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     assert "INFO Finished job - func" in captured.out
 
 
-def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
+def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, connected_flow, capsys):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -213,9 +213,33 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
     # run the workflow
     rapidfire(lpad)
 
-    result = mongo_jobstore.query_one({"uuid": uuid})
+    result = mongo_jobstore.query_one({"uuid": uuid1})
     fw_id = list(fw_ids.values())[0]
     assert result["metadata"] == {"fw_id": fw_id, "tags": ["my_flow"]}
+
+    # Test flow with existing tags
+    flow = connected_flow()
+    flow.jobs[0].metadata["tags"] = "some tag"
+    uuid0 = flow.jobs[0].uuid
+    flow.jobs[1].metadata["tags"] = ["tag, you're it"]
+    uuid1 = flow.jobs[1].uuid
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    wf.metadata = ["my_flow"]
+    for idx_fw in range(len(wf.fws)):
+        wf.fws[idx_fw].spec["tags"] = ["my_flow"]
+
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    result = mongo_jobstore.query_one({"uuid": uuid0})
+    fw_id = list(fw_ids.values())[0]
+    assert result["metadata"] == {"fw_id": fw_id, "tags": ["some tag", "my_flow"]}
+
+    result = mongo_jobstore.query_one({"uuid": uuid1})
+    fw_id = list(fw_ids.values())[1]
+    assert result["metadata"] == {"fw_id": fw_id, "tags": ["tag, you're it", "my_flow"]} 
 
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
