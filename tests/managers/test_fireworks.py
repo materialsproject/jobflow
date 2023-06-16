@@ -158,7 +158,7 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
 
 
 def test_simple_flow_metadata(
-        lpad, mongo_jobstore, fw_dir, simple_flow, connected_flow, capsys
+    lpad, mongo_jobstore, fw_dir, simple_flow, connected_flow, capsys
 ):
     from fireworks.core.rocket_launcher import rapidfire
 
