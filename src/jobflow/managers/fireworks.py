@@ -53,10 +53,7 @@ def flow_to_workflow(
     flow = get_flow(flow)
 
     for job, parents in flow.iterflow():
-        fw = job_to_firework(job,
-                             store,
-                             parents=parents,
-                             parent_mapping=parent_mapping)
+        fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
         fireworks.append(fw)
 
     return Workflow(fireworks, name=flow.name, **kwargs)
@@ -102,29 +99,23 @@ def job_to_firework(
     from jobflow.core.reference import OnMissing
 
     if (parents is None) is not (parent_mapping is None):
-        raise ValueError(
-            "Both or neither of parents and parent_mapping must be set.")
+        raise ValueError("Both or neither of parents and parent_mapping must be set.")
 
     task = JobFiretask(job=job, store=store)
 
     job_parents = None
     if parents is not None and parent_mapping is not None:
-        job_parents = ([parent_mapping[parent]
-                        for parent in parents] if parents else None)
+        job_parents = (
+            [parent_mapping[parent] for parent in parents] if parents else None
+        )
 
-    spec = {
-        "_add_launchpad_and_fw_id": True
-    }  # this allows the job to know the fw_id
+    spec = {"_add_launchpad_and_fw_id": True}  # this allows the job to know the fw_id
     if job.config.on_missing_references != OnMissing.ERROR:
         spec["_allow_fizzled_parents"] = True
     spec.update(job.config.manager_config)
     spec.update(job.metadata)  # add metadata to spec
 
-    fw = Firework([task],
-                  spec=spec,
-                  name=job.name,
-                  parents=job_parents,
-                  **kwargs)
+    fw = Firework([task], spec=spec, name=job.name, parents=job_parents, **kwargs)
 
     if parent_mapping is not None:
         parent_mapping[job.uuid] = fw
@@ -171,8 +162,7 @@ class JobFiretask(FiretaskBase):
                 else:
                     # tags is not a list, make it one
                     job.metadata["tags"] = [job.metadata["tags"], *fw_tags]
-                job.metadata["tags"] = list(dict.fromkeys(
-                    job.metadata["tags"]))
+                job.metadata["tags"] = list(dict.fromkeys(job.metadata["tags"]))
             else:
                 job.metadata.update({"tags": fw_tags})
 
@@ -189,9 +179,7 @@ class JobFiretask(FiretaskBase):
             detours = [flow_to_workflow(response.replace, self.get("store"))]
 
         if response.addition is not None:
-            additions = [
-                flow_to_workflow(response.addition, self.get("store"))
-            ]
+            additions = [flow_to_workflow(response.addition, self.get("store"))]
 
         if response.detour is not None:
             detour_wf = flow_to_workflow(response.detour, self.get("store"))
