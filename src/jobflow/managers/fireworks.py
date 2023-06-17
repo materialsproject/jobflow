@@ -153,6 +153,19 @@ class JobFiretask(FiretaskBase):
             store = SETTINGS.JOB_STORE
         store.connect()
 
+        # Add the metadata from the fw_spec
+        fw_tags = fw_spec.get("tags", None)
+        if fw_tags is not None:
+            if "tags" in job.metadata:
+                if isinstance(job.metadata["tags"], list):
+                    job.metadata["tags"].extend(fw_tags)
+                else:
+                    # tags is not a list, make it one
+                    job.metadata["tags"] = [job.metadata["tags"], *fw_tags]
+                job.metadata["tags"] = list(dict.fromkeys(job.metadata["tags"]))
+            else:
+                job.metadata.update({"tags": fw_tags})
+
         if hasattr(self, "fw_id"):
             job.metadata.update({"fw_id": self.fw_id})
 
