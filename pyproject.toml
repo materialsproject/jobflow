@@ -59,7 +59,7 @@ strict = [
     "matplotlib==3.7.1",
     "pydot==1.4.2",
     "moto==4.1.12",
-    "typing-extensions==4.6.3",
+    "typing-extensions==4.7.1",
 ]
 
 [project.urls]
