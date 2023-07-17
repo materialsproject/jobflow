@@ -179,7 +179,6 @@ def job(method: Callable | None = None, **job_kwargs):
 
         @wraps(func)
         def get_job(*args, **kwargs) -> Job:
-
             f = func
             if len(args) > 0:
                 # see if the first argument has a function with the same name as
@@ -366,6 +365,63 @@ class Job(MSONable):
                 f"job.output). If this message is unexpected then double check the "
                 f"inputs to your Job."
             )
+
+    def __repr__(self):
+        """Get a string representation of the job."""
+        name, uuid = self.name, self.uuid
+        return f"Job({name=}, {uuid=})"
+
+    def __contains__(self, item: Hashable) -> bool:
+        """
+        Check if the job contains a reference to a given UUID.
+
+        Parameters
+        ----------
+        item
+            A UUID.
+
+        Returns
+        -------
+        bool
+            Whether the job contains a reference to the UUID.
+        """
+        return item in self.input_uuids
+
+    def __eq__(self, other: Job) -> bool:
+        """
+        Check if two jobs are equal.
+
+        Parameters
+        ----------
+        other
+            Another job.
+
+        Returns
+        -------
+        bool
+            Whether the jobs are equal.
+        """
+        return self.uuid == other.uuid
+
+    def __hash__(self) -> int:
+        """Get the hash of the job."""
+        return hash(self.uuid)
+
+    def __getitem__(self, item: str | int) -> OutputReference:
+        """
+        Get an output reference from the job.
+
+        Parameters
+        ----------
+        item
+            The key of the output reference.
+
+        Returns
+        -------
+        OutputReference
+            An output reference.
+        """
+        return self.output[item]
 
     @property
     def input_references(self) -> tuple[jobflow.OutputReference, ...]:
@@ -574,7 +630,6 @@ class Job(MSONable):
             passed_config = None
 
         if passed_config:
-
             if response.addition is not None:
                 pass_manager_config(response.addition, passed_config)
 
@@ -1323,7 +1378,6 @@ def pass_manager_config(
     all_jobs: list[Job] = []
 
     def get_jobs(arg):
-
         if isinstance(arg, Job):
             all_jobs.append(arg)
         elif isinstance(arg, (list, tuple)):
