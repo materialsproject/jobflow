@@ -144,6 +144,63 @@ class Flow(MSONable):
         self.add_jobs(jobs)
         self.output = output
 
+    def __len__(self) -> int:
+        """Get the number of jobs or subflows in the flow."""
+        return len(self.jobs)
+
+    def __getitem__(self, idx: int) -> Flow | jobflow.Job:
+        """Get the job or subflow at the given index."""
+        return self.jobs[idx]
+
+    def __setitem__(self, idx: int, value: Flow | jobflow.Job) -> None:
+        """Set the job or subflow at the given index."""
+        self.jobs[idx] = value
+
+    def __iter__(self) -> list[Flow | jobflow.Job]:
+        """Iterate through the jobs in the flow."""
+        return iter(self.jobs)
+
+    def __contains__(self, item: Flow | jobflow.Job) -> bool:
+        """Check if the flow contains a job or subflow."""
+        return item in self.jobs
+
+    def __add__(self, other: Flow | jobflow.Job) -> Flow:
+        """Add a job or subflow to the flow."""
+        return Flow([self, other])
+
+    def __sub__(self, other: Flow | jobflow.Job) -> Flow:
+        """Remove a job or subflow from the flow."""
+        return Flow([job for job in self.jobs if job != other])
+
+    def __repr__(self) -> str:
+        """Get a string representation of the flow."""
+        name, uuid = self.name, self.uuid
+        job_reprs = "\n".join(f"  {idx}. {job}" for idx, job in enumerate(self.jobs, 1))
+        return (
+            f"Flow({name=}, {uuid=})\nconsisting of {len(self.jobs)} jobs:\n{job_reprs}"
+        )
+
+    def __eq__(self, other: Flow | jobflow.Job) -> bool:
+        """Check if the flow is equal to another flow."""
+        if not isinstance(other, Flow):
+            return False
+        return self.uuid == other.uuid
+
+    def __hash__(self) -> int:
+        """Get the hash of the flow."""
+        return hash(self.uuid)
+
+    def __copy__(self) -> Flow:
+        """Get a copy of the flow."""
+        return Flow(
+            jobs=self.jobs,
+            output=self.output,
+            name=self.name,
+            order=self.order,
+            uuid=self.uuid,
+            hosts=self.hosts,
+        )
+
     @property
     def jobs(self) -> tuple[Flow | jobflow.Job, ...]:
         """
