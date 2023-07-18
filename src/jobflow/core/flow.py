@@ -172,12 +172,17 @@ class Flow(MSONable):
         """Remove a job or subflow from the flow."""
         return Flow([job for job in self.jobs if job != other])
 
-    def __repr__(self) -> str:
+    def __repr__(self, level=0, index=None) -> str:
         """Get a string representation of the flow."""
+        indent = "  " * level
         name, uuid = self.name, self.uuid
-        job_reprs = "\n".join(f"  {idx}. {job}" for idx, job in enumerate(self.jobs, 1))
+        flow_index = f"{index}." if index is not None else ""
+        job_reprs = "\n".join(
+            f"{indent}{flow_index}{idx}. {job.__repr__(level + 1, f'{flow_index}{idx}') if isinstance(job, Flow) else job}"
+            for idx, job in enumerate(self.jobs, 1)
+        )
         return (
-            f"Flow({name=}, {uuid=})\nconsisting of {len(self.jobs)} jobs:\n{job_reprs}"
+            f"Flow({name=}, {uuid=}) consisting of {len(self.jobs)} jobs:\n{job_reprs}"
         )
 
     def __eq__(self, other: Flow | jobflow.Job) -> bool:
