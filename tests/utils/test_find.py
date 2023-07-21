@@ -54,6 +54,8 @@ def test_update_in_dictionary():
 
 
 def test_contains_job_or_flow():
+    from datetime import datetime
+
     from jobflow import Flow, Job
     from jobflow.utils import contains_flow_or_job
 
@@ -74,3 +76,4 @@ def test_contains_job_or_flow():
     assert contains_flow_or_job([[job]]) is True
     assert contains_flow_or_job({"a": job}) is True
     assert contains_flow_or_job({"a": [job]}) is True
+    assert contains_flow_or_job({"a": [job], "b": datetime.now()}) is True
