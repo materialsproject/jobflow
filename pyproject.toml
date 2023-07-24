@@ -52,7 +52,7 @@ strict = [
     "monty==2023.5.8",
     "networkx==3.1",
     "pydash==7.0.5",
-    "maggma==0.51.19",
+    "maggma==0.51.24",
     "pydantic==1.10.9",
     "PyYAML==6.0",
     "FireWorks==2.0.3",
