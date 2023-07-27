@@ -558,12 +558,15 @@ def test_response():
 
 def test_serialization():
     import json
+    from datetime import datetime
 
     from monty.json import MontyDecoder, MontyEncoder
 
     from jobflow import Job
 
-    test_job = Job(function=add, function_args=(1,), function_kwargs={"b": 2})
+    test_job = Job(
+        function=add, function_args=(1, datetime.now()), function_kwargs={"b": 2}
+    )
 
     uuid = test_job.uuid
 
