@@ -945,3 +945,36 @@ def test_flow_magic_methods_edge_cases():
     # # test __contains__ with a flow object
     # assert subflow in flow1
 
+
+def test_flow_repr():
+    from jobflow import Flow
+
+    # prepare jobs and flows
+    job1, job2, job3, job4, job5, job6, job7 = map(get_test_job, range(7))
+
+    flow1 = Flow([job1])
+    flow2 = Flow([job2, job3])
+    sub_flow1 = Flow([job6, job7])
+    flow3 = Flow([job4, job5, sub_flow1])
+    flow4 = Flow([flow1, flow2, flow3])
+
+    flow_repr = repr(flow4).splitlines()
+
+    lines = (
+        "Flow(name='Flow', uuid='",
+        "1. Flow(name='Flow', uuid='",
+        "  1.1. Job(name='add', uuid='",
+        "2. Flow(name='Flow', uuid='",
+        "  2.1. Job(name='add', uuid='",
+        "  2.2. Job(name='add', uuid='",
+        "3. Flow(name='Flow', uuid='",
+        "  3.1. Job(name='add', uuid='",
+        "  3.2. Job(name='add', uuid='",
+        "  3.3. Flow(name='Flow', uuid='",
+        "    3.3.1. Job(name='add', uuid='",
+        "    3.3.2. Job(name='add', uuid='",
+    )
+
+    assert len(lines) == len(flow_repr)
+    for expected, line in zip(lines, flow_repr):
+        assert line.startswith(expected), f"{line=} doesn't start with {expected=}"
