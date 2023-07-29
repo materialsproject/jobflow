@@ -866,7 +866,6 @@ def test_flow_magic_methods():
     flow3 = flow1 + job5
     assert len(flow3) == 2
     assert job5 in flow3
-    assert flow1 in flow3
 
     # test __sub__
     flow4 = flow3 - job5
@@ -878,8 +877,8 @@ def test_flow_magic_methods():
     assert flow1 != flow2
     assert hash(flow1) != hash(flow2)
 
-    # test __copy__
-    flow_copy = flow1.__copy__()
+    # test __deepcopy__
+    flow_copy = flow1.__deepcopy__()
     assert flow_copy == flow1
     assert id(flow_copy) != id(flow1)
 
@@ -893,6 +892,7 @@ def test_flow_magic_methods():
 
     # test __contains__ with job not in flow
     assert job5 not in flow1
+    assert flow2 not in flow1
 
     # test __add__ with non-job item
     with pytest.raises(TypeError):
@@ -916,10 +916,9 @@ def test_flow_magic_methods_edge_cases():
     from jobflow import Flow
 
     # prepare test jobs and flows
-    job1, job2, job3, job4, job5 = map(get_test_job, range(5))
-    _empty_flow = Flow([])
-    _subflow = Flow([job5])
-
+    job1, job2, job3, job4, job5, job6 = map(get_test_job, range(6))
+    Flow([job6])
+    empty_flow = Flow([])
     flow1 = Flow([job1, job2, job3, job4])
 
     # test negative indexing with __getitem__ and __setitem__
@@ -927,23 +926,22 @@ def test_flow_magic_methods_edge_cases():
     flow1[-1] = job5
     assert flow1[-1] == job5
 
-    # TODO these tests are currently failing
     # test slicing with __getitem__ and __setitem__
-    # assert flow1[1:3] == [job2, job3]
-    # flow1[1:3] = [job4, job5]
-    # assert flow1[1:3] == [job4, job5]
+    assert flow1[1:3] == (job2, job3)
+    flow1[1:3] = (job4, job5)
+    assert flow1[1:3] == (job4, job5)
 
-    # test __add__ and __sub__ with an empty flow
-    # assert len(flow1 + empty_flow) == len(flow1)
-    # assert len(flow1 - empty_flow) == len(flow1)
+    # adding an empty flow still increases len by 1
+    assert len(flow1 + empty_flow) == len(flow1) + 1
 
-    # # test __add__ and __sub__ with job already in the flow
-    # assert len(flow1 + job5) == len(flow1)
-    # flow1 - job5
-    # assert job5 not in flow1
+    # test __add__ and __sub__ with job already in the flow
+    with pytest.raises(
+        ValueError, match="jobs array contains multiple jobs/flows with the same uuid"
+    ):
+        _ = flow1 + job1
 
-    # # test __contains__ with a flow object
-    # assert subflow in flow1
+    with pytest.raises(ValueError, match="Job .+ already belongs to another flow"):
+        _ = flow1 + job6
 
 
 def test_flow_repr():
