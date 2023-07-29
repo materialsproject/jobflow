@@ -191,12 +191,13 @@ class Flow(MSONable):
         name, uuid = self.name, self.uuid
         flow_index = f"{index}." if index is not None else ""
         job_reprs = "\n".join(
-            f"{indent}{flow_index}{idx}. {job.__repr__(level + 1, f'{flow_index}{idx}') if isinstance(job, Flow) else job}"
-            for idx, job in enumerate(self.jobs, 1)
+            f"{indent}{flow_index}{i}. "
+            f"{j.__repr__(level + 1, f'{flow_index}{i}') if isinstance(j, Flow) else j}"
+            for i, j in enumerate(self.jobs, 1)
         )
         return f"Flow({name=}, {uuid=})\n{job_reprs}"
 
-    def __eq__(self, other: Flow | jobflow.Job) -> bool:
+    def __eq__(self, other: Flow | Job) -> bool:
         """Check if the flow is equal to another flow."""
         if not isinstance(other, Flow):
             return False
