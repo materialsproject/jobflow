@@ -831,3 +831,84 @@ def test_update_config():
     assert flow.jobs[0].config.resolve_references
     assert flow.jobs[1].config.manager_config == {"a": "b"}
     assert flow.jobs[1].config.resolve_references
+
+
+def test_flow_magic_methods():
+    from jobflow import Flow
+
+    # prepare test jobs and flows
+    job1, job2, job3, job4, job5, job6 = map(get_test_job, range(6))
+
+    flow1 = Flow([job1])
+    flow2 = Flow([job2, job3])
+
+    # test __len__
+    assert len(flow1) == 1
+    assert len(flow2) == 2
+
+    # test __getitem__
+    assert flow2[0] == job2
+    assert flow2[1] == job3
+
+    # test __setitem__
+    flow2[0] = job4
+    assert flow2[0] == job4
+
+    # test __iter__
+    for job in flow2:
+        assert job in [job4, job3]
+
+    # test __contains__
+    assert job1 in flow1
+    assert job4 in flow2
+    assert job3 in flow2
+
+    # test __add__
+    flow3 = flow1 + job5
+    assert len(flow3) == 2
+    assert job5 in flow3
+    assert flow1 in flow3
+
+    # test __sub__
+    flow4 = flow3 - job5
+    assert len(flow4) == 1 == len(flow1)
+    assert job5 not in flow4
+
+    # test __eq__ and __hash__
+    assert flow1 == flow1
+    assert flow1 != flow2
+    assert hash(flow1) != hash(flow2)
+
+    # test __copy__
+    flow_copy = flow1.__copy__()
+    assert flow_copy == flow1
+    assert id(flow_copy) != id(flow1)
+
+    # test __getitem__ with out of range index
+    with pytest.raises(IndexError):
+        _ = flow1[10]
+
+    # test __setitem__ with out of range index
+    with pytest.raises(IndexError):
+        flow1[10] = job4
+
+    # test __contains__ with job not in flow
+    assert job5 not in flow1
+
+    # test __add__ with non-job item
+    with pytest.raises(TypeError):
+        _ = job6 + "not a job"
+
+    # test __sub__ with non-job item
+    with pytest.raises(TypeError):
+        _ = job6 - "not a job"
+
+    # test __sub__ with job not in flow
+    with pytest.raises(
+        ValueError, match=r"Job\(name='add', uuid='.+'\) not found in flow"
+    ):
+        _ = flow1 - job5
+
+    # test __eq__ with non-flow item
+    assert flow1 != "not a flow"
+
