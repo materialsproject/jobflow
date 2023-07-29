@@ -264,7 +264,7 @@ class OutputReference(MSONable):
         else:
             attribute_str = ""
 
-        return f"OutputReference({str(self.uuid)}{attribute_str})"
+        return f"OutputReference({self.uuid!s}{attribute_str})"
 
     def __hash__(self) -> int:
         """Return a hash of the reference."""
@@ -277,10 +277,8 @@ class OutputReference(MSONable):
                 self.uuid == other.uuid
                 and len(self.attributes) == len(other.attributes)
                 and all(
-                    [
-                        a[0] == b[0] and a[1] == b[1]
-                        for a, b in zip(self.attributes, other.attributes)
-                    ]
+                    a[0] == b[0] and a[1] == b[1]
+                    for a, b in zip(self.attributes, other.attributes)
                 )
             )
         return False
@@ -288,9 +286,7 @@ class OutputReference(MSONable):
     @property
     def attributes_formatted(self):
         """Get a formatted description of the attributes."""
-        return [
-            f".{x[1]}" if x[0] == "a" else f"[{repr(x[1])}]" for x in self.attributes
-        ]
+        return [f".{x[1]}" if x[0] == "a" else f"[{x[1]!r}]" for x in self.attributes]
 
     def as_dict(self):
         """Serialize the reference as a dict."""
@@ -298,7 +294,7 @@ class OutputReference(MSONable):
         schema_dict = MontyEncoder().default(schema) if schema is not None else None
         data = {
             "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
+            "@class": type(self).__name__,
             "@version": None,
             "uuid": self.uuid,
             "attributes": self.attributes,

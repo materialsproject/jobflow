@@ -13,7 +13,7 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Hashable
+    from typing import Any, Callable, Hashable, Sequence
 
     from networkx import DiGraph
     from pydantic import BaseModel
@@ -528,7 +528,7 @@ class Job(MSONable):
         """
         return self.hosts[0] if self.hosts else None
 
-    def set_uuid(self, uuid: str):
+    def set_uuid(self, uuid: str) -> None:
         """
         Set the UUID of the job.
 
@@ -1133,7 +1133,7 @@ class Job(MSONable):
         else:
             super().__setattr__(key, value)
 
-    def add_hosts_uuids(self, hosts_uuids: str | list[str], prepend: bool = False):
+    def add_hosts_uuids(self, hosts_uuids: str | Sequence[str], prepend: bool = False):
         """
         Add a list of UUIDs to the internal list of hosts.
 

@@ -545,7 +545,7 @@ def test_response():
     response = Response.from_job_returns(
         {"number": "5", "name": "Ian"}, output_schema=MySchema
     )
-    assert response.output.__class__.__name__ == "MySchema"
+    assert type(response.output).__name__ == "MySchema"
     assert response.output.number == 5
     assert response.output.name == "Ian"
 
@@ -886,22 +886,22 @@ def test_output_schema(memory_jobstore):
 
     test_job = add_schema(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_dict(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_response(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_response_dict(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_replace(5, 6)

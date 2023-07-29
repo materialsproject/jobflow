@@ -125,7 +125,7 @@ def test_addition_flow(memory_jobstore, clean_dir, addition_flow):
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
-    uuid2 = [u for u in responses if u != uuid1][0]
+    uuid2 = next(u for u in responses if u != uuid1)
 
     # check responses has been filled
     assert len(responses) == 2
@@ -150,7 +150,7 @@ def test_detour_flow(memory_jobstore, clean_dir, detour_flow):
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
-    uuid2 = [u for u in responses if u != uuid1 and u != uuid3][0]
+    uuid2 = next(u for u in responses if u != uuid1 and u != uuid3)
 
     # check responses has been filled
     assert len(responses) == 3
@@ -218,7 +218,7 @@ def test_replace_flow_nested(memory_jobstore, clean_dir, replace_flow_nested):
     assert len(responses[uuid1]) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].replace is not None
-    assert responses[uuid1][2].output["first"].__class__.__name__ == "OutputReference"
+    assert type(responses[uuid1][2].output["first"]).__name__ == "OutputReference"
     assert responses[uuid2][1].output == "12345_end"
 
     # check store has the activity output
@@ -345,7 +345,7 @@ def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
-    uuid2 = [u for u in responses if u != uuid1 and u != uuid3][0]
+    uuid2 = next(u for u in responses if u != uuid1 and u != uuid3)
 
     # check responses has been filled
     assert len(responses) == 2
