@@ -9,7 +9,7 @@ def div(a, b=2):
     return a / b
 
 
-def get_test_job():
+def get_test_job(*args):
     from jobflow import Job
 
     return Job(add, function_args=(1, 2))
@@ -504,7 +504,6 @@ def test_update_kwargs():
 
 
 def test_update_maker_kwargs():
-
     # test no filter
     flow = get_maker_flow()
     flow.update_maker_kwargs({"b": 10})
@@ -911,4 +910,38 @@ def test_flow_magic_methods():
 
     # test __eq__ with non-flow item
     assert flow1 != "not a flow"
+
+
+def test_flow_magic_methods_edge_cases():
+    from jobflow import Flow
+
+    # prepare test jobs and flows
+    job1, job2, job3, job4, job5 = map(get_test_job, range(5))
+    _empty_flow = Flow([])
+    _subflow = Flow([job5])
+
+    flow1 = Flow([job1, job2, job3, job4])
+
+    # test negative indexing with __getitem__ and __setitem__
+    assert flow1[-1] == job4
+    flow1[-1] = job5
+    assert flow1[-1] == job5
+
+    # TODO these tests are currently failing
+    # test slicing with __getitem__ and __setitem__
+    # assert flow1[1:3] == [job2, job3]
+    # flow1[1:3] = [job4, job5]
+    # assert flow1[1:3] == [job4, job5]
+
+    # test __add__ and __sub__ with an empty flow
+    # assert len(flow1 + empty_flow) == len(flow1)
+    # assert len(flow1 - empty_flow) == len(flow1)
+
+    # # test __add__ and __sub__ with job already in the flow
+    # assert len(flow1 + job5) == len(flow1)
+    # flow1 - job5
+    # assert job5 not in flow1
+
+    # # test __contains__ with a flow object
+    # assert subflow in flow1
 
