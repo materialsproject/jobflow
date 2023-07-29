@@ -149,13 +149,21 @@ class Flow(MSONable):
         """Get the number of jobs or subflows in the flow."""
         return len(self.jobs)
 
-    def __getitem__(self, idx: int) -> Flow | jobflow.Job:
-        """Get the job or subflow at the given index."""
+    def __getitem__(self, idx: int | slice) -> Flow | Job | list[Flow | Job]:
+        """Get the job or subflow at the given index/slice."""
         return self.jobs[idx]
 
-    def __setitem__(self, idx: int, value: Flow | jobflow.Job) -> None:
+    def __setitem__(
+        self, idx: int | slice, value: Flow | Job | list[Flow | Job]
+    ) -> None:
         """Set the job or subflow at the given index."""
-        self.jobs[idx] = value
+        if not isinstance(value, (Flow, jobflow.Job)):
+            raise TypeError(
+                f"Flow can only contain Job or Flow objects, not {type(value)}"
+            )
+        jobs = list(self.jobs)
+        jobs[idx] = value
+        self.jobs = jobs
 
     def __iter__(self) -> list[Flow | jobflow.Job]:
         """Iterate through the jobs in the flow."""
