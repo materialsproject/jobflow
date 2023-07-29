@@ -8,6 +8,7 @@ import warnings
 
 from monty.json import MSONable
 
+import jobflow
 from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
@@ -16,7 +17,7 @@ if typing.TYPE_CHECKING:
 
     from networkx import DiGraph
 
-    import jobflow
+    from jobflow import Job
 
 __all__ = ["JobOrder", "Flow", "get_flow"]
 
@@ -205,7 +206,7 @@ class Flow(MSONable):
         )
 
     @property
-    def jobs(self) -> tuple[Flow | jobflow.Job, ...]:
+    def jobs(self) -> tuple[Flow | Job, ...]:
         """
         Get the Jobs in the Flow.
 
@@ -215,6 +216,20 @@ class Flow(MSONable):
             The list of Jobs/Flows of the Flow.
         """
         return self._jobs
+
+    @jobs.setter
+    def jobs(self, jobs: list[Flow | Job] | Job | Flow):
+        """
+        Set the Jobs in the Flow.
+
+        Parameters
+        ----------
+        jobs
+            The list of Jobs/Flows of the Flow.
+        """
+        if isinstance(jobs, (Flow, jobflow.Job)):
+            jobs = [jobs]
+        self._jobs = tuple(jobs)
 
     @property
     def output(self) -> Any:
@@ -626,9 +641,9 @@ class Flow(MSONable):
     def update_config(
         self,
         config: jobflow.JobConfig | dict,
-        name_filter: str = None,
-        function_filter: Callable = None,
-        attributes: list[str] | str = None,
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
+        attributes: list[str] | str | None = None,
         dynamic: bool = True,
     ):
         """
@@ -726,7 +741,7 @@ class Flow(MSONable):
         for j in self.jobs:
             j.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
-    def add_jobs(self, jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow):
+    def add_jobs(self, jobs: list[Flow | Job] | Job | Flow):
         """
         Add Jobs or Flows to the Flow.
 
@@ -803,7 +818,7 @@ class Flow(MSONable):
 
 
 def get_flow(
-    flow: Flow | jobflow.Job | list[jobflow.Job],
+    flow: Flow | Job | list[jobflow.Job],
 ) -> Flow:
     """
     Check dependencies and return flow object.
