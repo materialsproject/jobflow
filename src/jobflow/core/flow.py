@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import logging
-import typing
 import warnings
+from typing import TYPE_CHECKING
 
+from git import Sequence
 from monty.json import MSONable
 
 import jobflow
 from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
-if typing.TYPE_CHECKING:
-    from typing import Any, Callable
+if TYPE_CHECKING:
+    from typing import Any, Callable, Iterator
 
     from networkx import DiGraph
 
@@ -121,7 +122,7 @@ class Flow(MSONable):
 
     def __init__(
         self,
-        jobs: list[Flow | Job] | Job | Flow,
+        jobs: Sequence[Flow | Job] | Job | Flow,
         output: Any | None = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
@@ -149,15 +150,15 @@ class Flow(MSONable):
         """Get the number of jobs or subflows in the flow."""
         return len(self.jobs)
 
-    def __getitem__(self, idx: int | slice) -> Flow | Job | list[Flow | Job]:
-        """Get the job or subflow at the given index/slice."""
+    def __getitem__(self, idx: int | slice) -> Flow | Job | tuple[Flow | Job]:
+        """Get the job(s) or subflow(s) at the given index/slice."""
         return self.jobs[idx]
 
     def __setitem__(
-        self, idx: int | slice, value: Flow | Job | list[Flow | Job]
+        self, idx: int | slice, value: Flow | Job | Sequence[Flow | Job]
     ) -> None:
-        """Set the job or subflow at the given index."""
-        if not isinstance(value, (Flow, jobflow.Job)):
+        """Set the job(s) or subflow(s) at the given index/slice."""
+        if not isinstance(value, (Flow, jobflow.Job, Sequence)):
             raise TypeError(
                 f"Flow can only contain Job or Flow objects, not {type(value)}"
             )
@@ -165,7 +166,7 @@ class Flow(MSONable):
         jobs[idx] = value
         self.jobs = jobs
 
-    def __iter__(self) -> list[Flow | Job]:
+    def __iter__(self) -> Iterator[Flow | Job]:
         """Iterate through the jobs in the flow."""
         return iter(self.jobs)
 
@@ -231,7 +232,7 @@ class Flow(MSONable):
         return self._jobs
 
     @jobs.setter
-    def jobs(self, jobs: list[Flow | Job] | Job | Flow):
+    def jobs(self, jobs: Sequence[Flow | Job] | Job | Flow):
         """
         Set the Jobs in the Flow.
 
@@ -754,7 +755,7 @@ class Flow(MSONable):
         for j in self.jobs:
             j.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
-    def add_jobs(self, jobs: list[Flow | Job] | Job | Flow):
+    def add_jobs(self, jobs: Job | Flow | Sequence[Flow | Job]) -> None:
         """
         Add Jobs or Flows to the Flow.
 
@@ -774,7 +775,7 @@ class Flow(MSONable):
         for job in jobs:
             if job.host is not None and job.host != self.uuid:
                 raise ValueError(
-                    f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
+                    f"{type(job).__name__} {job.name} ({job.uuid}) already belongs "
                     f"to another flow."
                 )
             if job.uuid in job_ids:
