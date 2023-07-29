@@ -121,11 +121,11 @@ class Flow(MSONable):
 
     def __init__(
         self,
-        jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow,
+        jobs: list[Flow | Job] | Job | Flow,
         output: Any | None = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
-        uuid: str = None,
+        uuid: str | None = None,
         hosts: list[str] | None = None,
     ):
         from jobflow.core.job import Job
@@ -165,21 +165,25 @@ class Flow(MSONable):
         jobs[idx] = value
         self.jobs = jobs
 
-    def __iter__(self) -> list[Flow | jobflow.Job]:
+    def __iter__(self) -> list[Flow | Job]:
         """Iterate through the jobs in the flow."""
         return iter(self.jobs)
 
-    def __contains__(self, item: Flow | jobflow.Job) -> bool:
+    def __contains__(self, item: Flow | Job) -> bool:
         """Check if the flow contains a job or subflow."""
         return item in self.jobs
 
-    def __add__(self, other: Flow | jobflow.Job) -> Flow:
+    def __add__(self, other: Flow | Job) -> Flow:
         """Add a job or subflow to the flow."""
         return Flow([self, other])
 
-    def __sub__(self, other: Flow | jobflow.Job) -> Flow:
+    def __sub__(self, other: Flow | Job) -> Flow:
         """Remove a job or subflow from the flow."""
-        return Flow([job for job in self.jobs if job != other])
+        if other not in self.jobs:
+            raise ValueError(f"{other!r} not found in flow")
+        new_flow = self.__copy__()
+        new_flow.jobs = [job for job in new_flow.jobs if job != other]
+        return new_flow
 
     def __repr__(self, level=0, index=None) -> str:
         """Get a string representation of the flow."""
