@@ -922,7 +922,7 @@ def test_output_schema(memory_jobstore):
 
 
 def test_store_inputs(memory_jobstore):
-    from jobflow.core.job import OutputReference, store_inputs
+    from jobflow.core.job import Job, OutputReference, store_inputs
 
     test_job = store_inputs(1)
     test_job.run(memory_jobstore)
@@ -934,6 +934,12 @@ def test_store_inputs(memory_jobstore):
     test_job.run(memory_jobstore)
     output = memory_jobstore.query_one({"uuid": test_job.uuid}, ["output"])["output"]
     assert OutputReference.from_dict(output) == ref
+
+    # test error msg for multiple stores
+    with pytest.raises(
+        ValueError, match="Cannot select True for multiple additional stores"
+    ):
+        _ = Job(function=sum, function_args=([1, 2],), store1=True, store2=True)
 
 
 def test_pass_manager_config():
@@ -1269,9 +1275,9 @@ def test_job_magic_methods():
     from jobflow import Job
 
     # prepare test jobs
-    job1 = Job(function=sum, function_args=(1, 2))
+    job1 = Job(function=sum, function_args=([1, 2],))
     job2 = Job(function=os.path.join, function_args=("folder", "filename.txt"))
-    job3 = Job(function=sum, function_args=(1, 2))
+    job3 = Job(function=sum, function_args=([1, 2],))
 
     # test __repr__
     assert repr(job1) == f"Job(name='sum', uuid='{job1.uuid}')"
@@ -1291,9 +1297,3 @@ def test_job_magic_methods():
 
     # test __hash__
     assert hash(job1) != hash(job2) != hash(job3)
-
-    # Test __init__ with True for multiple additional stores
-    with pytest.raises(
-        ValueError, match="Cannot select True for multiple additional stores"
-    ):
-        _ = Job(function=sum, function_args=(1, 2), store1=True, store2=True)
