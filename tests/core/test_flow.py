@@ -686,6 +686,11 @@ def test_add_jobs():
     with pytest.raises(ValueError):
         flow1.add_jobs(flow3)
 
+    # test passing single job to @jobs setter
+    flow1.jobs = add_job1
+    assert len(flow1.jobs) == 1
+    assert flow1.jobs[0] is add_job1
+
 
 def test_remove_jobs():
     from jobflow.core.flow import Flow
