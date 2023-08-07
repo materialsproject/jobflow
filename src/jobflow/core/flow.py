@@ -5,9 +5,8 @@ from __future__ import annotations
 import copy
 import logging
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
-from git import Sequence
 from monty.json import MSONable
 
 import jobflow
@@ -164,7 +163,7 @@ class Flow(MSONable):
                 f"Flow can only contain Job or Flow objects, not {type(value)}"
             )
         jobs = list(self.jobs)
-        jobs[idx] = value
+        jobs[idx] = value  # type: ignore[index, assignment]
         self.jobs = tuple(jobs)
 
     def __iter__(self) -> Iterator[Flow | Job]:
@@ -778,7 +777,7 @@ class Flow(MSONable):
             A list of Jobs and Flows.
         """
         if not isinstance(jobs, (tuple, list)):
-            jobs = [jobs]
+            jobs = [jobs]  # type: ignore[list-item]
 
         job_ids = set(self.all_uuids)
         hosts = [self.uuid, *self.hosts]
