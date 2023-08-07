@@ -66,7 +66,7 @@ class JobConfig(MSONable):
     response_manager_config: dict = field(default_factory=dict)
 
 
-def job(method: Callable | None = None, **job_kwargs):
+def job(method: Callable = None, **job_kwargs):
     """
     Wrap a function to produce a :obj:`Job`.
 
@@ -303,17 +303,17 @@ class Job(MSONable):
     def __init__(
         self,
         function: Callable,
-        function_args: tuple[Any, ...] | None = None,
-        function_kwargs: dict[str, Any] | None = None,
-        output_schema: type[BaseModel] | None = None,
-        uuid: str | None = None,
+        function_args: tuple[Any, ...] = None,
+        function_kwargs: dict[str, Any] = None,
+        output_schema: type[BaseModel] = None,
+        uuid: str = None,
         index: int = 1,
-        name: str | None = None,
-        metadata: dict[str, Any] | None = None,
+        name: str = None,
+        metadata: dict[str, Any] = None,
         config: JobConfig = None,
-        hosts: list[str] | None = None,
-        metadata_updates: list[dict[str, Any]] | None = None,
-        config_updates: list[dict[str, Any]] | None = None,
+        hosts: list[str] = None,
+        metadata_updates: list[dict[str, Any]] = None,
+        config_updates: list[dict[str, Any]] = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -716,8 +716,8 @@ class Job(MSONable):
     def update_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
     ):
         """
@@ -772,8 +772,8 @@ class Job(MSONable):
     def update_maker_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        class_filter: type[jobflow.Maker] | None = None,
+        name_filter: str = None,
+        class_filter: type[jobflow.Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -905,8 +905,8 @@ class Job(MSONable):
     def update_metadata(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
     ):
@@ -1186,11 +1186,11 @@ class Response(typing.Generic[T]):
         Stop executing all remaining jobs.
     """
 
-    output: T | None = None
-    detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
-    addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
-    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
-    stored_data: dict[Hashable, Any] | None = None
+    output: T = None
+    detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    stored_data: dict[Hashable, Any] = None
     stop_children: bool = False
     stop_jobflow: bool = False
 
@@ -1198,7 +1198,7 @@ class Response(typing.Generic[T]):
     def from_job_returns(
         cls,
         job_returns: Any | None,
-        output_schema: type[BaseModel] | None = None,
+        output_schema: type[BaseModel] = None,
     ) -> Response:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.

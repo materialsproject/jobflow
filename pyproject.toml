@@ -37,12 +37,12 @@ dependencies = [
 [project.optional-dependencies]
 docs = [
     "autodoc_pydantic==1.9.0",
-    "furo==2023.5.20",
+    "furo==2023.7.26",
     "ipython==8.14.0",
     "myst_parser==2.0.0",
     "nbsphinx==0.9.2",
     "sphinx-copybutton==0.5.2",
-    "sphinx==6.2.0",
+    "sphinx==7.1.1",
 ]
 dev = ["pre-commit>=2.12.1"]
 tests = ["pytest-cov==4.1.0", "pytest==7.4.0"]
@@ -50,14 +50,14 @@ vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
-    "PyYAML==6.0",
-    "maggma==0.51.18",
+    "PyYAML==6.0.1",
+    "maggma==0.51.24",
     "matplotlib==3.7.2",
     "monty==2023.5.8",
-    "moto==4.1.12",
+    "moto==4.1.14",
     "networkx==3.1",
     "pydantic==1.10.9",
-    "pydash==7.0.5",
+    "pydash==7.0.6",
     "pydot==1.4.2",
     "typing-extensions==4.7.1",
 ]
@@ -134,7 +134,7 @@ select = [
     "W",   # pycodestyle
     "YTT", # flake8-2020
 ]
-ignore = ["B028"]
+ignore = ["B028", "PLW0603", "RUF013"]
 pydocstyle.convention = "numpy"
 isort.known-first-party = ["jobflow"]
 

@@ -26,8 +26,8 @@ __all__ = ["CURRENT_JOB"]
 class State:
     """State of the current job and store."""
 
-    job: jobflow.Job | None = None
-    store: jobflow.JobStore | None = None
+    job: jobflow.Job = None
+    store: jobflow.JobStore = None
 
     def reset(self):
         """Reset the current state."""

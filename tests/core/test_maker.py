@@ -1,3 +1,5 @@
+from dataclasses import field
+
 import pytest
 
 
@@ -15,7 +17,6 @@ def test_bad_subclass():
 
     @dataclass
     class BadMaker(Maker):
-
         a = 1
 
     with pytest.raises(NotImplementedError):
@@ -27,7 +28,6 @@ def test_required_arguments_works():
 
     @dataclass
     class MyMaker:
-
         a: int
         name = "123"
 
@@ -91,8 +91,8 @@ def test_flow_maker():
     @dataclass
     class DoubleAddMaker(Maker):
         name: str = "add_add"
-        add1: AddMaker = AddMaker()
-        add2: AddMaker = AddMaker()
+        add1: AddMaker = field(default_factory=AddMaker)
+        add2: AddMaker = field(default_factory=AddMaker)
 
         def make(self, a, b):
             first = self.add1.make(a, b)
@@ -131,7 +131,7 @@ def test_update_kwargs():
     @dataclass
     class DetourMaker(Maker):
         name: str = "add"
-        add_maker: Maker = AddMaker()
+        add_maker: Maker = field(default_factory=AddMaker)
 
         def make(self, a, b):
             detour = self.add_maker.make(a, b)
@@ -198,7 +198,7 @@ def test_update_kwargs():
     @dataclass
     class FakeDetourMaker(Maker):
         name: str = "add"
-        add_maker: MSONable = NotAMaker()
+        add_maker: MSONable = field(default_factory=NotAMaker)
 
         def make(self, a, b):
             detour = self.add_maker.make(a, b)
