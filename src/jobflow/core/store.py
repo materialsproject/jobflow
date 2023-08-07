@@ -51,7 +51,7 @@ class JobStore(Store):
     def __init__(
         self,
         docs_store: Store,
-        additional_stores: dict[str, Store] | None = None,
+        additional_stores: dict[str, Store] = None,
         save: save_type = None,
         load: load_type = False,
     ):
@@ -117,7 +117,7 @@ class JobStore(Store):
         for additional_store in self.additional_stores.values():
             additional_store.close()
 
-    def count(self, criteria: dict | None = None) -> int:
+    def count(self, criteria: dict = None) -> int:
         """
         Count the number of documents matching the query criteria.
 
@@ -135,9 +135,9 @@ class JobStore(Store):
 
     def query(
         self,
-        criteria: dict | None = None,
-        properties: dict | list | None = None,
-        sort: dict[str, Sort | int] | None = None,
+        criteria: dict = None,
+        properties: dict | list = None,
+        sort: dict[str, Sort | int] = None,
         skip: int = 0,
         limit: int = 0,
         load: load_type = None,
@@ -220,9 +220,9 @@ class JobStore(Store):
 
     def query_one(
         self,
-        criteria: dict | None = None,
-        properties: dict | list | None = None,
-        sort: dict[str, Sort | int] | None = None,
+        criteria: dict = None,
+        properties: dict | list = None,
+        sort: dict[str, Sort | int] = None,
         load: load_type = None,
     ) -> dict | None:
         """
@@ -255,7 +255,7 @@ class JobStore(Store):
     def update(
         self,
         docs: list[dict] | dict,
-        key: list | str | None = None,
+        key: list | str = None,
         save: bool | save_type = None,
     ):
         """
@@ -364,9 +364,9 @@ class JobStore(Store):
     def groupby(
         self,
         keys: list[str] | str,
-        criteria: dict | None = None,
-        properties: dict | list | None = None,
-        sort: dict[str, Sort | int] | None = None,
+        criteria: dict = None,
+        properties: dict | list = None,
+        sort: dict[str, Sort | int] = None,
         skip: int = 0,
         limit: int = 0,
         load: load_type = None,
@@ -449,7 +449,7 @@ class JobStore(Store):
         uuid: str,
         which: str | int = "last",
         load: load_type = False,
-        cache: dict[str, Any] | None = None,
+        cache: dict[str, Any] = None,
         on_missing: OnMissing = OnMissing.ERROR,
     ):
         """
@@ -742,7 +742,7 @@ def _prepare_save(
 def _filter_blobs(
     blob_infos: list[dict],
     locations: list[list[Any]],
-    load: bool | dict[str, bool | list[str | tuple[str, str]]] | None = None,
+    load: bool | dict[str, bool | list[str | tuple[str, str]]] = None,
 ) -> dict[str, tuple[list[dict], list[list[Any]]]]:
     """Filter and group blobs."""
     from collections import defaultdict

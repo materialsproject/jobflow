@@ -16,7 +16,7 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 def flow_to_workflow(
     flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
-    store: jobflow.JobStore | None = None,
+    store: jobflow.JobStore = None,
     **kwargs,
 ) -> Workflow:
     """
@@ -61,9 +61,9 @@ def flow_to_workflow(
 
 def job_to_firework(
     job: jobflow.Job,
-    store: jobflow.JobStore | None = None,
-    parents: Sequence[str] | None = None,
-    parent_mapping: dict[str, Firework] | None = None,
+    store: jobflow.JobStore = None,
+    parents: Sequence[str] = None,
+    parent_mapping: dict[str, Firework] = None,
     **kwargs,
 ) -> Firework:
     """

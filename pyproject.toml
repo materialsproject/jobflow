@@ -134,7 +134,7 @@ select = [
     "W",   # pycodestyle
     "YTT", # flake8-2020
 ]
-ignore = ["B028", "PLW0603"]
+ignore = ["B028", "PLW0603", "RUF013"]
 pydocstyle.convention = "numpy"
 isort.known-first-party = ["jobflow"]
 

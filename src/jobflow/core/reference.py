@@ -13,7 +13,6 @@ from pydantic.utils import lenient_issubclass
 from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
-
     import jobflow
 
 __all__ = [
@@ -95,7 +94,7 @@ class OutputReference(MSONable):
         self,
         uuid: str,
         attributes: tuple[tuple[str, Any], ...] = (),
-        output_schema: type[BaseModel] | None = None,
+        output_schema: type[BaseModel] = None,
     ):
         super().__init__()
         self.uuid = uuid
@@ -111,7 +110,7 @@ class OutputReference(MSONable):
     def resolve(
         self,
         store: jobflow.JobStore | None,
-        cache: dict[str, Any] | None = None,
+        cache: dict[str, Any] = None,
         on_missing: OnMissing = OnMissing.ERROR,
     ) -> Any:
         """
@@ -306,7 +305,7 @@ class OutputReference(MSONable):
 def resolve_references(
     references: Sequence[OutputReference],
     store: jobflow.JobStore,
-    cache: dict[str, Any] | None = None,
+    cache: dict[str, Any] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> dict[OutputReference, Any]:
     """
@@ -399,7 +398,7 @@ def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
 def find_and_resolve_references(
     arg: Any,
     store: jobflow.JobStore,
-    cache: dict[str, Any] | None = None,
+    cache: dict[str, Any] = None,
     on_missing: OnMissing = OnMissing.ERROR,
 ) -> Any:
     """
