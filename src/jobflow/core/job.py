@@ -991,9 +991,9 @@ class Job(MSONable):
     def update_config(
         self,
         config: JobConfig | dict,
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
-        attributes: list[str] | str | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
+        attributes: list[str] | str = None,
         dynamic: bool = True,
     ):
         """

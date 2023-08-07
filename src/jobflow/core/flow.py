@@ -212,7 +212,7 @@ class Flow(MSONable):
         """Get the hash of the flow."""
         return hash(self.uuid)
 
-    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Flow:
+    def __deepcopy__(self, memo: dict[int, Any] = None) -> Flow:
         """Get a deep copy of the flow.
 
         Shallow copy doesn't make sense; jobs aren't allowed to belong to multiple flows
@@ -664,9 +664,9 @@ class Flow(MSONable):
     def update_config(
         self,
         config: jobflow.JobConfig | dict,
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
-        attributes: list[str] | str | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
+        attributes: list[str] | str = None,
         dynamic: bool = True,
     ):
         """
