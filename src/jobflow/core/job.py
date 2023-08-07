@@ -384,7 +384,7 @@ class Job(MSONable):
         """
         return item in self.input_uuids
 
-    def __eq__(self, other: Job) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check if two jobs are equal.
 
@@ -398,6 +398,8 @@ class Job(MSONable):
         bool
             Whether the jobs are equal.
         """
+        if not isinstance(other, Job):
+            return NotImplemented
         return self.uuid == other.uuid
 
     def __hash__(self) -> int:
@@ -1149,7 +1151,7 @@ class Job(MSONable):
             Insert the UUIDs at the beginning of the list rather than extending it.
         """
         if not isinstance(hosts_uuids, (list, tuple)):
-            hosts_uuids = [hosts_uuids]
+            hosts_uuids = [hosts_uuids]  # type: ignore
         if prepend:
             self.hosts[0:0] = hosts_uuids
         else:

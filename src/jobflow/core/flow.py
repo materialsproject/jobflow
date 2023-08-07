@@ -151,7 +151,7 @@ class Flow(MSONable):
         """Get the number of jobs or subflows in the flow."""
         return len(self.jobs)
 
-    def __getitem__(self, idx: int | slice) -> Flow | Job | tuple[Flow | Job]:
+    def __getitem__(self, idx: int | slice) -> Flow | Job | tuple[Flow | Job, ...]:
         """Get the job(s) or subflow(s) at the given index/slice."""
         return self.jobs[idx]
 
@@ -165,7 +165,7 @@ class Flow(MSONable):
             )
         jobs = list(self.jobs)
         jobs[idx] = value
-        self.jobs = jobs
+        self.jobs = tuple(jobs)
 
     def __iter__(self) -> Iterator[Flow | Job]:
         """Iterate through the jobs in the flow."""
@@ -188,7 +188,7 @@ class Flow(MSONable):
         if other not in self.jobs:
             raise ValueError(f"{other!r} not found in flow")
         new_flow = self.__deepcopy__()
-        new_flow.jobs = [job for job in new_flow.jobs if job != other]
+        new_flow.jobs = tuple([job for job in new_flow.jobs if job != other])
         return new_flow
 
     def __repr__(self, level=0, index=None) -> str:
@@ -203,10 +203,10 @@ class Flow(MSONable):
         )
         return f"Flow({name=}, {uuid=})\n{job_reprs}"
 
-    def __eq__(self, other: Flow | Job) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if the flow is equal to another flow."""
         if not isinstance(other, Flow):
-            return False
+            return NotImplemented
         return self.uuid == other.uuid
 
     def __hash__(self) -> int:
