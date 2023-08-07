@@ -244,7 +244,7 @@ def get_root_locations(locations):
     sorted_locs = sorted(locations, key=lambda x: len(x))
     root_locations = []
     for loc in sorted_locs:
-        if any([loc[: len(rloc)] == rloc for rloc in root_locations]):
+        if any(loc[: len(rloc)] == rloc for rloc in root_locations):
             continue
         root_locations.append(loc)
     return root_locations

@@ -121,11 +121,11 @@ class Flow(MSONable):
     def __init__(
         self,
         jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow,
-        output: Any | None = None,
+        output: Any = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
-        hosts: list[str] | None = None,
+        hosts: list[str] = None,
     ):
         from jobflow.core.job import Job
 
@@ -336,8 +336,8 @@ class Flow(MSONable):
     def update_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
     ):
         """
@@ -392,8 +392,8 @@ class Flow(MSONable):
     def update_maker_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        class_filter: type[jobflow.Maker] | None = None,
+        name_filter: str = None,
+        class_filter: type[jobflow.Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -511,8 +511,8 @@ class Flow(MSONable):
     def update_metadata(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
     ):
@@ -634,7 +634,7 @@ class Flow(MSONable):
             )
 
     def add_hosts_uuids(
-        self, hosts_uuids: str | list[str] | None = None, prepend: bool = False
+        self, hosts_uuids: str | list[str] = None, prepend: bool = False
     ):
         """
         Add a list of UUIDs to the internal list of hosts.

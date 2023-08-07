@@ -299,9 +299,9 @@ def test_groupby(memory_jobstore):
     )
     data = list(memory_jobstore.groupby("d"))
     assert len(data) == 2
-    grouped_by_9 = [g[1] for g in data if g[0]["d"] == 9][0]
+    grouped_by_9 = next(g[1] for g in data if g[0]["d"] == 9)
     assert len(grouped_by_9) == 3
-    grouped_by_10 = [g[1] for g in data if g[0]["d"] == 10][0]
+    grouped_by_10 = next(g[1] for g in data if g[0]["d"] == 10)
     assert len(grouped_by_10) == 1
 
     data = list(memory_jobstore.groupby(["e", "d"]))
