@@ -158,9 +158,13 @@ class Flow(MSONable):
         self, idx: int | slice, value: Flow | Job | Sequence[Flow | Job]
     ) -> None:
         """Set the job(s) or subflow(s) at the given index/slice."""
-        if not isinstance(value, (Flow, jobflow.Job, Sequence)):
+        if (
+            not isinstance(value, (Flow, jobflow.Job, tuple, list))
+            or isinstance(value, (tuple, list))
+            and not all(isinstance(v, (Flow, jobflow.Job)) for v in value)
+        ):
             raise TypeError(
-                f"Flow can only contain Job or Flow objects, not {type(value)}"
+                f"Flow can only contain Job or Flow objects, not {type(value).__name__}"
             )
         jobs = list(self.jobs)
         jobs[idx] = value  # type: ignore[index, assignment]

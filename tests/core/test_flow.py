@@ -931,6 +931,14 @@ def test_flow_magic_methods_edge_cases():
     flow1[1:3] = (job4, job5)
     assert flow1[1:3] == (job4, job5)
 
+    for val in (None, 1.0, 1, "1", [1], (1,), {1: 1}):
+        type_name = type(val).__name__
+        with pytest.raises(
+            TypeError,
+            match=f"Flow can only contain Job or Flow objects, not {type_name}",
+        ):
+            flow1[1:3] = val
+
     # adding an empty flow still increases len by 1
     assert len(flow1 + empty_flow) == len(flow1) + 1
 
