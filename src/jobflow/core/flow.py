@@ -180,7 +180,7 @@ class Flow(MSONable):
 
     def __add__(self, other: Job | Flow | Sequence[Flow | Job]) -> Flow:
         """Add a job or subflow to the flow."""
-        if not isinstance(other, (Flow, jobflow.Job, Sequence)):
+        if not isinstance(other, (Flow, jobflow.Job, tuple, list)):
             return NotImplemented
         new_flow = self.__deepcopy__()
         new_flow.add_jobs(other)

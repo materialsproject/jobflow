@@ -928,8 +928,13 @@ def test_flow_magic_methods_edge_cases():
 
     # test slicing with __getitem__ and __setitem__
     assert flow1[1:3] == (job2, job3)
-    flow1[1:3] = (job4, job5)
+    flow1[1] = job4  # test single item
+    assert flow1[1] == job4
+    flow1[1:3] = (job4, job5)  # test multiple items with slicing
     assert flow1[1:3] == (job4, job5)
+
+    # test __add__ with bad type
+    assert flow1.__add__("string") == NotImplemented
 
     for val in (None, 1.0, 1, "1", [1], (1,), {1: 1}):
         type_name = type(val).__name__

@@ -1270,18 +1270,16 @@ def test_update_config(memory_jobstore):
 
 
 def test_job_magic_methods():
-    import os
-
     from jobflow import Job
 
     # prepare test jobs
     job1 = Job(function=sum, function_args=([1, 2],))
-    job2 = Job(function=os.path.join, function_args=("folder", "filename.txt"))
+    job2 = Job(function=dict, function_args=((("a", 1), ("b", 2)),))
     job3 = Job(function=sum, function_args=([1, 2],))
 
     # test __repr__
     assert repr(job1) == f"Job(name='sum', uuid='{job1.uuid}')"
-    assert repr(job2) == f"Job(name='join', uuid='{job2.uuid}')"
+    assert repr(job2) == f"Job(name='dict', uuid='{job2.uuid}')"
     assert repr(job3) == f"Job(name='sum', uuid='{job3.uuid}')"
     assert repr(job1) != repr(job3)
 
