@@ -295,7 +295,7 @@ class JobStore(Store):
         blob_data = defaultdict(list)
         dict_docs = []
         for doc in docs:
-            doc = jsanitize(doc, strict=True, allow_bson=True)
+            doc = jsanitize(doc, strict=True, allow_bson=True)  # noqa: PLW2901
             dict_docs.append(doc)
 
             if save_keys:
@@ -515,7 +515,7 @@ class JobStore(Store):
                 raise ValueError(f"UUID: {uuid}{istr} has no outputs.")
 
             refs = find_and_get_references(result["output"])
-            if any([ref.uuid == uuid for ref in refs]):
+            if any(ref.uuid == uuid for ref in refs):
                 raise RuntimeError("Reference cycle detected - aborting.")
 
             return find_and_resolve_references(
@@ -537,7 +537,7 @@ class JobStore(Store):
             results = [r["output"] for r in results]
 
             refs = find_and_get_references(results)
-            if any([ref.uuid == uuid for ref in refs]):
+            if any(ref.uuid == uuid for ref in refs):
                 raise RuntimeError("Reference cycle detected - aborting.")
 
             return find_and_resolve_references(
@@ -704,7 +704,7 @@ def _prepare_load(
             new_load[store_name] = store_load
         else:
             if not isinstance(store_load, (tuple, list)):
-                store_load = [store_load]
+                store_load = [store_load]  # noqa: PLW2901
 
             new_store_load = []
             for ltype in store_load:
@@ -731,7 +731,7 @@ def _prepare_save(
     new_save = {}
     for store_name, store_save in save.items():
         if not isinstance(store_save, (tuple, list, bool)):
-            store_save = [store_save]
+            store_save = [store_save]  # noqa: PLW2901
 
         new_save[store_name] = [
             o.value if isinstance(o, Enum) else o for o in store_save
@@ -742,7 +742,7 @@ def _prepare_save(
 def _filter_blobs(
     blob_infos: list[dict],
     locations: list[list[Any]],
-    load: bool | dict[str, bool | list[str | tuple[str, str]]] = None,
+    load: bool | dict[str, bool | list[str | tuple[str, str]]] | None = None,
 ) -> dict[str, tuple[list[dict], list[list[Any]]]]:
     """Filter and group blobs."""
     from collections import defaultdict

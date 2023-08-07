@@ -111,10 +111,10 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result = mongo_jobstore.query_one({"uuid": uuid})
@@ -142,10 +142,10 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result = SETTINGS.JOB_STORE.query_one({"uuid": uuid})
@@ -175,10 +175,10 @@ def test_simple_flow_metadata(
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
     assert wf.fws[0].spec["tags"] == ["my_flow"]
 
     # check store has the activity output
@@ -216,7 +216,7 @@ def test_simple_flow_metadata(
     rapidfire(lpad)
 
     result = mongo_jobstore.query_one({"uuid": uuid})
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     assert result["metadata"] == {"fw_id": fw_id, "tags": ["my_flow"]}
 
     # Test flow with existing tags
@@ -258,10 +258,10 @@ def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -289,10 +289,10 @@ def test_nested_flow(lpad, mongo_jobstore, fw_dir, nested_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -321,12 +321,12 @@ def test_addition_flow(lpad, mongo_jobstore, fw_dir, addition_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1][0]
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    uuid2 = next(u for u in uuids if u != uuid1)
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -352,12 +352,12 @@ def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -388,10 +388,10 @@ def test_replace_flow(lpad, mongo_jobstore, fw_dir, replace_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1, "index": 1})
@@ -422,7 +422,7 @@ def test_stop_jobflow_flow(lpad, mongo_jobstore, fw_dir, stop_jobflow_flow, caps
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert set(wf.fw_states.values()) == {"COMPLETED", "DEFUSED"}
@@ -450,7 +450,7 @@ def test_stop_jobflow_job(lpad, mongo_jobstore, fw_dir, stop_jobflow_job, capsys
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert list(wf.fw_states.values()) == ["COMPLETED"]
@@ -480,7 +480,7 @@ def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, ca
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     states = Counter(wf.fw_states.values())
@@ -511,7 +511,7 @@ def test_error_flow(lpad, mongo_jobstore, fw_dir, error_flow):
     # run the workflow
     rapidfire(lpad)
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert set(wf.fw_states.values()) == {"WAITING", "FIZZLED"}
@@ -527,7 +527,7 @@ def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stored_data_flow()
-    flow.jobs[0].uuid
+    _fw_id = flow.jobs[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -536,7 +536,7 @@ def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert list(wf.fw_states.values()) == ["COMPLETED"]
@@ -561,16 +561,14 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
+    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
 
     # Sort by firework id explicitly instead of assuming they are sorted
-    states_dict = {
-        key: val for key, val in zip(list(wf.id_fw.keys()), list(wf.fw_states.values()))
-    }
+    states_dict = dict(zip(list(wf.id_fw.keys()), list(wf.fw_states.values())))
     sorted_states_dict = dict(sorted(states_dict.items()))
     assert list(sorted_states_dict.values()) == ["DEFUSED", "COMPLETED", "COMPLETED"]
 
@@ -602,13 +600,13 @@ def test_replace_and_detour_flow(
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
+    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1, "index": 1})

@@ -59,7 +59,7 @@ def itergraph(graph: nx.DiGraph):
 @requires(matplotlib, "matplotlib must be installed to plot flow graphs.")
 def draw_graph(
     graph: nx.DiGraph,
-    layout_function: typing.Callable = None,
+    layout_function: typing.Callable | None = None,
     figsize: tuple[float, float] = (12, 8),
 ):
     """

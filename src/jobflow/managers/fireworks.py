@@ -43,7 +43,7 @@ def flow_to_workflow(
     Workflow
         The job or flow as a workflow.
     """
-    from fireworks.core.firework import Firework, Workflow
+    from fireworks.core.firework import Workflow
 
     from jobflow.core.flow import get_flow
 
@@ -139,7 +139,7 @@ class JobFiretask(FiretaskBase):
         the computer that runs the workflow will be used.
     """
 
-    required_params = ["job", "store"]
+    required_params = ("job", "store")
 
     def run_task(self, fw_spec):
         """Run the job and handle any dynamic firework submissions."""

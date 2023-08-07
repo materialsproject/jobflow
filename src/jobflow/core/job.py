@@ -307,13 +307,13 @@ class Job(MSONable):
     def __init__(
         self,
         function: Callable,
-        function_args: tuple[Any, ...] = None,
-        function_kwargs: dict[str, Any] = None,
+        function_args: tuple[Any, ...] | None = None,
+        function_kwargs: dict[str, Any] | None = None,
         output_schema: type[BaseModel] | None = None,
-        uuid: str = None,
+        uuid: str | None = None,
         index: int = 1,
         name: str | None = None,
-        metadata: dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
         config: JobConfig = None,
         hosts: list[str] | None = None,
         metadata_updates: list[dict[str, Any]] | None = None,
@@ -937,9 +937,9 @@ class Job(MSONable):
     def update_config(
         self,
         config: JobConfig | dict,
-        name_filter: str = None,
-        function_filter: Callable = None,
-        attributes: list[str] | str = None,
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
+        attributes: list[str] | str | None = None,
         dynamic: bool = True,
     ):
         """

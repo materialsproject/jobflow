@@ -124,7 +124,7 @@ class Flow(MSONable):
         output: Any | None = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
-        uuid: str = None,
+        uuid: str | None = None,
         hosts: list[str] | None = None,
     ):
         from jobflow.core.job import Job
@@ -566,9 +566,9 @@ class Flow(MSONable):
     def update_config(
         self,
         config: jobflow.JobConfig | dict,
-        name_filter: str = None,
-        function_filter: Callable = None,
-        attributes: list[str] | str = None,
+        name_filter: str | None = None,
+        function_filter: Callable | None = None,
+        attributes: list[str] | str | None = None,
         dynamic: bool = True,
     ):
         """
