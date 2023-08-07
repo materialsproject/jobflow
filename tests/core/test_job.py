@@ -1261,3 +1261,39 @@ def test_update_config(memory_jobstore):
     response = test_job.run(memory_jobstore)
     assert response.replace.jobs[0].config == new_config
     assert response.replace.jobs[0].config_updates[0]["config"] == new_config
+
+
+def test_job_magic_methods():
+    import os
+
+    from jobflow import Job
+
+    # prepare test jobs
+    job1 = Job(function=sum, function_args=(1, 2))
+    job2 = Job(function=os.path.join, function_args=("folder", "filename.txt"))
+    job3 = Job(function=sum, function_args=(1, 2))
+
+    # test __repr__
+    assert repr(job1) == f"Job(name='sum', uuid='{job1.uuid}')"
+    assert repr(job2) == f"Job(name='join', uuid='{job2.uuid}')"
+    assert repr(job3) == f"Job(name='sum', uuid='{job3.uuid}')"
+    assert repr(job1) != repr(job3)
+
+    # test __contains__ (using some fake UUID)
+    # initial job.input_references is empty so can't test positive case
+    assert "fake-uuid" not in job1
+
+    # test __eq__
+    assert job1 == job1
+    assert job2 == job2
+    assert job1 != job2
+    assert job1 != job3  # Different UUIDs
+
+    # test __hash__
+    assert hash(job1) != hash(job2) != hash(job3)
+
+    # Test __init__ with True for multiple additional stores
+    with pytest.raises(
+        ValueError, match="Cannot select True for multiple additional stores"
+    ):
+        _ = Job(function=sum, function_args=(1, 2), store1=True, store2=True)
