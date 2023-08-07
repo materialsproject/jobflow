@@ -400,7 +400,7 @@ class Job(MSONable):
         """
         if not isinstance(other, Job):
             return NotImplemented
-        return self.uuid == other.uuid
+        return self.__dict__ == other.__dict__
 
     def __hash__(self) -> int:
         """Get the hash of the job."""
