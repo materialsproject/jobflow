@@ -595,7 +595,11 @@ def test_get_flow():
     job1 = Job(add, function_args=(1, 2))
     job2 = Job(add, function_args=(job1.output.value, 2))
     with pytest.raises(ValueError):
-        get_flow(job2)
+        get_flow(job2, allow_external_references=False)
+
+    job1 = Job(add, function_args=(1, 2))
+    job2 = Job(add, function_args=(job1.output.value, 2))
+    assert get_flow(job2, allow_external_references=True)
 
     # test all jobs included for graph to work
     job1 = Job(add, function_args=(1, 2))
