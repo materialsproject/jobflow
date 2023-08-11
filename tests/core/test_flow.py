@@ -456,7 +456,11 @@ def test_dag_validation():
     job2 = Job(add, function_args=(job1.output, 2))
     job1.function_args = (job2.output, 2)
     flow = Flow(jobs=[job1, job2])
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Job connectivity contains cycles therefore job execution order "
+        "cannot be determined",
+    ):
         next(flow.iterflow())
 
 
