@@ -13,7 +13,7 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Hashable
+    from typing import Any, Callable, Hashable, Sequence
 
     from networkx import DiGraph
     from pydantic import BaseModel
@@ -194,10 +194,7 @@ def job(method: Callable = None, **job_kwargs):
                         args = args[1:]
 
             return Job(
-                function=f,
-                function_args=args,
-                function_kwargs=kwargs,
-                **job_kwargs,
+                function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
             )
 
         get_job.original = func
@@ -366,6 +363,49 @@ class Job(MSONable):
                 f"inputs to your Job."
             )
 
+    def __repr__(self):
+        """Get a string representation of the job."""
+        name, uuid = self.name, self.uuid
+        return f"Job({name=}, {uuid=})"
+
+    def __contains__(self, item: Hashable) -> bool:
+        """
+        Check if the job contains a reference to a given UUID.
+
+        Parameters
+        ----------
+        item
+            A UUID.
+
+        Returns
+        -------
+        bool
+            Whether the job contains a reference to the UUID.
+        """
+        return item in self.input_uuids
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Check if two jobs are equal.
+
+        Parameters
+        ----------
+        other
+            Another job.
+
+        Returns
+        -------
+        bool
+            Whether the jobs are equal.
+        """
+        if not isinstance(other, Job):
+            return NotImplemented
+        return self.__dict__ == other.__dict__
+
+    def __hash__(self) -> int:
+        """Get the hash of the job."""
+        return hash(self.uuid)
+
     @property
     def input_references(self) -> tuple[jobflow.OutputReference, ...]:
         """
@@ -474,7 +514,7 @@ class Job(MSONable):
         """
         return self.hosts[0] if self.hosts else None
 
-    def set_uuid(self, uuid: str):
+    def set_uuid(self, uuid: str) -> None:
         """
         Set the UUID of the job.
 
@@ -1079,7 +1119,7 @@ class Job(MSONable):
         else:
             super().__setattr__(key, value)
 
-    def add_hosts_uuids(self, hosts_uuids: str | list[str], prepend: bool = False):
+    def add_hosts_uuids(self, hosts_uuids: str | Sequence[str], prepend: bool = False):
         """
         Add a list of UUIDs to the internal list of hosts.
 
@@ -1095,7 +1135,7 @@ class Job(MSONable):
             Insert the UUIDs at the beginning of the list rather than extending it.
         """
         if not isinstance(hosts_uuids, (list, tuple)):
-            hosts_uuids = [hosts_uuids]
+            hosts_uuids = [hosts_uuids]  # type: ignore
         if prepend:
             self.hosts[0:0] = hosts_uuids
         else:

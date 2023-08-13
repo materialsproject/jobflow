@@ -9,7 +9,7 @@ def div(a, b=2):
     return a / b
 
 
-def get_test_job():
+def get_test_job(*args):
     from jobflow import Job
 
     return Job(add, function_args=(1, 2))
@@ -456,7 +456,11 @@ def test_dag_validation():
     job2 = Job(add, function_args=(job1.output, 2))
     job1.function_args = (job2.output, 2)
     flow = Flow(jobs=[job1, job2])
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Job connectivity contains cycles therefore job execution order "
+        "cannot be determined",
+    ):
         next(flow.iterflow())
 
 
@@ -504,7 +508,6 @@ def test_update_kwargs():
 
 
 def test_update_maker_kwargs():
-
     # test no filter
     flow = get_maker_flow()
     flow.update_maker_kwargs({"b": 10})
@@ -687,6 +690,11 @@ def test_add_jobs():
     with pytest.raises(ValueError):
         flow1.add_jobs(flow3)
 
+    # test passing single job to @jobs setter
+    flow1.jobs = add_job1
+    assert len(flow1.jobs) == 1
+    assert flow1.jobs[0] is add_job1
+
 
 def test_remove_jobs():
     from jobflow.core.flow import Flow
@@ -831,3 +839,162 @@ def test_update_config():
     assert flow.jobs[0].config.resolve_references
     assert flow.jobs[1].config.manager_config == {"a": "b"}
     assert flow.jobs[1].config.resolve_references
+
+
+def test_flow_magic_methods():
+    from jobflow import Flow
+
+    # prepare test jobs and flows
+    job1, job2, job3, job4, job5, job6 = map(get_test_job, range(6))
+
+    flow1 = Flow([job1])
+    flow2 = Flow([job2, job3])
+
+    # test __len__
+    assert len(flow1) == 1
+    assert len(flow2) == 2
+
+    # test __getitem__
+    assert flow2[0] == job2
+    assert flow2[1] == job3
+
+    # test __setitem__
+    flow2[0] = job4
+    assert flow2[0] == job4
+
+    # test __iter__
+    for job in flow2:
+        assert job in [job4, job3]
+
+    # test __contains__
+    assert job1 in flow1
+    assert job4 in flow2
+    assert job3 in flow2
+
+    # test __add__
+    flow3 = flow1 + job5
+    assert len(flow3) == 2
+    assert job5 in flow3
+
+    # test __sub__
+    flow4 = flow3 - job5
+    assert len(flow4) == 1 == len(flow1)
+    assert job5 not in flow4
+
+    # test __eq__ and __hash__
+    assert flow1 == flow1
+    assert flow1 != flow2
+    assert hash(flow1) != hash(flow2)
+
+    # test __deepcopy__
+    flow_copy = flow1.__deepcopy__()
+    assert flow_copy == flow1
+    assert id(flow_copy) != id(flow1)
+
+    # test __getitem__ with out of range index
+    with pytest.raises(IndexError):
+        _ = flow1[10]
+
+    # test __setitem__ with out of range index
+    with pytest.raises(IndexError):
+        flow1[10] = job4
+
+    # test __contains__ with job not in flow
+    assert job5 not in flow1
+    assert flow2 not in flow1
+
+    # test __add__ with non-job item
+    with pytest.raises(TypeError):
+        _ = job6 + "not a job"
+
+    # test __sub__ with non-job item
+    with pytest.raises(TypeError):
+        _ = job6 - "not a job"
+
+    # test __sub__ with job not in flow
+    with pytest.raises(
+        ValueError, match=r"Job\(name='add', uuid='.+'\) not found in flow"
+    ):
+        _ = flow1 - job5
+
+    # test __eq__ with non-flow item
+    assert flow1 != "not a flow"
+
+
+def test_flow_magic_methods_edge_cases():
+    from jobflow import Flow
+
+    # prepare test jobs and flows
+    job1, job2, job3, job4, job5, job6 = map(get_test_job, range(6))
+    Flow([job6])
+    empty_flow = Flow([])
+    flow1 = Flow([job1, job2, job3, job4])
+
+    # test negative indexing with __getitem__ and __setitem__
+    assert flow1[-1] == job4
+    flow1[-1] = job5
+    assert flow1[-1] == job5
+
+    # test slicing with __getitem__ and __setitem__
+    assert flow1[1:3] == (job2, job3)
+    flow1[1] = job4  # test single item
+    assert flow1[1] == job4
+    flow1[1:3] = (job4, job5)  # test multiple items with slicing
+    assert flow1[1:3] == (job4, job5)
+
+    # test __add__ with bad type
+    assert flow1.__add__("string") == NotImplemented
+
+    for val in (None, 1.0, 1, "1", [1], (1,), {1: 1}):
+        type_name = type(val).__name__
+        with pytest.raises(
+            TypeError,
+            match=f"Flow can only contain Job or Flow objects, not {type_name}",
+        ):
+            flow1[1:3] = val
+
+    # adding an empty flow still increases len by 1
+    assert len(flow1 + empty_flow) == len(flow1) + 1
+
+    # test __add__ and __sub__ with job already in the flow
+    with pytest.raises(
+        ValueError, match="jobs array contains multiple jobs/flows with the same uuid"
+    ):
+        _ = flow1 + job1
+
+    with pytest.raises(ValueError, match="Job .+ already belongs to another flow"):
+        _ = flow1 + job6
+
+
+def test_flow_repr():
+    from jobflow import Flow
+
+    # prepare jobs and flows
+    job1, job2, job3, job4, job5, job6, job7 = map(get_test_job, range(7))
+
+    flow1 = Flow([job1])
+    flow2 = Flow([job2, job3])
+    sub_flow1 = Flow([job6, job7])
+    flow3 = Flow([job4, job5, sub_flow1])
+    flow4 = Flow([flow1, flow2, flow3])
+
+    flow_repr = repr(flow4).splitlines()
+
+    lines = (
+        "Flow(name='Flow', uuid='",
+        "1. Flow(name='Flow', uuid='",
+        "  1.1. Job(name='add', uuid='",
+        "2. Flow(name='Flow', uuid='",
+        "  2.1. Job(name='add', uuid='",
+        "  2.2. Job(name='add', uuid='",
+        "3. Flow(name='Flow', uuid='",
+        "  3.1. Job(name='add', uuid='",
+        "  3.2. Job(name='add', uuid='",
+        "  3.3. Flow(name='Flow', uuid='",
+        "    3.3.1. Job(name='add', uuid='",
+        "    3.3.2. Job(name='add', uuid='",
+    )
+
+    assert len(lines) == len(flow_repr)
+    for expected, line in zip(lines, flow_repr):
+        assert line.startswith(expected), f"{line=} doesn't start with {expected=}"

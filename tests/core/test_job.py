@@ -545,7 +545,7 @@ def test_response():
     response = Response.from_job_returns(
         {"number": "5", "name": "Ian"}, output_schema=MySchema
     )
-    assert response.output.__class__.__name__ == "MySchema"
+    assert type(response.output).__name__ == "MySchema"
     assert response.output.number == 5
     assert response.output.name == "Ian"
 
@@ -886,22 +886,22 @@ def test_output_schema(memory_jobstore):
 
     test_job = add_schema(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_dict(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_response(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_response_dict(5, 6)
     response = test_job.run(memory_jobstore)
-    assert response.output.__class__.__name__ == "AddSchema"
+    assert type(response.output).__name__ == "AddSchema"
     assert response.output.result == 11
 
     test_job = add_schema_replace(5, 6)
@@ -922,7 +922,7 @@ def test_output_schema(memory_jobstore):
 
 
 def test_store_inputs(memory_jobstore):
-    from jobflow.core.job import OutputReference, store_inputs
+    from jobflow.core.job import Job, OutputReference, store_inputs
 
     test_job = store_inputs(1)
     test_job.run(memory_jobstore)
@@ -934,6 +934,12 @@ def test_store_inputs(memory_jobstore):
     test_job.run(memory_jobstore)
     output = memory_jobstore.query_one({"uuid": test_job.uuid}, ["output"])["output"]
     assert OutputReference.from_dict(output) == ref
+
+    # test error msg for multiple stores
+    with pytest.raises(
+        ValueError, match="Cannot select True for multiple additional stores"
+    ):
+        _ = Job(function=sum, function_args=([1, 2],), store1=True, store2=True)
 
 
 def test_pass_manager_config():
@@ -1261,3 +1267,31 @@ def test_update_config(memory_jobstore):
     response = test_job.run(memory_jobstore)
     assert response.replace.jobs[0].config == new_config
     assert response.replace.jobs[0].config_updates[0]["config"] == new_config
+
+
+def test_job_magic_methods():
+    from jobflow import Job
+
+    # prepare test jobs
+    job1 = Job(function=sum, function_args=([1, 2],))
+    job2 = Job(function=dict, function_args=((("a", 1), ("b", 2)),))
+    job3 = Job(function=sum, function_args=([1, 2],))
+
+    # test __repr__
+    assert repr(job1) == f"Job(name='sum', uuid='{job1.uuid}')"
+    assert repr(job2) == f"Job(name='dict', uuid='{job2.uuid}')"
+    assert repr(job3) == f"Job(name='sum', uuid='{job3.uuid}')"
+    assert repr(job1) != repr(job3)
+
+    # test __contains__ (using some fake UUID)
+    # initial job.input_references is empty so can't test positive case
+    assert "fake-uuid" not in job1
+
+    # test __eq__
+    assert job1 == job1
+    assert job2 == job2
+    assert job1 != job2
+    assert job1 != job3  # Different UUIDs
+
+    # test __hash__
+    assert hash(job1) != hash(job2) != hash(job3)

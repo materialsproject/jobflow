@@ -94,6 +94,16 @@ flow.update_config({"manager_config": {"_fworker": "fworker1"}}, name_filter="jo
 flow.update_config({"manager_config": {"_fworker": "fworker2"}}, name_filter="job2")
 ```
 
+NB: There are two ways to iterate over a `Flow`. The `iterflow` method iterates through a flow such that root nodes of the graph are always returned first. This has the benefit that the `job.output` references can always be resolved.
+`Flow` also has an `__iter__` method, meaning you can write
+
+```py
+for job_or_subflow in flow:
+    ...
+```
+
+to simply iterate through the `Flow.jobs` array. Note that `jobs` can also contain other flows.
+
 ### Launching the Jobs
 
 As described above, convert the flow to a workflow via {obj}`flow_to_workflow` and add it to your launch pad.

@@ -218,7 +218,7 @@ def test_replace_flow_nested(memory_jobstore, clean_dir, replace_flow_nested):
     assert len(responses[uuid1]) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].replace is not None
-    assert responses[uuid1][2].output["first"].__class__.__name__ == "OutputReference"
+    assert type(responses[uuid1][2].output["first"]).__name__ == "OutputReference"
     assert responses[uuid2][1].output == "12345_end"
 
     # check store has the activity output

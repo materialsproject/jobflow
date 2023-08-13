@@ -111,6 +111,7 @@ show_missing = true
 exclude_lines = [
     '^\s*@overload( |$)',
     '^\s*assert False(,|$)',
+    'if TYPE_CHECKING:',
     'if typing.TYPE_CHECKING:',
 ]
 
