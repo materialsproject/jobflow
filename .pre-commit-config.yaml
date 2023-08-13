@@ -32,12 +32,12 @@ repos:
         entry: pflake8
         files: ^src/
         additional_dependencies:
-          - pyproject-flake8==6.0.0
-          - flake8-bugbear==22.12.6
-          - flake8-typing-imports==1.14.0
-          - flake8-docstrings==1.6.0
-          - flake8-rst-docstrings==0.3.0
-          - flake8-rst==0.8.0
+          - pyproject-flake8
+          - flake8-bugbear
+          - flake8-typing-imports
+          - flake8-docstrings
+          - flake8-rst-docstrings
+          - flake8-rst
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -51,8 +51,8 @@ repos:
       - id: mypy
         files: ^src/
         additional_dependencies:
-          - tokenize-rt==4.1.0
-          - types-pkg_resources==0.1.2
+          - tokenize-rt
+          - types-pkg_resources
           - types-paramiko
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.5
