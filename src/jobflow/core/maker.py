@@ -132,8 +132,8 @@ class Maker(MSONable):
     def update_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        class_filter: type[Maker] | None = None,
+        name_filter: str = None,
+        class_filter: type[Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -234,8 +234,8 @@ class Maker(MSONable):
 def recursive_call(
     obj: Maker,
     func: Callable[[Maker], Maker],
-    name_filter: str | None = None,
-    class_filter: type[Maker] | None = None,
+    name_filter: str = None,
+    class_filter: type[Maker] = None,
     nested: bool = True,
 ):
     """Recursively call a function on all Maker objects in the object.

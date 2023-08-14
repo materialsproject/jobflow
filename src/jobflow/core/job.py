@@ -13,7 +13,7 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Hashable
+    from typing import Any, Callable, Hashable, Sequence
 
     from networkx import DiGraph
     from pydantic import BaseModel
@@ -66,7 +66,7 @@ class JobConfig(MSONable):
     response_manager_config: dict = field(default_factory=dict)
 
 
-def job(method: Callable | None = None, **job_kwargs):
+def job(method: Callable = None, **job_kwargs):
     """
     Wrap a function to produce a :obj:`Job`.
 
@@ -179,7 +179,6 @@ def job(method: Callable | None = None, **job_kwargs):
 
         @wraps(func)
         def get_job(*args, **kwargs) -> Job:
-
             f = func
             if len(args) > 0:
                 # see if the first argument has a function with the same name as
@@ -195,10 +194,7 @@ def job(method: Callable | None = None, **job_kwargs):
                         args = args[1:]
 
             return Job(
-                function=f,
-                function_args=args,
-                function_kwargs=kwargs,
-                **job_kwargs,
+                function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
             )
 
         get_job.original = func
@@ -309,15 +305,15 @@ class Job(MSONable):
         function: Callable,
         function_args: tuple[Any, ...] = None,
         function_kwargs: dict[str, Any] = None,
-        output_schema: type[BaseModel] | None = None,
+        output_schema: type[BaseModel] = None,
         uuid: str = None,
         index: int = 1,
-        name: str | None = None,
+        name: str = None,
         metadata: dict[str, Any] = None,
         config: JobConfig = None,
-        hosts: list[str] | None = None,
-        metadata_updates: list[dict[str, Any]] | None = None,
-        config_updates: list[dict[str, Any]] | None = None,
+        hosts: list[str] = None,
+        metadata_updates: list[dict[str, Any]] = None,
+        config_updates: list[dict[str, Any]] = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -366,6 +362,49 @@ class Job(MSONable):
                 f"job.output). If this message is unexpected then double check the "
                 f"inputs to your Job."
             )
+
+    def __repr__(self):
+        """Get a string representation of the job."""
+        name, uuid = self.name, self.uuid
+        return f"Job({name=}, {uuid=})"
+
+    def __contains__(self, item: Hashable) -> bool:
+        """
+        Check if the job contains a reference to a given UUID.
+
+        Parameters
+        ----------
+        item
+            A UUID.
+
+        Returns
+        -------
+        bool
+            Whether the job contains a reference to the UUID.
+        """
+        return item in self.input_uuids
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Check if two jobs are equal.
+
+        Parameters
+        ----------
+        other
+            Another job.
+
+        Returns
+        -------
+        bool
+            Whether the jobs are equal.
+        """
+        if not isinstance(other, Job):
+            return NotImplemented
+        return self.__dict__ == other.__dict__
+
+    def __hash__(self) -> int:
+        """Get the hash of the job."""
+        return hash(self.uuid)
 
     @property
     def input_references(self) -> tuple[jobflow.OutputReference, ...]:
@@ -475,7 +514,7 @@ class Job(MSONable):
         """
         return self.hosts[0] if self.hosts else None
 
-    def set_uuid(self, uuid: str):
+    def set_uuid(self, uuid: str) -> None:
         """
         Set the UUID of the job.
 
@@ -574,7 +613,6 @@ class Job(MSONable):
             passed_config = None
 
         if passed_config:
-
             if response.addition is not None:
                 pass_manager_config(response.addition, passed_config)
 
@@ -664,8 +702,8 @@ class Job(MSONable):
     def update_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
     ):
         """
@@ -720,8 +758,8 @@ class Job(MSONable):
     def update_maker_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        class_filter: type[jobflow.Maker] | None = None,
+        name_filter: str = None,
+        class_filter: type[jobflow.Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -853,8 +891,8 @@ class Job(MSONable):
     def update_metadata(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
     ):
@@ -1068,7 +1106,7 @@ class Job(MSONable):
 
         # fireworks can't serialize functions and classes, so explicitly serialize to
         # the job recursively using monty to avoid issues
-        return jsanitize(d, strict=True, enum_values=True)
+        return jsanitize(d, strict=True, enum_values=True, allow_bson=True)
 
     def __setattr__(self, key, value):
         """Handle setting attributes. Implements a special case for job name."""
@@ -1081,7 +1119,7 @@ class Job(MSONable):
         else:
             super().__setattr__(key, value)
 
-    def add_hosts_uuids(self, hosts_uuids: str | list[str], prepend: bool = False):
+    def add_hosts_uuids(self, hosts_uuids: str | Sequence[str], prepend: bool = False):
         """
         Add a list of UUIDs to the internal list of hosts.
 
@@ -1097,7 +1135,7 @@ class Job(MSONable):
             Insert the UUIDs at the beginning of the list rather than extending it.
         """
         if not isinstance(hosts_uuids, (list, tuple)):
-            hosts_uuids = [hosts_uuids]
+            hosts_uuids = [hosts_uuids]  # type: ignore
         if prepend:
             self.hosts[0:0] = hosts_uuids
         else:
@@ -1134,11 +1172,11 @@ class Response(typing.Generic[T]):
         Stop executing all remaining jobs.
     """
 
-    output: T | None = None
-    detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
-    addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
-    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] | None = None
-    stored_data: dict[Hashable, Any] | None = None
+    output: T = None
+    detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    stored_data: dict[Hashable, Any] = None
     stop_children: bool = False
     stop_jobflow: bool = False
 
@@ -1146,7 +1184,7 @@ class Response(typing.Generic[T]):
     def from_job_returns(
         cls,
         job_returns: Any | None,
-        output_schema: type[BaseModel] | None = None,
+        output_schema: type[BaseModel] = None,
     ) -> Response:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
@@ -1323,7 +1361,6 @@ def pass_manager_config(
     all_jobs: list[Job] = []
 
     def get_jobs(arg):
-
         if isinstance(arg, Job):
             all_jobs.append(arg)
         elif isinstance(arg, (list, tuple)):

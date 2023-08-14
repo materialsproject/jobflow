@@ -87,12 +87,22 @@ for job, _ in flow.iterflow():
         job.update_config({"manager_config": {"_fworker": "fworker2"}})
 ```
 
-To make the process a bit easier, the `{obj}update_config()` function can also be applied directly to a flow in conjunction with a filter. The logic above can then be simplified to:
+To make the process a bit easier, the {obj}`update_config()` function can also be applied directly to a flow in conjunction with a filter. The logic above can then be simplified to:
 
 ```python
 flow.update_config({"manager_config": {"_fworker": "fworker1"}}, name_filter="job1")
 flow.update_config({"manager_config": {"_fworker": "fworker2"}}, name_filter="job2")
 ```
+
+NB: There are two ways to iterate over a `Flow`. The `iterflow` method iterates through a flow such that root nodes of the graph are always returned first. This has the benefit that the `job.output` references can always be resolved.
+`Flow` also has an `__iter__` method, meaning you can write
+
+```py
+for job_or_subflow in flow:
+    ...
+```
+
+to simply iterate through the `Flow.jobs` array. Note that `jobs` can also contain other flows.
 
 ### Launching the Jobs
 

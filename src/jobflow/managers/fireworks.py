@@ -16,7 +16,7 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 
 def flow_to_workflow(
     flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
-    store: jobflow.JobStore | None = None,
+    store: jobflow.JobStore = None,
     allow_external_references: bool = False,
     **kwargs,
 ) -> Workflow:
@@ -47,7 +47,7 @@ def flow_to_workflow(
     Workflow
         The job or flow as a workflow.
     """
-    from fireworks.core.firework import Firework, Workflow
+    from fireworks.core.firework import Workflow
 
     from jobflow.core.flow import get_flow
 
@@ -60,14 +60,14 @@ def flow_to_workflow(
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
         fireworks.append(fw)
 
-    return Workflow(fireworks, name=flow.name, **kwargs)
+    return Workflow(fireworks, name=kwargs.pop("name", flow.name), **kwargs)
 
 
 def job_to_firework(
     job: jobflow.Job,
-    store: jobflow.JobStore | None = None,
-    parents: Sequence[str] | None = None,
-    parent_mapping: dict[str, Firework] | None = None,
+    store: jobflow.JobStore = None,
+    parents: Sequence[str] = None,
+    parent_mapping: dict[str, Firework] = None,
     **kwargs,
 ) -> Firework:
     """
@@ -143,7 +143,7 @@ class JobFiretask(FiretaskBase):
         the computer that runs the workflow will be used.
     """
 
-    required_params = ["job", "store"]
+    required_params = ("job", "store")
 
     def run_task(self, fw_spec):
         """Run the job and handle any dynamic firework submissions."""
@@ -156,6 +156,19 @@ class JobFiretask(FiretaskBase):
         if store is None:
             store = SETTINGS.JOB_STORE
         store.connect()
+
+        # Add the metadata from the fw_spec
+        fw_tags = fw_spec.get("tags", None)
+        if fw_tags is not None:
+            if "tags" in job.metadata:
+                if isinstance(job.metadata["tags"], list):
+                    job.metadata["tags"].extend(fw_tags)
+                else:
+                    # tags is not a list, make it one
+                    job.metadata["tags"] = [job.metadata["tags"], *fw_tags]
+                job.metadata["tags"] = list(dict.fromkeys(job.metadata["tags"]))
+            else:
+                job.metadata.update({"tags": fw_tags})
 
         if hasattr(self, "fw_id"):
             job.metadata.update({"fw_id": self.fw_id})

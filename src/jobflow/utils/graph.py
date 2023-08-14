@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
 
     import jobflow
 
-__all__ = ["itergraph", "draw_graph", "to_pydot"]
+__all__ = ["itergraph", "draw_graph", "to_pydot", "to_mermaid"]
 
 
 def itergraph(graph: nx.DiGraph):
@@ -181,7 +181,7 @@ def to_pydot(flow: jobflow.Flow):
     return pydot_graph
 
 
-def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
+def to_mermaid(flow: jobflow.Flow | jobflow.Job, show_flow_boxes: bool = False) -> str:
     """
     Convert a flow to a mermaid graph.
 
@@ -190,8 +190,8 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
 
     Parameters
     ----------
-    flow : Flow
-        A flow.
+    flow : Flow or a Job
+        A flow or a job.
     show_flow_boxes : bool
         Whether to show the boxes around nested flows.
 
@@ -215,7 +215,10 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
 
     To render the graph, go to mermaid.live and paste the contents of ``graph_source``.
     """
-    from jobflow import Flow
+    from jobflow import Flow, Job
+
+    if isinstance(flow, Job):
+        flow = Flow(jobs=[flow])
 
     lines = ["flowchart TD"]
     nodes = flow.graph.nodes(data=True)
@@ -243,8 +246,7 @@ def to_mermaid(flow: jobflow.Flow, show_flow_boxes: bool = False) -> str:
                 if show_flow_boxes:
                     lines.append(f"{prefix}end")
             else:
-                if indent_level != 1:
-                    lines.append(f"{prefix}{job.uuid}({job.name})")
+                lines.append(f"{prefix}{job.uuid}({job.name})")
 
     add_subgraph(flow)
 

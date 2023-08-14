@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
+import copy
 import logging
-import typing
 import warnings
+from typing import TYPE_CHECKING, Sequence
 
 from monty.json import MSONable
 
+import jobflow
 from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
-if typing.TYPE_CHECKING:
-    from typing import Any, Callable
+if TYPE_CHECKING:
+    from typing import Any, Callable, Iterator
 
     from networkx import DiGraph
 
-    import jobflow
+    from jobflow import Job
 
 __all__ = ["JobOrder", "Flow", "get_flow"]
 
@@ -121,11 +123,11 @@ class Flow(MSONable):
     def __init__(
         self,
         jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow,
-        output: Any | None = None,
+        output: Any = None,
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
-        hosts: list[str] | None = None,
+        hosts: list[str] = None,
     ):
         from jobflow.core.job import Job
 
@@ -144,8 +146,94 @@ class Flow(MSONable):
         self.add_jobs(jobs)
         self.output = output
 
+    def __len__(self) -> int:
+        """Get the number of jobs or subflows in the flow."""
+        return len(self.jobs)
+
+    def __getitem__(self, idx: int | slice) -> Flow | Job | tuple[Flow | Job, ...]:
+        """Get the job(s) or subflow(s) at the given index/slice."""
+        return self.jobs[idx]
+
+    def __setitem__(
+        self, idx: int | slice, value: Flow | Job | Sequence[Flow | Job]
+    ) -> None:
+        """Set the job(s) or subflow(s) at the given index/slice."""
+        if (
+            not isinstance(value, (Flow, jobflow.Job, tuple, list))
+            or isinstance(value, (tuple, list))
+            and not all(isinstance(v, (Flow, jobflow.Job)) for v in value)
+        ):
+            raise TypeError(
+                f"Flow can only contain Job or Flow objects, not {type(value).__name__}"
+            )
+        jobs = list(self.jobs)
+        jobs[idx] = value  # type: ignore[index, assignment]
+        self.jobs = tuple(jobs)
+
+    def __iter__(self) -> Iterator[Flow | Job]:
+        """Iterate through the jobs in the flow."""
+        return iter(self.jobs)
+
+    def __contains__(self, item: Flow | Job) -> bool:
+        """Check if the flow contains a job or subflow."""
+        return item in self.jobs
+
+    def __add__(self, other: Job | Flow | Sequence[Flow | Job]) -> Flow:
+        """Add a job or subflow to the flow."""
+        if not isinstance(other, (Flow, jobflow.Job, tuple, list)):
+            return NotImplemented
+        new_flow = self.__deepcopy__()
+        new_flow.add_jobs(other)
+        return new_flow
+
+    def __sub__(self, other: Flow | Job) -> Flow:
+        """Remove a job or subflow from the flow."""
+        if other not in self.jobs:
+            raise ValueError(f"{other!r} not found in flow")
+        new_flow = self.__deepcopy__()
+        new_flow.jobs = tuple([job for job in new_flow.jobs if job != other])
+        return new_flow
+
+    def __repr__(self, level=0, index=None) -> str:
+        """Get a string representation of the flow."""
+        indent = "  " * level
+        name, uuid = self.name, self.uuid
+        flow_index = f"{index}." if index is not None else ""
+        job_reprs = "\n".join(
+            f"{indent}{flow_index}{i}. "
+            f"{j.__repr__(level + 1, f'{flow_index}{i}') if isinstance(j, Flow) else j}"
+            for i, j in enumerate(self.jobs, 1)
+        )
+        return f"Flow({name=}, {uuid=})\n{job_reprs}"
+
+    def __eq__(self, other: object) -> bool:
+        """Check if the flow is equal to another flow."""
+        if not isinstance(other, Flow):
+            return NotImplemented
+        return self.uuid == other.uuid
+
+    def __hash__(self) -> int:
+        """Get the hash of the flow."""
+        return hash(self.uuid)
+
+    def __deepcopy__(self, memo: dict[int, Any] = None) -> Flow:
+        """Get a deep copy of the flow.
+
+        Shallow copy doesn't make sense; jobs aren't allowed to belong to multiple flows
+        """
+        kwds = self.as_dict()
+        for key in ("jobs", "@class", "@module", "@version"):
+            kwds.pop(key)
+        jobs = copy.deepcopy(self.jobs, memo)
+        new_flow = Flow(jobs=[], **kwds)
+        # reassign host
+        for job in jobs:
+            job.hosts = [new_flow.uuid]
+        new_flow.jobs = jobs
+        return new_flow
+
     @property
-    def jobs(self) -> tuple[Flow | jobflow.Job, ...]:
+    def jobs(self) -> tuple[Flow | Job, ...]:
         """
         Get the Jobs in the Flow.
 
@@ -155,6 +243,20 @@ class Flow(MSONable):
             The list of Jobs/Flows of the Flow.
         """
         return self._jobs
+
+    @jobs.setter
+    def jobs(self, jobs: Sequence[Flow | Job] | Job | Flow):
+        """
+        Set the Jobs in the Flow.
+
+        Parameters
+        ----------
+        jobs
+            The list of Jobs/Flows of the Flow.
+        """
+        if isinstance(jobs, (Flow, jobflow.Job)):
+            jobs = [jobs]
+        self._jobs = tuple(jobs)
 
     @property
     def output(self) -> Any:
@@ -343,8 +445,8 @@ class Flow(MSONable):
     def update_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
     ):
         """
@@ -399,8 +501,8 @@ class Flow(MSONable):
     def update_maker_kwargs(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        class_filter: type[jobflow.Maker] | None = None,
+        name_filter: str = None,
+        class_filter: type[jobflow.Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
     ):
@@ -518,8 +620,8 @@ class Flow(MSONable):
     def update_metadata(
         self,
         update: dict[str, Any],
-        name_filter: str | None = None,
-        function_filter: Callable | None = None,
+        name_filter: str = None,
+        function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
     ):
@@ -641,7 +743,7 @@ class Flow(MSONable):
             )
 
     def add_hosts_uuids(
-        self, hosts_uuids: str | list[str] | None = None, prepend: bool = False
+        self, hosts_uuids: str | list[str] = None, prepend: bool = False
     ):
         """
         Add a list of UUIDs to the internal list of hosts.
@@ -673,7 +775,7 @@ class Flow(MSONable):
         for j in self.jobs:
             j.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
-    def add_jobs(self, jobs: list[Flow | jobflow.Job] | jobflow.Job | Flow):
+    def add_jobs(self, jobs: Job | Flow | Sequence[Flow | Job]) -> None:
         """
         Add Jobs or Flows to the Flow.
 
@@ -686,14 +788,14 @@ class Flow(MSONable):
             A list of Jobs and Flows.
         """
         if not isinstance(jobs, (tuple, list)):
-            jobs = [jobs]
+            jobs = [jobs]  # type: ignore[list-item]
 
         job_ids = set(self.all_uuids)
         hosts = [self.uuid, *self.hosts]
         for job in jobs:
             if job.host is not None and job.host != self.uuid:
                 raise ValueError(
-                    f"{job.__class__.__name__} {job.name} ({job.uuid}) already belongs "
+                    f"{type(job).__name__} {job.name} ({job.uuid}) already belongs "
                     f"to another flow."
                 )
             if job.uuid in job_ids:
@@ -750,7 +852,7 @@ class Flow(MSONable):
 
 
 def get_flow(
-    flow: Flow | jobflow.Job | list[jobflow.Job],
+    flow: Flow | Job | list[jobflow.Job],
     allow_external_references: bool = False,
 ) -> Flow:
     """

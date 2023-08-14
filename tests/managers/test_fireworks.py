@@ -18,12 +18,12 @@ def test_flow_to_workflow(
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
 
-    # test simple job no store
+    # test simple job no store with custom name
     flow = simple_job()
-    wf = flow_to_workflow(flow)
+    wf = flow_to_workflow(flow, name="custom_name")
 
     assert type(wf) == Workflow
-    assert wf.name == "Flow"
+    assert wf.name == "custom_name"
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
 
@@ -111,10 +111,10 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result = mongo_jobstore.query_one({"uuid": uuid})
@@ -142,10 +142,10 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result = SETTINGS.JOB_STORE.query_one({"uuid": uuid})
@@ -157,7 +157,9 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     assert "INFO Finished job - func" in captured.out
 
 
-def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
+def test_simple_flow_metadata(
+    lpad, mongo_jobstore, fw_dir, simple_flow, connected_flow, capsys
+):
     from fireworks.core.rocket_launcher import rapidfire
 
     from jobflow.managers.fireworks import flow_to_workflow
@@ -173,16 +175,17 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
     assert wf.fws[0].spec["tags"] == ["my_flow"]
 
     # check store has the activity output
     result = mongo_jobstore.query_one({"uuid": uuid})
     assert result["output"] == "12345_end"
     assert result["metadata"]["fw_id"] == fw_id
+    assert result["metadata"]["tags"] == ["my_flow"]
 
     # test override
     flow = simple_flow()
@@ -197,6 +200,46 @@ def test_simple_flow_metadata(lpad, mongo_jobstore, fw_dir, simple_flow, capsys)
 
     result = mongo_jobstore.query_one({"uuid": uuid})
     assert result["metadata"] == {}
+
+    # Test flow with metadata added after conversion to workflow
+    # (for example: if an atomate powerup is used to add metadata)
+    flow = simple_flow()
+    uuid = flow.jobs[0].uuid
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    wf.metadata = ["my_flow"]
+    for idx_fw in range(len(wf.fws)):
+        wf.fws[idx_fw].spec["tags"] = ["my_flow"]
+
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    result = mongo_jobstore.query_one({"uuid": uuid})
+    fw_id = next(iter(fw_ids.values()))
+    assert result["metadata"] == {"fw_id": fw_id, "tags": ["my_flow"]}
+
+    # Test flow with existing tags
+    flow = connected_flow()
+    flow.jobs[0].metadata["tags"] = "some tag"
+    uuid0 = flow.jobs[0].uuid
+    flow.jobs[1].metadata["tags"] = ["tag, you're it"]
+    uuid1 = flow.jobs[1].uuid
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    wf.metadata = ["my_flow"]
+    for idx_fw in range(len(wf.fws)):
+        wf.fws[idx_fw].spec["tags"] = ["my_flow"]
+
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    result = mongo_jobstore.query_one({"uuid": uuid0})
+    assert result["metadata"]["tags"] == ["some tag", "my_flow"]
+
+    result = mongo_jobstore.query_one({"uuid": uuid1})
+    assert result["metadata"]["tags"] == ["tag, you're it", "my_flow"]
 
 
 def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
@@ -215,10 +258,10 @@ def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -246,10 +289,10 @@ def test_nested_flow(lpad, mongo_jobstore, fw_dir, nested_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -278,12 +321,12 @@ def test_addition_flow(lpad, mongo_jobstore, fw_dir, addition_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1][0]
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    uuid2 = next(u for u in uuids if u != uuid1)
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -309,12 +352,12 @@ def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -345,10 +388,10 @@ def test_replace_flow(lpad, mongo_jobstore, fw_dir, replace_flow, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1, "index": 1})
@@ -379,7 +422,7 @@ def test_stop_jobflow_flow(lpad, mongo_jobstore, fw_dir, stop_jobflow_flow, caps
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert set(wf.fw_states.values()) == {"COMPLETED", "DEFUSED"}
@@ -407,7 +450,7 @@ def test_stop_jobflow_job(lpad, mongo_jobstore, fw_dir, stop_jobflow_job, capsys
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert list(wf.fw_states.values()) == ["COMPLETED"]
@@ -437,7 +480,7 @@ def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, ca
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     states = Counter(wf.fw_states.values())
@@ -468,7 +511,7 @@ def test_error_flow(lpad, mongo_jobstore, fw_dir, error_flow):
     # run the workflow
     rapidfire(lpad)
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert set(wf.fw_states.values()) == {"WAITING", "FIZZLED"}
@@ -484,7 +527,7 @@ def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stored_data_flow()
-    flow.jobs[0].uuid
+    _fw_id = flow.jobs[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -493,7 +536,7 @@ def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     assert list(wf.fw_states.values()) == ["COMPLETED"]
@@ -518,12 +561,16 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
-    assert list(wf.fw_states.values()) == ["DEFUSED", "COMPLETED", "COMPLETED"]
+    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+
+    # Sort by firework id explicitly instead of assuming they are sorted
+    states_dict = dict(zip(list(wf.id_fw.keys()), list(wf.fw_states.values())))
+    sorted_states_dict = dict(sorted(states_dict.items()))
+    assert list(sorted_states_dict.values()) == ["DEFUSED", "COMPLETED", "COMPLETED"]
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1})
@@ -553,13 +600,13 @@ def test_replace_and_detour_flow(
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = [u for u in uuids if u != uuid1 and u != uuid3][0]
+    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
 
-    assert all([s == "COMPLETED" for s in wf.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
     result1 = mongo_jobstore.query_one({"uuid": uuid1, "index": 1})
@@ -590,9 +637,9 @@ def test_external_reference(lpad, mongo_jobstore, fw_dir, simple_job, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf1 = lpad.get_wf_by_fw_id(fw_id)
-    assert all([s == "COMPLETED" for s in wf1.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf1.fw_states.values())
 
     # run a second flow with external reference to the first
     job2 = simple_job(OutputReference(uuid1))
@@ -605,9 +652,9 @@ def test_external_reference(lpad, mongo_jobstore, fw_dir, simple_job, capsys):
     rapidfire(lpad)
 
     # check workflow completed
-    fw_id = list(fw_ids.values())[0]
+    fw_id = next(iter(fw_ids.values()))
     wf2 = lpad.get_wf_by_fw_id(fw_id)
-    assert all([s == "COMPLETED" for s in wf2.fw_states.values()])
+    assert all(s == "COMPLETED" for s in wf2.fw_states.values())
 
     # check response
     result2 = mongo_jobstore.query_one({"uuid": uuid2})
