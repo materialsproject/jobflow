@@ -340,6 +340,15 @@ def test_graph():
     assert len(graph.edges) == 5
     assert len(graph.nodes) == 4
 
+    # test external reference
+    add_job1 = get_test_job()
+    add_job2 = get_test_job()
+    add_job1.function_args = (2, add_job2.output)
+    flow = Flow([add_job1])
+    graph = flow.graph
+    assert len(graph.edges) == 1
+    assert len(graph.nodes) == 2
+
 
 def test_draw_graph():
     from jobflow import Flow, JobOrder
@@ -403,7 +412,7 @@ def test_draw_graph_nopydot():
 
 
 def test_iterflow():
-    from jobflow import Flow, JobOrder
+    from jobflow import Flow, JobOrder, OutputReference
 
     # test unconnected graph
     add_job1 = get_test_job()
@@ -446,6 +455,12 @@ def test_iterflow():
     flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
     with pytest.raises(ValueError):
         list(flow.iterflow())
+
+    # test with external reference
+    add_job1 = get_test_job()
+    add_job1.function_args = (2, OutputReference("a-fake-uuid"))
+    flow = Flow([add_job1], order=JobOrder.LINEAR)
+    list(flow.iterflow())
 
 
 def test_dag_validation():
@@ -598,7 +613,11 @@ def test_get_flow():
     job1 = Job(add, function_args=(1, 2))
     job2 = Job(add, function_args=(job1.output.value, 2))
     with pytest.raises(ValueError):
-        get_flow(job2)
+        get_flow(job2, allow_external_references=False)
+
+    job1 = Job(add, function_args=(1, 2))
+    job2 = Job(add, function_args=(job1.output.value, 2))
+    assert get_flow(job2, allow_external_references=True)
 
     # test all jobs included for graph to work
     job1 = Job(add, function_args=(1, 2))

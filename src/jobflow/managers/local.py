@@ -21,6 +21,7 @@ def run_locally(
     store: jobflow.JobStore = None,
     create_folders: bool = False,
     ensure_success: bool = False,
+    allow_external_references: bool = False,
 ) -> dict[str, dict[int, jobflow.Response]]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
@@ -39,6 +40,9 @@ def run_locally(
         Whether to run each job in a new folder.
     ensure_success
         Raise an error if the flow was not executed successfully.
+    allow_external_references
+        If False all the references to other outputs should be from other Jobs
+        of the Flow.
 
     Returns
     -------
@@ -64,7 +68,7 @@ def run_locally(
     if log:
         initialize_logger()
 
-    flow = get_flow(flow)
+    flow = get_flow(flow, allow_external_references=allow_external_references)
 
     stopped_parents: set[str] = set()
     errored: set[str] = set()

@@ -361,3 +361,21 @@ def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
     assert result1["output"] == 11
     assert result2["output"] == "1234"
     assert result3 is None
+
+
+def test_external_reference(memory_jobstore, clean_dir, simple_job):
+    from jobflow import OutputReference, run_locally
+
+    # run a first job
+    job1 = simple_job("12345")
+    uuid1 = job1.uuid
+    responses = run_locally(job1, store=memory_jobstore)
+
+    # check responses has been filled
+    assert responses[uuid1][1].output == "12345_end"
+
+    # run a second job with external reference to the first
+    job2 = simple_job(OutputReference(uuid1))
+    uuid2 = job2.uuid
+    responses = run_locally(job2, store=memory_jobstore, allow_external_references=True)
+    assert responses[uuid2][1].output == "12345_end_end"

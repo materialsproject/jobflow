@@ -354,6 +354,11 @@ class Flow(MSONable):
 
         graph = nx.compose_all([job.graph for job in self.jobs])
 
+        for node in graph:
+            node_props = graph.nodes[node]
+            if all(k not in node_props for k in ("job", "label")):
+                nx.set_node_attributes(graph, {node: {"label": "external"}})
+
         if self.order == JobOrder.LINEAR:
             # add fake edges between jobs to force linear order
             edges = []
@@ -431,7 +436,9 @@ class Flow(MSONable):
             )
 
         for node in itergraph(graph):
-            parents = [u for u, v in graph.in_edges(node)]
+            parents = [u for u, v in graph.in_edges(node) if "job" in graph.nodes[u]]
+            if "job" not in graph.nodes[node]:
+                continue
             job = graph.nodes[node]["job"]
             yield job, parents
 
@@ -846,6 +853,7 @@ class Flow(MSONable):
 
 def get_flow(
     flow: Flow | Job | list[jobflow.Job],
+    allow_external_references: bool = False,
 ) -> Flow:
     """
     Check dependencies and return flow object.
@@ -854,6 +862,9 @@ def get_flow(
     ----------
     flow
         A job, list of jobs, or flow.
+    allow_external_references
+        If False all the references to other outputs should be from other Jobs
+        of the Flow.
 
     Returns
     -------
@@ -863,14 +874,17 @@ def get_flow(
     if not isinstance(flow, Flow):
         flow = Flow(jobs=flow)
 
-    # ensure that we have all the jobs needed to resolve the reference connections
-    job_references = find_and_get_references(flow.jobs)
-    job_reference_uuids = {ref.uuid for ref in job_references}
-    missing_jobs = job_reference_uuids.difference(set(flow.job_uuids))
-    if len(missing_jobs) > 0:
-        raise ValueError(
-            "The following jobs were not found in the jobs array and are needed to "
-            f"resolve output references:\n{list(missing_jobs)}"
-        )
+    if not allow_external_references:
+        # ensure that we have all the jobs needed to resolve the reference connections
+        job_references = find_and_get_references(flow.jobs)
+        job_reference_uuids = {ref.uuid for ref in job_references}
+        missing_jobs = job_reference_uuids.difference(set(flow.job_uuids))
+        if len(missing_jobs) > 0:
+            raise ValueError(
+                "The following jobs were not found in the jobs array and are needed to "
+                f"resolve output references:\n{list(missing_jobs)}\nIf the references "
+                "are from external jobs and this is the intended behavior set "
+                "allow_external_references to True"
+            )
 
     return flow

@@ -618,3 +618,45 @@ def test_replace_and_detour_flow(
     assert result2["output"] == "11_end"
     assert result3["output"] == "xyz_end"
     assert result4["output"] == "12345_end"
+
+
+def test_external_reference(lpad, mongo_jobstore, fw_dir, simple_job, capsys):
+    from fireworks.core.rocket_launcher import rapidfire
+
+    from jobflow import Flow, OutputReference
+    from jobflow.managers.fireworks import flow_to_workflow
+
+    # run a first flow
+    job1 = simple_job("12345")
+    uuid1 = job1.uuid
+    flow1 = Flow([job1])
+    wf1 = flow_to_workflow(flow1, mongo_jobstore)
+    fw_ids = lpad.add_wf(wf1)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = next(iter(fw_ids.values()))
+    wf1 = lpad.get_wf_by_fw_id(fw_id)
+    assert all(s == "COMPLETED" for s in wf1.fw_states.values())
+
+    # run a second flow with external reference to the first
+    job2 = simple_job(OutputReference(uuid1))
+    uuid2 = job2.uuid
+    flow2 = Flow([job2])
+    wf2 = flow_to_workflow(flow2, mongo_jobstore, allow_external_references=True)
+    fw_ids = lpad.add_wf(wf2)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = next(iter(fw_ids.values()))
+    wf2 = lpad.get_wf_by_fw_id(fw_id)
+    assert all(s == "COMPLETED" for s in wf2.fw_states.values())
+
+    # check response
+    result2 = mongo_jobstore.query_one({"uuid": uuid2})
+    print(result2)
+    assert result2["output"] == "12345_end_end"
