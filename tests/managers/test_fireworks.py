@@ -18,12 +18,12 @@ def test_flow_to_workflow(
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
 
-    # test simple job no store
+    # test simple job no store with custom name
     flow = simple_job()
-    wf = flow_to_workflow(flow)
+    wf = flow_to_workflow(flow, name="custom_name")
 
     assert type(wf) == Workflow
-    assert wf.name == "Flow"
+    assert wf.name == "custom_name"
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
 
