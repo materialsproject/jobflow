@@ -56,7 +56,7 @@ def flow_to_workflow(
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)
         fireworks.append(fw)
 
-    return Workflow(fireworks, name=flow.name, **kwargs)
+    return Workflow(fireworks, name=kwargs.pop("name", flow.name), **kwargs)
 
 
 def job_to_firework(
