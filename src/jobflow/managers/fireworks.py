@@ -17,6 +17,7 @@ __all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
 def flow_to_workflow(
     flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
     store: jobflow.JobStore | None = None,
+    allow_external_references: bool = False,
     **kwargs,
 ) -> Workflow:
     """
@@ -35,6 +36,9 @@ def flow_to_workflow(
         will be used. Note, this could be different on the computer that submits the
         workflow and the computer which runs the workflow. The value of ``JOB_STORE`` on
         the computer that runs the workflow will be used.
+    allow_external_references
+        If False all the references to other outputs should be from other Jobs
+        of the Flow.
     **kwargs
         Keyword arguments passed to Workflow init method.
 
@@ -50,7 +54,7 @@ def flow_to_workflow(
     parent_mapping: dict[str, Firework] = {}
     fireworks = []
 
-    flow = get_flow(flow)
+    flow = get_flow(flow, allow_external_references=allow_external_references)
 
     for job, parents in flow.iterflow():
         fw = job_to_firework(job, store, parents=parents, parent_mapping=parent_mapping)

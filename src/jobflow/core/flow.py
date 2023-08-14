@@ -750,7 +750,8 @@ class Flow(MSONable):
 
 
 def get_flow(
-    flow: Flow | jobflow.Job | list[jobflow.Job], allow_external_references: bool = True
+    flow: Flow | jobflow.Job | list[jobflow.Job],
+    allow_external_references: bool = False,
 ) -> Flow:
     """
     Check dependencies and return flow object.
