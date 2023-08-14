@@ -1,8 +1,40 @@
 Change log
 ==========
 
+v0.1.12
+-------
+
+New features:
+
+- Add `to_mermaid` function to convert flow to mermaid syntax by @utf in https://github.com/materialsproject/jobflow/pull/311
+- Allow external references by @gpetretto in https://github.com/materialsproject/jobflow/pull/392
+- Add `to_mermaid` for all in graph utils by @JaGeo in https://github.com/materialsproject/jobflow/pull/351
+- Propagate tags from `fw_spec` to metadata by @sivonxay in https://github.com/materialsproject/jobflow/pull/345
+- Allow bson objects as job inputs, e.g. datetime.datetimes by @mcgalcode in https://github.com/materialsproject/jobflow/pull/375
+- Also `allow_bson` in job serialization by @mcgalcode in https://github.com/materialsproject/jobflow/pull/376
+- `Flow` + `Job` magic methods by @janosh in https://github.com/materialsproject/jobflow/pull/369
+
+Bug fixes:
+
+- Fix ValueError: mutable default for field `add_maker` is not allowed: use `default_factory` by @janosh in https://github.com/materialsproject/jobflow/pull/387
+- Fixed nested data storage bug by @jmmshn in https://github.com/materialsproject/jobflow/pull/293
+- Test imports need to be in function by @jmmshn in https://github.com/materialsproject/jobflow/pull/310
+- Fix `TypeError` when passing name to `flow_to_workflow(` by @janosh in https://github.com/materialsproject/jobflow/pull/396
+- Fix mermaid with one job (in a flow) by @JaGeo in https://github.com/materialsproject/jobflow/pull/350
+- Fixed `JobStore.from_dict_spec` so that the original `dict_spec` is not modified by @davidwaroquiers in https://github.com/materialsproject/jobflow/pull/331
+
+Enhancements:
+
+- Fix typo in data store docs by @xperrylinn in https://github.com/materialsproject/jobflow/pull/316
+- Fix typo in fireworks docs by @arosen93 in https://github.com/materialsproject/jobflow/pull/343
+- Fix typo in docs by @arosen93 in https://github.com/materialsproject/jobflow/pull/359
+- Fix broken link to FireWorks tutorial by @janosh in https://github.com/materialsproject/jobflow/pull/319
+- Add documentation: Flows, FireWorks, Dynamic Flows, Makers by @arosen93 in https://github.com/materialsproject/jobflow/pull/338
+- Update forum link by @mkhorton in https://github.com/materialsproject/jobflow/pull/373
+- Add copy button to code blocks in docs by @arosen93 in https://github.com/materialsproject/jobflow/pull/344
+
 v0.1.11
-------
+-------
 
 - Enable serialisation of bson.
 
