@@ -882,7 +882,9 @@ def get_flow(
         if len(missing_jobs) > 0:
             raise ValueError(
                 "The following jobs were not found in the jobs array and are needed to "
-                f"resolve output references:\n{list(missing_jobs)}"
+                f"resolve output references:\n{list(missing_jobs)}\nIf the references "
+                "are from external jobs and this is the intended behavior set "
+                "allow_external_references to True"
             )
 
     return flow
