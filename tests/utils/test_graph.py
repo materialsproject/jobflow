@@ -109,7 +109,13 @@ def test_to_mermaid():
     add_job2 = Job(add, function_args=(1, add_job1.output))
     flow = Flow([add_job1, add_job2])
 
+    # test flow
     mermaid = to_mermaid(flow)
+    assert mermaid is not None
+
+    # test job
+    add_job1 = Job(add, function_args=(1, 2))
+    mermaid = to_mermaid(add_job1)
     assert mermaid is not None
 
     # test list of properties
