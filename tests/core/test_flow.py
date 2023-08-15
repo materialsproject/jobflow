@@ -905,11 +905,6 @@ def test_flow_magic_methods():
     assert flow1 != flow2
     assert hash(flow1) != hash(flow2)
 
-    # test __deepcopy__
-    flow_copy = flow1.__deepcopy__()
-    assert flow_copy == flow1
-    assert id(flow_copy) != id(flow1)
-
     # test __getitem__ with out of range index
     with pytest.raises(IndexError):
         _ = flow1[10]
