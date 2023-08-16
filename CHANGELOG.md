@@ -1,6 +1,16 @@
 Change log
 ==========
 
+v0.1.13
+-------
+
+Bug Fixes:
+
+* Delete `Flow.__deepcopy__` by @janosh in https://github.com/materialsproject/jobflow/pull/399
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.12...v0.1.13
+
+
 v0.1.12
 -------
 
