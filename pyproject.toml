@@ -54,7 +54,7 @@ strict = [
     "maggma==0.53.1",
     "matplotlib==3.7.2",
     "monty==2023.8.8",
-    "moto==4.1.14",
+    "moto==4.2.0",
     "networkx==3.1",
     "pydantic==1.10.9",
     "pydash==7.0.6",
