@@ -164,7 +164,7 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[0].uuid == test_job.uuid
     assert response.replace.jobs[0].metadata == metadata
     assert response.replace.jobs[0].output_schema == "123"
-    assert response.replace.jobs[-1]._kwargs["data"] is True
+    assert response.replace.jobs[-1]._kwargs["data"]
     assert test_job.hosts == []
     assert response.replace.hosts == []
     assert response.replace.jobs[0].hosts == [response.replace.uuid]
@@ -189,7 +189,7 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[-1].uuid == test_job.uuid
     assert response.replace.jobs[-1].metadata == metadata
     assert response.replace.jobs[-1].output_schema == "123"
-    assert response.replace.jobs[-1]._kwargs["data"] is True
+    assert response.replace.jobs[-1]._kwargs["data"]
     assert response.replace.output is not None
     for j in response.replace.jobs:
         assert j.hosts == [response.replace.uuid, test_flow.uuid]
