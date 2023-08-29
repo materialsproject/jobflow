@@ -156,7 +156,7 @@ def test_replace_response(memory_jobstore):
 
     # replace with job
     metadata = {"hi": "I exist"}
-    test_job = Job(replace_job, metadata=metadata, output_schema="123")
+    test_job = Job(replace_job, metadata=metadata, output_schema="123", data=True)
     response = test_job.run(memory_jobstore)
     assert isinstance(response.replace, Flow)
     assert len(response.replace.jobs) == 1
@@ -164,6 +164,7 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[0].uuid == test_job.uuid
     assert response.replace.jobs[0].metadata == metadata
     assert response.replace.jobs[0].output_schema == "123"
+    assert response.replace.jobs[-1]._kwargs["data"] == True
     assert test_job.hosts == []
     assert response.replace.hosts == []
     assert response.replace.jobs[0].hosts == [response.replace.uuid]
@@ -179,7 +180,7 @@ def test_replace_response(memory_jobstore):
         assert j.hosts == [response.replace.uuid]
 
     # replace with flow with outputs
-    test_job = Job(replace_flow, metadata=metadata, output_schema="123")
+    test_job = Job(replace_flow, metadata=metadata, output_schema="123", data=True)
     # wrap the job in a Flow to check hosts
     test_flow = Flow([test_job])
     response = test_job.run(memory_jobstore)
@@ -188,6 +189,7 @@ def test_replace_response(memory_jobstore):
     assert response.replace.jobs[-1].uuid == test_job.uuid
     assert response.replace.jobs[-1].metadata == metadata
     assert response.replace.jobs[-1].output_schema == "123"
+    assert response.replace.jobs[-1]._kwargs["data"] == True
     assert response.replace.output is not None
     for j in response.replace.jobs:
         assert j.hosts == [response.replace.uuid, test_flow.uuid]
