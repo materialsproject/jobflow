@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_settings_init():
     import os
 
@@ -69,7 +72,22 @@ def test_settings_object(clean_dir, test_data):
     }
 
     # set the path to lood settings from
-    os.environ["JOBFLOW_CONFIG_FILE"] = str(Path.cwd() / "config.yaml")
+    config_file_path = str(Path.cwd() / "config.yaml")
+    os.environ["JOBFLOW_CONFIG_FILE"] = config_file_path
+
+    # A warning should appear if config file is empty
+    with open(config_file_path, "w") as f:
+        pass
+
+    with pytest.warns(UserWarning):
+        settings = JobflowSettings()
+
+    # A warning should appear if the config file is not valid yaml
+    with open(config_file_path, "w") as f:
+        f.write("Some text that sadly is not yaml")
+
+    with pytest.warns(UserWarning):
+        settings = JobflowSettings()
 
     # assert loading monty spec from files works
     dumpfn({"JOB_STORE": monty_spec}, "config.yaml")
