@@ -87,7 +87,7 @@ def test_settings_object(clean_dir, test_data):
     with open(config_file_path, "w") as f:
         f.write("Some text that sadly is not yaml")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="A JobFlow configuration"):
         settings = JobflowSettings()
 
     # assert loading monty spec from files works

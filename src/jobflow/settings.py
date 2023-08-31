@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
-from pydantic import BaseSettings, Field, ValidationError, root_validator
+from pydantic import BaseSettings, Field, root_validator
 
 from jobflow import JobStore
 
@@ -146,7 +146,7 @@ class JobflowSettings(BaseSettings):
             else:
                 try:
                     new_values.update(loadfn(config_file_path))
-                except ValidationError:
+                except ValueError:
                     raise ValueError(
                         f"A JobFlow configuration file was located at "
                         f"{config_file_path} but a problem was "
