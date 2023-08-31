@@ -1332,7 +1332,6 @@ def prepare_replace(
         metadata = replace.metadata
         metadata.update(current_job.metadata)
         replace.metadata = metadata
-        replace._kwargs = current_job
 
         if not replace.output_schema:
             replace.output_schema = current_job.output_schema
