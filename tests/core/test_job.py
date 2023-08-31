@@ -1295,3 +1295,30 @@ def test_job_magic_methods():
 
     # test __hash__
     assert hash(job1) != hash(job2) != hash(job3)
+
+
+def test_job_stores_input_references(memory_jobstore):
+    from jobflow import Flow, job
+    from jobflow.managers.local import run_locally
+
+    @job
+    def simple_job(a, b):
+        return a + b
+
+    job1 = simple_job(1, 2)
+    job2 = simple_job(1, job1.output)
+    f1 = Flow([job1, job2])
+
+    run_locally(f1, store=memory_jobstore)
+
+    memory_jobstore.connect()
+
+    output_dict1 = memory_jobstore.query_one({"uuid": job1.uuid})
+    assert "input_references" in output_dict1
+    assert type(output_dict1["input_references"]) == list
+    assert len(output_dict1["input_references"]) == 0
+
+    output_dict2 = memory_jobstore.query_one({"uuid": job2.uuid})
+    assert "input_references" in output_dict2
+    assert type(output_dict2["input_references"]) == list
+    assert len(output_dict2["input_references"]) == 1
