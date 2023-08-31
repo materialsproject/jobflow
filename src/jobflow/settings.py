@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
-from pydantic import BaseSettings, Field, root_validator
+from pydantic import BaseSettings, Field, ValidationError, root_validator
 
 from jobflow import JobStore
 
@@ -139,15 +139,19 @@ class JobflowSettings(BaseSettings):
         config_file_path: str = values.get("CONFIG_FILE", DEFAULT_CONFIG_FILE_PATH)
         new_values = {}
         if Path(config_file_path).exists():
-            try:
-                new_values.update(loadfn(config_file_path))
-            # Catching these two error types is required to handle
-            # empty and malformed configs
-            except (TypeError, ValueError):
+            if Path(config_file_path).stat().st_size == 0:
                 warnings.warn(
-                    f"JobFlow config file was located at {config_file_path} "
-                    f"but there was a problem while parsing it."
+                    f"An empty JobFlow config file was located at {config_file_path}"
                 )
+            else:
+                try:
+                    new_values.update(loadfn(config_file_path))
+                except ValidationError:
+                    raise ValueError(
+                        f"A JobFlow configuration file was located at "
+                        f"{config_file_path} but a problem was "
+                        f"encountered while parsing it."
+                    ) from None
 
         store = new_values.get("JOB_STORE")
         if isinstance(store, str):

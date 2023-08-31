@@ -82,11 +82,12 @@ def test_settings_object(clean_dir, test_data):
     with pytest.warns(UserWarning):
         settings = JobflowSettings()
 
-    # A warning should appear if the config file is not valid yaml
+    # An error should be thrown if the file exists and
+    # contains badly formatted contents
     with open(config_file_path, "w") as f:
         f.write("Some text that sadly is not yaml")
 
-    with pytest.warns(UserWarning):
+    with pytest.raises(ValueError):
         settings = JobflowSettings()
 
     # assert loading monty spec from files works
