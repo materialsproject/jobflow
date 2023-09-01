@@ -1,6 +1,6 @@
 changelog:
   exclude:
-    authors: [ dependabot[bot] ]
+    authors: [ dependabot ]
   categories:
     - title: New Features 🎉
       labels:
