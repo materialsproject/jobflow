@@ -43,7 +43,7 @@ docs = [
     "myst_parser==2.0.0",
     "nbsphinx==0.9.3",
     "sphinx-copybutton==0.5.2",
-    "sphinx==7.2.4",
+    "sphinx==7.2.5",
 ]
 dev = ["pre-commit>=2.12.1"]
 tests = ["pytest-cov==4.1.0", "pytest==7.4.0", "moto==4.2.0"]
