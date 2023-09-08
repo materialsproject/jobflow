@@ -1,5 +1,7 @@
 """Define classes related to accessing job and Flow outputs."""
 
+from jobflow.settings import JobflowSettings
+
 from .store import JobStore
 
 
@@ -25,7 +27,10 @@ class OutputManager:
     JobStore
     """
 
-    def __init__(self, store: JobStore):
+    def __init__(self, store: JobStore = None):
+        if store is None:
+            store = JobflowSettings().JOB_STORE
+
         self._store = store
 
     def get_all_jobs_in_flow(self, job_uuid: str):
@@ -63,5 +68,48 @@ class OutputManager:
             A list of output documents for the job's parents.
         """
         job_doc = self._store.query_one({"uuid": job_uuid})
+        # Utilize Hrushikesh's class here instead of using a raw dictionary.
         parent_uuids = [r["uuid"] for r in job_doc["input_references"]]
         return list(self._store.query({"uuid": {"$in": parent_uuids}}))
+
+
+class FlowOutput:
+    """
+    A :obj:`FlowOutput` provides methods for retrieving outputs of jobs in a flow.
+
+    It retains information about the connectedness of jobs and allows the user
+    to retrieve job outputs by navigating the flow graph.
+
+    Parameters
+    ----------
+    store
+        The JobStore used for retrieving outputs.
+
+    Returns
+    -------
+    FlowOutput
+        An FlowOutput instance.
+
+    See Also
+    --------
+    JobStore
+    """
+
+    def __init__(self, flow_uuid: str, store: JobStore = None):
+        if store is None:
+            store = JobflowSettings().JOB_STORE
+
+        self._store = store
+        self.uuid = flow_uuid
+
+    @property
+    def jobs(self):
+        """
+        Returns the outputs of the jobs associated with this flow.
+
+        Returns
+        -------
+        List[dict]
+            A list of output documents for the job's parents.
+        """
+        pass
