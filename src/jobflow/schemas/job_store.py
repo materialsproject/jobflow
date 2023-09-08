@@ -24,7 +24,7 @@ class JobStoreDocument(BaseModel):
         None,
         description="Metadeta information supplied by the user.",
     )
-    hosts: list[str] = Field(
+    hosts: typing.List[str] = Field(
         None,
         description="The list of UUIDs of the hosts containing the job.",
     )
