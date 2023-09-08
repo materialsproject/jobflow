@@ -9,7 +9,7 @@ class JobStoreDocument(BaseModel):
     """A Pydantic model for Jobstore document."""
 
     uuid: str = Field(
-        None, description="A unique identifier for the job. Generated automatically."
+        None, description="An unique identifier for the job. Generated automatically."
     )
     index: int = Field(
         None,
