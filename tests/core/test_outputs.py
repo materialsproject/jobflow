@@ -1,10 +1,10 @@
 import pytest
 
-from jobflow import job
-
 
 @pytest.fixture
 def add_job():
+    from jobflow import job
+
     @job
     def add(a, b):
         return a + b
