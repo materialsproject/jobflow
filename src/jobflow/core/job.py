@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from jobflow.core.reference import OnMissing, OutputReference
+from jobflow.schemas.job_store import JobStoreDocument
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
@@ -568,8 +569,6 @@ class Job(MSONable):
         if self.config.expose_store:
             CURRENT_JOB.store = store
 
-        unresolved_input_refs = self.input_references
-
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
@@ -635,17 +634,16 @@ class Job(MSONable):
             ) from err
 
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
-        data = {
-            "uuid": self.uuid,
-            "index": self.index,
-            "output": output,
-            "completed_at": datetime.now().isoformat(),
-            "metadata": self.metadata,
-            "hosts": self.hosts,
-            "name": self.name,
-            "input_references": unresolved_input_refs,
-        }
-
+        data = JobStoreDocument(
+            uuid=self.uuid,
+            index=self.index,
+            output=output,
+            completed_at=datetime.now().isoformat(),
+            metadata=self.metadata,
+            hosts=self.hosts,
+            name=self.name,
+        )
+        # Need to do changes to .update method
         store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()
@@ -1325,6 +1323,7 @@ def prepare_replace(
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
+        store_output_job._kwargs = current_job._kwargs
         replace.add_jobs(store_output_job)
 
     elif isinstance(replace, Job):
