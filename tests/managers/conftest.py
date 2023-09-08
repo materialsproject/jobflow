@@ -235,6 +235,82 @@ def error_flow(error_job, simple_job):
 
 
 @pytest.fixture(scope="session")
+def error_detour_job(error_job):
+    from jobflow import Response, job
+
+    global error_detour_func
+
+    @job
+    def error_detour_func(message):
+        return Response(output=message + "_end", detour=error_job())
+
+    return error_detour_func
+
+
+@pytest.fixture(scope="session")
+def error_detour_flow(error_detour_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        error = error_detour_job("detour")
+        simple1 = simple_job(error.output)
+        return Flow([error, simple1])
+
+    return _gen
+
+
+@pytest.fixture(scope="session")
+def error_replace_job(error_job):
+    from jobflow import Response, job
+
+    global error_replace_func
+
+    @job
+    def error_replace_func(message):
+        return Response(output=message + "_end", replace=error_job())
+
+    return error_replace_func
+
+
+@pytest.fixture(scope="session")
+def error_replace_flow(error_replace_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        error = error_replace_job("replace")
+        simple_job(error.output)
+        print(type(error))
+        return Flow([error])
+
+    return _gen
+
+
+@pytest.fixture(scope="session")
+def error_addition_job(error_job):
+    from jobflow import Response, job
+
+    global error_addition_func
+
+    @job
+    def error_addition_func(message):
+        return Response(output=message + "_end", addition=error_job())
+
+    return error_addition_func
+
+
+@pytest.fixture(scope="session")
+def error_addition_flow(error_addition_job, simple_job):
+    from jobflow import Flow
+
+    def _gen():
+        error = error_addition_job("addition")
+        simple1 = simple_job(error.output)
+        return Flow([error, simple1])
+
+    return _gen
+
+
+@pytest.fixture(scope="session")
 def stored_data_job():
     from jobflow import Response, job
 

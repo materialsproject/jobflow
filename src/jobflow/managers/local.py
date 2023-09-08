@@ -119,19 +119,23 @@ def run_locally(
             stop_jobflow = True
             return False
 
+        diversion_responses = []
         if response.replace is not None:
             # first run any restarts
-            _run(response.replace)
+            diversion_responses.append(_run(response.replace))
 
         if response.detour is not None:
             # next any detours
-            _run(response.detour)
+            diversion_responses.append(_run(response.detour))
 
         if response.addition is not None:
             # finally any additions
-            _run(response.addition)
+            diversion_responses.append(_run(response.addition))
 
-        return response
+        if not all(diversion_responses):
+            return False
+        else:
+            return response
 
     def _get_job_dir():
         if create_folders:
@@ -143,7 +147,6 @@ def run_locally(
             return root_dir
 
     def _run(root_flow):
-        job: jobflow.Job
         for job, parents in root_flow.iterflow():
             job_dir = _get_job_dir()
             with cd(job_dir):
