@@ -5,7 +5,7 @@ import pytest
 
 @pytest.fixture
 def sample_data():
-    from jobflow.schemas.job_store import JobStoreDocument
+    from jobflow.schemas.job_output_schema import JobStoreDocument
 
     return JobStoreDocument(
         uuid="abc123",
@@ -33,7 +33,7 @@ def test_job_store_document_model(sample_data):
 
 def test_job_store_update(memory_jobstore, sample_data):
     # Storing document as a JobStoreDocument
-    from jobflow.schemas.job_store import JobStoreDocument
+    from jobflow.schemas.job_output_schema import JobStoreDocument
 
     d = {
         "index": 1,
