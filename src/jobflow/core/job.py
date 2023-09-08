@@ -569,6 +569,8 @@ class Job(MSONable):
         if self.config.expose_store:
             CURRENT_JOB.store = store
 
+        unresolved_input_refs = self.input_references
+
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
@@ -642,6 +644,7 @@ class Job(MSONable):
             metadata=self.metadata,
             hosts=self.hosts,
             name=self.name,
+            input_references=unresolved_input_refs,
         )
         # Need to do changes to .update method
         store.update(data, key=["uuid", "index"], save=save)

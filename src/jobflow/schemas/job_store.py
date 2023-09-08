@@ -4,6 +4,8 @@ import typing
 
 from pydantic import BaseModel, Field
 
+from jobflow.core.reference import OutputReference
+
 
 class JobStoreDocument(BaseModel):
     """A Pydantic model for Jobstore document."""
@@ -31,4 +33,7 @@ class JobStoreDocument(BaseModel):
     name: str = Field(
         None,
         description="The name of the job.",
+    )
+    input_references: typing.List[OutputReference] = Field(
+        default_factory=list, description="The list of input references for this job"
     )
