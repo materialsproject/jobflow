@@ -2,21 +2,11 @@ from datetime import datetime
 
 import pytest
 
-from jobflow import JobStore
-from jobflow.schemas.job_store import JobStoreDocument
-
-
-@pytest.fixture
-def memory_store():
-    from maggma.stores import MemoryStore
-
-    store = MemoryStore()
-    store.connect()
-    return store
-
 
 @pytest.fixture
 def sample_data():
+    from jobflow.schemas.job_store import JobStoreDocument
+
     return JobStoreDocument(
         uuid="abc123",
         index=1,
@@ -41,10 +31,10 @@ def test_job_store_document_model(sample_data):
     assert data.name == "my_job"
 
 
-def test_job_store_update(memory_store, sample_data):
+def test_job_store_update(memory_jobstore, sample_data):
     # Storing document as a JobStoreDocument
-    store = JobStore(memory_store)
-    store.connect()
+    from jobflow.schemas.job_store import JobStoreDocument
+
     d = {
         "index": 1,
         "uuid": "abc123",
@@ -55,10 +45,10 @@ def test_job_store_update(memory_store, sample_data):
         "d": 4,
     }
     sample_data = JobStoreDocument(**d)
-    store.update(sample_data)
+    memory_jobstore.update(sample_data)
 
     # Check document was inserted
-    results = store.query_one(criteria={"hosts": {"$exists": 1}})
+    results = memory_jobstore.query_one(criteria={"hosts": {"$exists": 1}})
     assert results["index"] == 1
     assert results["uuid"] == "abc123"
     assert results["metadata"] == {"key": "value"}
@@ -74,10 +64,10 @@ def test_job_store_update(memory_store, sample_data):
     f = d.copy()
     f["uuid"] = "ghi789"
     new_data_f = JobStoreDocument(**f)
-    store.update([new_data_e, new_data_f])
+    memory_jobstore.update([new_data_e, new_data_f])
 
     # Check if document new_data_e is present in the store
-    results = store.query_one(criteria={"uuid": "def456"})
+    results = memory_jobstore.query_one(criteria={"uuid": "def456"})
     assert results["index"] == 1
     assert results["uuid"] == "def456"
     assert results["metadata"] == {"key": "value"}
@@ -87,7 +77,7 @@ def test_job_store_update(memory_store, sample_data):
     assert "d" not in results
 
     # Check if document new_data_f is present in the store
-    results = store.query_one(criteria={"uuid": "ghi789"})
+    results = memory_jobstore.query_one(criteria={"uuid": "ghi789"})
     assert results["index"] == 1
     assert results["uuid"] == "ghi789"
     assert results["metadata"] == {"key": "value"}
