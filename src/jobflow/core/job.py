@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.schemas.job_store import JobStoreDocument
+from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:

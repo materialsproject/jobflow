@@ -8,7 +8,7 @@ from maggma.core import Store
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
-from jobflow.schemas.job_store import JobStoreDocument
+from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
