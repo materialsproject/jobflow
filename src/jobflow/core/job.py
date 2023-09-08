@@ -1323,6 +1323,7 @@ def prepare_replace(
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
         store_output_job.output_schema = current_job.output_schema
+        store_output_job._kwargs = current_job._kwargs
         replace.add_jobs(store_output_job)
 
     elif isinstance(replace, Job):

@@ -11,12 +11,13 @@ license = { text = "modified BSD" }
 authors = [{ name = "Alex Ganose", email = "alexganose@gmail.com" }]
 dynamic = ["version"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Information Technology",
     "Intended Audience :: Science/Research",
     "Intended Audience :: System Administrators",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -30,7 +31,7 @@ dependencies = [
     "maggma>=0.38.1",
     "monty>=2021.5.9",
     "networkx",
-    "pydantic",
+    "pydantic<2",
     "pydash",
 ]
 
@@ -38,23 +39,23 @@ dependencies = [
 docs = [
     "autodoc_pydantic==1.9.0",
     "furo==2023.8.19",
-    "ipython==8.14.0",
+    "ipython==8.15.0",
     "myst_parser==2.0.0",
     "nbsphinx==0.9.3",
     "sphinx-copybutton==0.5.2",
-    "sphinx==7.2.4",
+    "sphinx==7.2.5",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["pytest-cov==4.1.0", "pytest==7.4.0", "moto==4.2.0"]
+tests = ["pytest-cov==4.1.0", "pytest==7.4.1", "moto==4.2.2"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.53.1",
+    "maggma==0.54.0",
     "matplotlib==3.7.2",
     "monty==2023.8.8",
-    "moto==4.2.0",
+    "moto==4.2.2",
     "networkx==3.1",
     "pydantic==1.10.9",
     "pydash==7.0.6",

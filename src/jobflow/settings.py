@@ -1,5 +1,6 @@
 """Settings for jobflow."""
 
+import warnings
 from collections import defaultdict
 from pathlib import Path
 
@@ -136,10 +137,21 @@ class JobflowSettings(BaseSettings):
         from monty.serialization import loadfn
 
         config_file_path: str = values.get("CONFIG_FILE", DEFAULT_CONFIG_FILE_PATH)
-
         new_values = {}
         if Path(config_file_path).exists():
-            new_values.update(loadfn(config_file_path))
+            if Path(config_file_path).stat().st_size == 0:
+                warnings.warn(
+                    f"An empty JobFlow config file was located at {config_file_path}"
+                )
+            else:
+                try:
+                    new_values.update(loadfn(config_file_path))
+                except ValueError:
+                    raise ValueError(
+                        f"A JobFlow configuration file was located at "
+                        f"{config_file_path} but a problem was "
+                        f"encountered while parsing it."
+                    ) from None
 
         store = new_values.get("JOB_STORE")
         if isinstance(store, str):
