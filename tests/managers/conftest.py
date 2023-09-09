@@ -278,8 +278,6 @@ def error_replace_flow(error_replace_job, simple_job):
 
     def _gen():
         error = error_replace_job("replace")
-        simple_job(error.output)
-        print(type(error))
         return Flow([error])
 
     return _gen

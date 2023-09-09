@@ -81,7 +81,7 @@ def run_locally(
         nonlocal stop_jobflow
 
         if stop_jobflow:
-            return False
+            return None, True
 
         if len(set(parents).intersection(stopped_parents)) > 0:
             # stop children has been called for one of the jobs' parents
@@ -89,14 +89,14 @@ def run_locally(
                 f"{job.name} is a child of a job with stop_children=True, skipping..."
             )
             stopped_parents.add(job.uuid)
-            return
+            return None, False
 
         if (
             len(set(parents).intersection(errored)) > 0
             and job.config.on_missing_references == OnMissing.ERROR
         ):
             errored.add(job.uuid)
-            return
+            return None, False
 
         try:
             response = job.run(store=store)
@@ -105,7 +105,7 @@ def run_locally(
 
             logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
             errored.add(job.uuid)
-            return
+            return None, False
 
         responses[job.uuid][job.index] = response
 
@@ -117,7 +117,7 @@ def run_locally(
 
         if response.stop_jobflow:
             stop_jobflow = True
-            return False
+            return None, True
 
         diversion_responses = []
         if response.replace is not None:
@@ -133,9 +133,9 @@ def run_locally(
             diversion_responses.append(_run(response.addition))
 
         if not all(diversion_responses):
-            return False
+            return None, False
         else:
-            return response
+            return response, False
 
     def _get_job_dir():
         if create_folders:
@@ -147,14 +147,17 @@ def run_locally(
             return root_dir
 
     def _run(root_flow):
+        encountered_bad_response = False
         for job, parents in root_flow.iterflow():
             job_dir = _get_job_dir()
             with cd(job_dir):
-                response = _run_job(job, parents)
-            if response is False:
+                response, jobflow_stopped = _run_job(job, parents)
+
+            encountered_bad_response = encountered_bad_response or response is None
+            if jobflow_stopped is True:
                 return False
 
-        return response is not None
+        return not encountered_bad_response
 
     logger.info("Started executing jobs locally")
     finished_successfully = _run(flow)

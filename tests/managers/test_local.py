@@ -327,13 +327,13 @@ def test_ensure_success_with_replace(memory_jobstore, error_replace_flow, capsys
     from jobflow import run_locally
 
     flow = error_replace_flow()
-    print(type(flow))
 
     responses = run_locally(flow, store=memory_jobstore)
 
     # check responses has been filled with the replaced
     # job's output
     assert len(responses) == 1
+    assert flow.job_uuids[0] in responses
 
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
@@ -350,7 +350,7 @@ def test_ensure_success_with_detour(error_detour_flow, memory_jobstore, capsys):
     responses = run_locally(flow, store=memory_jobstore)
 
     # check responses has been filled with the detour output
-    assert len(responses) == 1
+    assert len(responses) == 2
 
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
@@ -367,7 +367,7 @@ def test_ensure_success_with_addition(error_addition_flow, memory_jobstore, caps
     responses = run_locally(flow, store=memory_jobstore)
 
     # check responses has been filled with the addition output
-    assert len(responses) == 1
+    assert len(responses) == 2
 
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
