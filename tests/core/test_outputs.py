@@ -120,3 +120,31 @@ def test_retrieves_job_parents_nested_flows(memory_jobstore, add_job):
     j2_parent_uuids = [p["uuid"] for p in j2_parents]
     assert len(j2_parent_uuids) == 1
     assert j2_parent_uuids[0] == j4.uuid
+
+
+def test_constructs_flow_tree():
+    from jobflow.core.outputs import get_flow_tree_from_host_lists
+
+    host_lists = [["c", "b", "a"], ["b", "a"], ["d", "b", "a"]]
+
+    flow_tree = get_flow_tree_from_host_lists(host_lists)
+
+    assert len(flow_tree) == 1
+    assert "a" in flow_tree
+
+    a_direct_subflows = flow_tree.get("a")
+
+    assert len(a_direct_subflows) == 1
+    assert "b" in a_direct_subflows
+
+    b_direct_subflows = a_direct_subflows.get("b")
+
+    assert len(b_direct_subflows) == 2
+    assert "c" in b_direct_subflows
+    assert "d" in b_direct_subflows
+
+    c_direct_subflows = b_direct_subflows.get("c")
+    d_direct_subflows = b_direct_subflows.get("d")
+
+    assert len(c_direct_subflows) == 0
+    assert len(d_direct_subflows) == 0
