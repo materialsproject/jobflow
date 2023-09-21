@@ -634,7 +634,7 @@ class Job(MSONable):
             ) from err
 
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
-        data = JobStoreDocument(
+        data: JobStoreDocument = JobStoreDocument(
             uuid=self.uuid,
             index=self.index,
             output=output,

@@ -1,11 +1,14 @@
 """A Pydantic model for Jobstore document."""
 
-import typing
+from typing import Generic, List, TypeVar
 
-from pydantic import BaseModel, Field
+from monty.json import MontyDecoder
+from pydantic import BaseModel, Field, validator
+
+T = TypeVar("T")
 
 
-class JobStoreDocument(BaseModel):
+class JobStoreDocument(BaseModel, Generic[T]):
     """A Pydantic model for Jobstore document."""
 
     uuid: str = Field(
@@ -15,7 +18,7 @@ class JobStoreDocument(BaseModel):
         None,
         description="The index of the job (number of times the job has been replaced.",
     )
-    output: typing.Any = Field(
+    output: T = Field(
         None,
         description="This is a reference to the future job outpu.",
     )
@@ -24,7 +27,7 @@ class JobStoreDocument(BaseModel):
         None,
         description="Metadeta information supplied by the user.",
     )
-    hosts: typing.List[str] = Field(
+    hosts: List[str] = Field(
         None,
         description="The list of UUIDs of the hosts containing the job.",
     )
@@ -32,3 +35,24 @@ class JobStoreDocument(BaseModel):
         None,
         description="The name of the job.",
     )
+
+    @validator("output", pre=True)
+    def reserialize_output(cls, v):
+        """
+        Pre-validator for the 'output' field.
+
+        This method checks if the input 'v' is a dictionary with specific keys
+        ('@module' and '@class'). If these keys are present, it reprocesses
+        the input dictionary using MontyDecoder to deserialize it.
+
+        Args:
+            cls (Type[JobStoreDocument]): The class this validator is applied to.
+            v: The input value to validate.
+
+        Returns
+        -------
+            Any: The validated and potentially deserialized value.
+        """
+        if isinstance(v, dict) and "@module" in v and "@class" in v:
+            v = MontyDecoder().process_decoded(v)
+        return v
