@@ -188,7 +188,7 @@ def job(method: Callable = None, **job_kwargs):
                     # if so, check to see if that function ha been wrapped and
                     # whether the unwrapped function is the same as this function
                     wrap = getattr(met, "__func__", None)
-                    if getattr(wrap, "original", None) is func:
+                    if getattr(wrap, "__wrapped__", None) is func:
                         # Ah ha. The function is a bound method.
                         f = met
                         args = args[1:]
@@ -196,8 +196,6 @@ def job(method: Callable = None, **job_kwargs):
             return Job(
                 function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
             )
-
-        get_job.original = func
 
         if desc:
             # rewrap staticmethod or classmethod decorators
