@@ -185,13 +185,15 @@ def job(method: Callable = None, **job_kwargs):
                 # this function
                 met = getattr(args[0], func.__name__, None)
                 if met:
-                    # if so, check to see if that function ha been wrapped and
+                    # if so, check to see if that function has been wrapped and
                     # whether the unwrapped function is the same as this function
                     wrap = getattr(met, "__func__", None)
                     if getattr(wrap, "__wrapped__", None) is func:
                         # Ah ha. The function is a bound method.
                         f = met
                         args = args[1:]
+
+            get_job.__wrapped__ = func
 
             return Job(
                 function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
