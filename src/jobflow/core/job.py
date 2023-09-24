@@ -197,8 +197,6 @@ def job(method: Callable = None, **job_kwargs):
                 function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
             )
 
-        get_job.__wrapped__ = func
-
         if desc:
             # rewrap staticmethod or classmethod decorators
             get_job = desc(get_job)
