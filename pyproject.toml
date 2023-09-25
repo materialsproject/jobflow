@@ -38,29 +38,29 @@ dependencies = [
 [project.optional-dependencies]
 docs = [
     "autodoc_pydantic==1.9.0",
-    "furo==2023.8.19",
+    "furo==2023.9.10",
     "ipython==8.15.0",
     "myst_parser==2.0.0",
     "nbsphinx==0.9.3",
     "sphinx-copybutton==0.5.2",
-    "sphinx==7.2.5",
+    "sphinx==7.2.6",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["pytest-cov==4.1.0", "pytest==7.4.1", "moto==4.2.2"]
+tests = ["pytest-cov==4.1.0", "pytest==7.4.2", "moto==4.2.3"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.54.0",
+    "maggma==0.56.0",
     "matplotlib==3.7.2",
-    "monty==2023.8.8",
-    "moto==4.2.2",
+    "monty==2023.9.5",
+    "moto==4.2.3",
     "networkx==3.1",
     "pydantic==1.10.9",
     "pydash==7.0.6",
     "pydot==1.4.2",
-    "typing-extensions==4.7.1",
+    "typing-extensions==4.8.0",
 ]
 
 [project.urls]
