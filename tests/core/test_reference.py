@@ -161,7 +161,7 @@ def test_schema():
     class MediumSchema(BaseModel):
         s: str
         nested: InnerSchema
-        nested_opt: Optional[InnerSchema]
+        nested_opt: Optional[InnerSchema] = None
         nested_u: Union[InnerSchema, dict]
         nested_l: List[InnerSchema]
         nested_d: Dict[str, InnerSchema]
