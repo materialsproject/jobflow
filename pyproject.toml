@@ -31,7 +31,7 @@ dependencies = [
     "maggma>=0.57.0",
     "monty>=2023.9.25",
     "networkx",
-    "pydantic>=2.4.1",
+    "pydantic>=2.0",
     "pydantic-settings>=2.0.3",
     "pydash",
 ]
