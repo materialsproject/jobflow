@@ -6,9 +6,9 @@ from pathlib import Path
 
 from maggma.stores import MemoryStore
 from pydantic import model_validator, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from jobflow import JobStore
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
