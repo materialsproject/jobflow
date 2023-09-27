@@ -28,10 +28,11 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "PyYAML",
-    "maggma>=0.38.1",
-    "monty>=2021.5.9",
+    "maggma>=0.57.0",
+    "monty>=2023.9.25",
     "networkx",
-    "pydantic<2",
+    "pydantic>=2.4.1",
+    "pydantic-settings>=2.0.3",
     "pydash",
 ]
 
@@ -52,12 +53,13 @@ fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.56.0",
+    "maggma==0.57.0",
     "matplotlib==3.7.2",
     "monty==2023.9.25",
     "moto==4.2.4",
     "networkx==3.1",
-    "pydantic==1.10.9",
+    "pydantic==2.4.1",
+    "pydantic-settings==2.0.3",
     "pydash==7.0.6",
     "pydot==1.4.2",
     "typing-extensions==4.8.0",

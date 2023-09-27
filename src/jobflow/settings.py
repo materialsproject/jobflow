@@ -5,9 +5,10 @@ from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
-from pydantic import BaseSettings, Field, root_validator
+from pydantic import model_validator, Field
 
 from jobflow import JobStore
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
@@ -118,13 +119,10 @@ class JobflowSettings(BaseSettings):
         "%Y-%m-%d-%H-%M-%S-%f",
         description="Date stamp format used to create directories",
     )
+    model_config = SettingsConfigDict(env_prefix="jobflow_")
 
-    class Config:
-        """Pydantic config settings."""
-
-        env_prefix = "jobflow_"
-
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def load_default_settings(cls, values):
         """
         Load settings from file or environment variables.
