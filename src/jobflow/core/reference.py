@@ -8,7 +8,7 @@ from typing import Any, Sequence
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
-from pydantic.utils import lenient_issubclass
+from pydantic.v1.utils import lenient_issubclass
 
 from jobflow.utils.enum import ValueEnum
 
