@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
-from pydantic import model_validator, Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from jobflow import JobStore
