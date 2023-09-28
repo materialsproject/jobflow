@@ -28,16 +28,17 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "PyYAML",
-    "maggma>=0.38.1",
-    "monty>=2021.5.9",
+    "maggma>=0.57.0",
+    "monty>=2023.9.25",
     "networkx",
-    "pydantic<2",
+    "pydantic>=2.0.1",
+    "pydantic-settings>=2.0.3",
     "pydash",
 ]
 
 [project.optional-dependencies]
 docs = [
-    "autodoc_pydantic==1.9.0",
+    "autodoc_pydantic==2.0.1",
     "furo==2023.9.10",
     "ipython==8.15.0",
     "myst_parser==2.0.0",
@@ -52,12 +53,13 @@ fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.56.0",
+    "maggma==0.57.0",
     "matplotlib==3.7.2",
     "monty==2023.9.25",
     "moto==4.2.4",
     "networkx==3.1",
-    "pydantic==1.10.9",
+    "pydantic==2.4.1",
+    "pydantic-settings==2.0.3",
     "pydash==7.0.6",
     "pydot==1.4.2",
     "typing-extensions==4.8.0",
@@ -142,4 +144,4 @@ isort.known-first-party = ["jobflow"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
-"**/tests/*" = ["D"]
+"**/tests/*" = ["D", "B018"]
