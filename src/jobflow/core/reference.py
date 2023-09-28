@@ -503,7 +503,7 @@ def validate_schema_access(
         raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
 
     subschema = None
-    item_type = schema.__fields__[item].outer_type_
+    item_type = schema.model_fields[item].annotation
     if lenient_issubclass(item_type, BaseModel):
         subschema = item_type
 
