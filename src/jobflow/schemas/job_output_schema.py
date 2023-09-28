@@ -16,11 +16,11 @@ class JobStoreDocument(BaseModel, Generic[T]):
     )
     index: int = Field(
         None,
-        description="The index of the job (number of times the job has been replaced.",
+        description="The index of the job (number of times the job has been replaced).",
     )
     output: T = Field(
         None,
-        description="This is a reference to the future job outpu.",
+        description="This is a reference to the future job output.",
     )
     completed_at: str = Field(None, description="The time the job was completed.")
     metadata: dict = Field(
@@ -45,13 +45,17 @@ class JobStoreDocument(BaseModel, Generic[T]):
         ('@module' and '@class'). If these keys are present, it reprocesses
         the input dictionary using MontyDecoder to deserialize it.
 
-        Args:
-            cls (Type[JobStoreDocument]): The class this validator is applied to.
-            v: The input value to validate.
+        Parameters
+        ----------
+        cls : Type[JobStoreDocument]
+            The class this validator is applied to.
+        v : Any
+            The input value to validate.
 
         Returns
         -------
-            Any: The validated and potentially deserialized value.
+        Any
+            The validated and potentially deserialized value.
         """
         if isinstance(v, dict) and "@module" in v and "@class" in v:
             v = MontyDecoder().process_decoded(v)
