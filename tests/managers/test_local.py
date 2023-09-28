@@ -323,6 +323,59 @@ def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
 
 
+def test_ensure_success_with_replace(memory_jobstore, error_replace_flow, capsys):
+    from jobflow import run_locally
+
+    flow = error_replace_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled with the replaced
+    # job's output
+    assert len(responses) == 1
+    assert flow.job_uuids[0] in responses
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+
+def test_ensure_success_with_detour(error_detour_flow, memory_jobstore, capsys):
+    from jobflow import run_locally
+
+    flow = error_detour_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled with the detour output
+    assert len(responses) == 2
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+
+def test_ensure_success_with_addition(error_addition_flow, memory_jobstore, capsys):
+    from jobflow import run_locally
+
+    flow = error_addition_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled with the addition output
+    assert len(responses) == 2
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+
 def test_stored_data_flow(memory_jobstore, clean_dir, stored_data_flow, capsys):
     from jobflow import run_locally
 

@@ -8,7 +8,7 @@ from typing import Any, Sequence
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
-from pydantic.utils import lenient_issubclass
+from pydantic.v1.utils import lenient_issubclass
 
 from jobflow.utils.enum import ValueEnum
 
@@ -503,7 +503,7 @@ def validate_schema_access(
         raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
 
     subschema = None
-    item_type = schema.__fields__[item].outer_type_
+    item_type = schema.model_fields[item].annotation
     if lenient_issubclass(item_type, BaseModel):
         subschema = item_type
 

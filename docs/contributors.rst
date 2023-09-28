@@ -53,14 +53,14 @@ jobflow was designed by  **Alex Ganose** |utf| |0000-0002-4486-3321|, **Anubhav 
    :alt: ORCID profile for 0000-0001-8943-9762
 
 | **Andrew Rosen** |arosen| |0000-0002-0141-7006|
-| Miller Research Fellow
-| University of California, Berkeley
+| Assistant Professor of Chemical & Biological Engineering
+| Princeton University
 
 .. |arosen| image:: https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/mark-github.svg
-   :target: https://github.com/arosen93
+   :target: https://github.com/Andrew-S-Rosen
    :width: 16
    :height: 16
-   :alt: GitHub profile for arosen93
+   :alt: GitHub profile for Andrew-S-Rosen
 .. |0000-0002-0141-7006| image:: _static/orcid.svg
    :target: https://orcid.org/0000-0002-0141-7006
    :width: 16

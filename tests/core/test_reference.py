@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import pytest
 
@@ -161,7 +161,7 @@ def test_schema():
     class MediumSchema(BaseModel):
         s: str
         nested: InnerSchema
-        nested_opt: Optional[InnerSchema]
+        nested_opt: InnerSchema = None
         nested_u: Union[InnerSchema, dict]
         nested_l: List[InnerSchema]
         nested_d: Dict[str, InnerSchema]
@@ -184,25 +184,25 @@ def test_schema():
     assert new_ref.output_schema is None
 
     with pytest.raises(AttributeError):
-        assert ref.a.uuid == "123"
+        ref.a.uuid
 
     with pytest.raises(AttributeError):
-        assert ref["a"].uuid == "123"
+        ref["a"].uuid
 
     with pytest.raises(AttributeError):
-        assert ref[1].uuid == "123"
+        ref[1].uuid
 
     # check valid nested schemas
     assert ref.nested.s.uuid == "123"
     with pytest.raises(AttributeError):
-        assert ref.nested.m.uuid == "123"
+        ref.nested.m.uuid
     assert ref.nested.nested.n.uuid == "123"
     with pytest.raises(AttributeError):
-        assert ref.nested.nested.m.uuid == "123"
+        ref.nested.nested.m.uuid
 
     assert ref.nested.nested_opt.n.uuid == "123"
     with pytest.raises(AttributeError):
-        assert ref.nested.nested_opt.m.uuid == "123"
+        ref.nested.nested_opt.m.uuid
 
     # Union, List and Dict are currently not recognized by their inner type
     # but check that there is no problem with them
