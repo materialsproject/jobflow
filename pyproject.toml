@@ -144,4 +144,4 @@ isort.known-first-party = ["jobflow"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
-"**/tests/*" = ["D", "B018]
+"**/tests/*" = ["D", "B018"]
