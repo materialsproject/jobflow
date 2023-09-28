@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import pytest
 
@@ -161,7 +161,7 @@ def test_schema():
     class MediumSchema(BaseModel):
         s: str
         nested: InnerSchema
-        nested_opt: Optional[InnerSchema] = None
+        nested_opt: InnerSchema = None
         nested_u: Union[InnerSchema, dict]
         nested_l: List[InnerSchema]
         nested_d: Dict[str, InnerSchema]
