@@ -1,5 +1,20 @@
 # Change log
 
+## v0.1.14
+
+### Bug Fixes 🐛
+* Add warning when jobflow.yaml is blank or badly formatted by @mcgalcode in https://github.com/materialsproject/jobflow/pull/415
+* Fix issue with data store by @JaGeo in https://github.com/materialsproject/jobflow/pull/409
+* Make ensure_success apply to replace/detour/addition jobs by @mcgalcode in https://github.com/materialsproject/jobflow/pull/426
+### Enhancements 🛠
+* Add tests for Python 3.11 by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/413
+* Add support for Pydantic 2 by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/440
+### Documentation 📖
+* Link to @jageo's tutorials and fix a broken link by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/412
+* Update @arosen93 to @Andrew-S-Rosen by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/427
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.13...v0.1.14
+
 ## v0.1.13
 
 Bug Fixes:
