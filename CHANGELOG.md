@@ -1,18 +1,14 @@
-Change log
-==========
+# Change log
 
-v0.1.13
--------
+## v0.1.13
 
 Bug Fixes:
 
-* Delete `Flow.__deepcopy__` by @janosh in https://github.com/materialsproject/jobflow/pull/399
+- Delete `Flow.__deepcopy__` by @janosh in https://github.com/materialsproject/jobflow/pull/399
 
 **Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.12...v0.1.13
 
-
-v0.1.12
--------
+## v0.1.12
 
 New features:
 
@@ -36,33 +32,30 @@ Bug fixes:
 Enhancements:
 
 - Fix typo in data store docs by @xperrylinn in https://github.com/materialsproject/jobflow/pull/316
-- Fix typo in fireworks docs by @arosen93 in https://github.com/materialsproject/jobflow/pull/343
-- Fix typo in docs by @arosen93 in https://github.com/materialsproject/jobflow/pull/359
+- Fix typo in fireworks docs by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/343
+- Fix typo in docs by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/359
 - Fix broken link to FireWorks tutorial by @janosh in https://github.com/materialsproject/jobflow/pull/319
-- Add documentation: Flows, FireWorks, Dynamic Flows, Makers by @arosen93 in https://github.com/materialsproject/jobflow/pull/338
+- Add documentation: Flows, FireWorks, Dynamic Flows, Makers by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/338
 - Update forum link by @mkhorton in https://github.com/materialsproject/jobflow/pull/373
-- Add copy button to code blocks in docs by @arosen93 in https://github.com/materialsproject/jobflow/pull/344
+- Add copy button to code blocks in docs by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/344
 
-v0.1.11
--------
+## v0.1.11
 
 - Enable serialisation of bson.
 
-v0.1.10
-------
+## v0.1.10
 
 - Move project configuration to `pyproject.toml`.
 - Add tutorial on generalized makers (@jmmshn, #268)
 
-v0.1.9
-------
+## v0.1.9
 
 New features
 
 - Delayed updates to config and metadata for dynamic flows. See docstring of
   `Job.update_metadata` for more details (@gpetretto, #198)
 - Additional stores are now generated on the fly as memory stores if they are not
-  specified  in jobflow settings (@davidwaroquiers, #183)
+  specified in jobflow settings (@davidwaroquiers, #183)
 
 Bug fixes:
 
@@ -75,8 +68,7 @@ Enhancements:
 - Docs refactored.
 - Added code of conduct.
 
-v0.1.8
-------
+## v0.1.8
 
 New features:
 
@@ -95,22 +87,20 @@ Bug fixes:
 - OutputReferences are no longer iterable.
 - Docstring clarifications (@utf, @mjwen).
 
-v0.1.7
-------
+## v0.1.7
 
 New features:
 
 - Validate subschemas of nested models (@gpetretto, #118).
-- `downstream_manager_config` for controlling config of dynamic jobs (@arosen93, #121).
+- `downstream_manager_config` for controlling config of dynamic jobs (@Andrew-S-Rosen, #121).
 - S3Store yaml parsing (@jmmshn, #124).
 
 Bug fixes:
 
 - Fix home path for loading settings (@gpetretto, #119).
-- Docs updates (@arosen93, #111).
+- Docs updates (@Andrew-S-Rosen, #111).
 
-v0.1.6
-------
+## v0.1.6
 
 Bug fixes:
 
@@ -118,16 +108,14 @@ Bug fixes:
 - Compatibility with maggma>=0.38.1 (#68)
 - Fixed missing PyYAML requirement (#67)
 
-v0.1.5
-------
+## v0.1.5
 
 Bug fixes:
 
 - Remove `JobConfig.pass_metadata` option and instead pass metadata automatically.
 - Fix serialization compatibility with the FireWorks workflow manager.
 
-v0.1.4
-------
+## v0.1.4
 
 New features:
 
@@ -140,16 +128,14 @@ Bug fixes:
 
 - Fireworks manager now adds metadata to FireWork spec. Fixes #21.
 
-v0.1.3
-------
+## v0.1.3
 
 Jobflow now uses pydantic to handle settings. Currently, there is only a single setting
 `JOB_STORE` which controls the default store used by `run_locally` and the fireworks
 manager. You can update the default store by writing a `~/.jobflow.yaml` settings
 file. See the API documentation for more details.
 
-v0.1.2
-------
+## v0.1.2
 
 New features:
 
@@ -159,13 +145,11 @@ New features:
 - `Job.update_maker_kwargs` with `nested=True` now applies the updates to makers
   in the kwargs or args of the job.
 
-v0.1.1
-------
+## v0.1.1
 
 Docs updates.
 
-v0.1.0
-------
+## v0.1.0
 
 Major changes:
 
@@ -185,13 +169,11 @@ Bug fixes:
 - Makes now allows non-default parameters (fixes: #13).
 - Fix reference cache with multiple indexes.
 
-v0.0.2
-------
+## v0.0.2
 
 Testing automated releases.
 
-v0.0.1
-------
+## v0.0.1
 
 Initial release containing:
 
