@@ -643,7 +643,6 @@ class Job(MSONable):
             hosts=self.hosts,
             name=self.name,
         )
-        # Need to do changes to .update method
         store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()

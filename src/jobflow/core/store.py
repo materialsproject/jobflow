@@ -265,7 +265,7 @@ class JobStore(Store):
         Parameters
         ----------
         docs
-            The document or list of documents to update.
+            The Pydantic document or list of Pydantic documents to update.
         key
             Field name(s) to determine uniqueness for a document, can be a list of
             multiple fields, a single field, or None if the Store's key field is to
