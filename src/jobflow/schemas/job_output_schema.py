@@ -3,7 +3,7 @@
 from typing import Generic, List, TypeVar
 
 from monty.json import MontyDecoder
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 
 T = TypeVar("T")
 
@@ -36,8 +36,7 @@ class JobStoreDocument(BaseModel, Generic[T]):
         description="The name of the job.",
     )
 
-    @field_validator("output", mode="before")
-    @classmethod
+    @validator("output", pre=True)
     def reserialize_output(cls, v):
         """
         Pre-validator for the 'output' field.
