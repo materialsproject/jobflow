@@ -2,8 +2,6 @@
 
 from enum import Enum
 
-__all__ = ["ValueEnum"]
-
 
 class ValueEnum(Enum):
     """Enum that serializes to string as the value and can be compared against a str."""

@@ -19,8 +19,6 @@ if typing.TYPE_CHECKING:
 
     import jobflow
 
-__all__ = ["CURRENT_JOB"]
-
 
 @singleton
 class State:
