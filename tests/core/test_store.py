@@ -99,25 +99,25 @@ def test_data_update(memory_data_jobstore):
     assert results["data"] == [1, 2, 3, 4]
 
     results = memory_data_jobstore.query_one(c, load={})
-    assert type(results["data"]) == dict
+    assert isinstance(results["data"], dict)
     assert "@class" in results["data"]
     assert "@module" in results["data"]
     assert "blob_uuid" in results["data"]
 
     results = memory_data_jobstore.query_one(c, load={"data": False})
-    assert type(results["data"]) == dict
+    assert isinstance(results["data"], dict)
     assert "@class" in results["data"]
     assert "@module" in results["data"]
     assert "blob_uuid" in results["data"]
 
     results = memory_data_jobstore.query_one(c, load=False)
-    assert type(results["data"]) == dict
+    assert isinstance(results["data"], dict)
     assert "@class" in results["data"]
     assert "@module" in results["data"]
     assert "blob_uuid" in results["data"]
 
     results = memory_data_jobstore.query_one(c, load=None)
-    assert type(results["data"]) == dict
+    assert isinstance(results["data"], dict)
     assert "@class" in results["data"]
     assert "@module" in results["data"]
     assert "blob_uuid" in results["data"]
