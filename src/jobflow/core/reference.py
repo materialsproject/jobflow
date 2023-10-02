@@ -157,7 +157,8 @@ class OutputReference(MSONable):
         if on_missing == OnMissing.ERROR and index not in cache[self.uuid]:
             istr = f" ({index})" if index is not None else ""
             raise ValueError(
-                f"Could not resolve reference - {self.uuid}{istr} not in store or cache"
+                f"Could not resolve reference - {self.uuid}{istr} not in store or "
+                f"{index=}, {cache=}"
             )
         elif on_missing == OnMissing.NONE and index not in cache[self.uuid]:
             return None
