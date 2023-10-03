@@ -12,8 +12,6 @@ from jobflow import JobStore
 
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
-__all__ = ["JobflowSettings"]
-
 
 def _default_additional_store():
     """Create a default MemoryStore and connect it.
