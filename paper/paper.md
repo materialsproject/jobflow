@@ -7,27 +7,27 @@ authors:
   - name: Andrew S. Rosen
     orcid: 0000-0002-0141-7006
     affiliation: "1, 2"
-	- name: Max Gallant
-		orcid: 0009-0008-4099-6144
-		affiliation: "1, 2"
-	- name: Janine George
-		orcid: 0000-0001-8907-0336
-		affiliation: "3, 4"
+  - name: Max Gallant
+    orcid: 0009-0008-4099-6144
+    affiliation: "1, 2"
+  - name: Janine George
+    orcid: 0000-0001-8907-0336
+    affiliation: "3, 4"
   - name: Janosh Riebesell
     orcid: 0000-0001-5233-3462
     affiliation: "2, 5"
-	- name: Hrushikesh Sahasrabuddhe
-		orcid: 0000-0001-7346-4568
-		affiliation: "1, 6"
+  - name: Hrushikesh Sahasrabuddhe
+    orcid: 0000-0001-7346-4568
+    affiliation: "1, 6"
   - name: Jimmy-Xuan Shen
     orcid: 0000-0002-2743-7531
     affiliation: 7
   - name: Mingjian Wen
     orcid: 0000-0003-0013-575X
     affiliation: 8
-	- name: Matthew L. Evans
-		orcid: 0000-0002-1182-9098
-		affiliation: "9, 10"
+  - name: Matthew L. Evans
+    orcid: 0000-0002-1182-9098
+    affiliation: "9, 10"
   - name: Guido Petretto
     affiliation: 9
   - name: David Waroquiers
@@ -36,9 +36,9 @@ authors:
   - name: Gian-Marco Rignanese
     orcid: 0000-0002-1422-1205
     affiliation: "9, 10, 11"
-	- name: Kristin A. Persson
-		orcid: 0000-0002-7212-6310
-		affiliation: "1, 2, 12"
+  - name: Kristin A. Persson
+    orcid: 0000-0002-7212-6310
+    affiliation: "1, 2, 12"
   - name: Anubhav Jain
     orcid: 0000-0001-5893-9967
     affiliation: 6
@@ -50,10 +50,10 @@ affiliations:
     index: 1
   - name: Materials Science Division, Lawrence Berkeley National Laboratory, Berkeley, CA, USA
     index: 2
-	- name: Federal Institute for Materials Research and Testing, Department Materials Chemistry, Berlin, Germany
-		index: 3
-	- name: Friedrich Schiller University Jena, Institute of Condensed Matter Theory and Solid-State Optics, Jena, Germany
-		index: 4
+  - name: Federal Institute for Materials Research and Testing, Department Materials Chemistry, Berlin, Germany
+    index: 3
+  - name: Friedrich Schiller University Jena, Institute of Condensed Matter Theory and Solid-State Optics, Jena, Germany
+    index: 4
   - name: Department of Physics, University of Cambridge, Cambridge, UK
     index: 5
   - name: Energy Storage and Distributed Resources Division, Lawrence Berkeley National Laboratory, Berkeley, CA, USA
@@ -68,8 +68,8 @@ affiliations:
     index: 10
   - name: School of Materials Science and Engineering, Northwestern Polytechnical University, No. 127 Youyi West Road, Xi’an 710072 Shaanxi, PR China
     index: 11
-	- name: Molecular Foundry, Lawrence Berkeley National Laboratory, Berkeley, CA, USA
-		index: 12
+  - name: Molecular Foundry, Lawrence Berkeley National Laboratory, Berkeley, CA, USA
+    index: 12
   - name: Department of Chemistry, Imperial College London, London, UK
     index: 13
 
