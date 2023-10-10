@@ -1272,7 +1272,7 @@ def test_update_config(memory_jobstore):
 
 def test_job_magic_methods():
     from jobflow import Job
-    from jobflow.reference import OutputReference
+    from jobflow.core.reference import OutputReference
 
     # prepare test jobs
     job1 = Job(function=sum, function_args=([1, 2],))
