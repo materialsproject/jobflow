@@ -403,16 +403,16 @@ class Job(MSONable):
     def __hash__(self) -> int:
         """Get the hash of the job."""
         return hash(self.uuid)
-    
+
     def __getitem__(self, k: Any) -> OutputReference:
         """
-        Convenience function for parsing the output of a Job.
+        Get the corresponding `OutputReference` for the `Job`.
 
         Parameters
         ----------
         k
             The index key or index.
-        
+
         Returns
         -------
         OutputReference
