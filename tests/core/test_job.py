@@ -1272,6 +1272,7 @@ def test_update_config(memory_jobstore):
 
 def test_job_magic_methods():
     from jobflow import Job
+    from jobflow.reference import OutputReference
 
     # prepare test jobs
     job1 = Job(function=sum, function_args=([1, 2],))
@@ -1296,3 +1297,9 @@ def test_job_magic_methods():
 
     # test __hash__
     assert hash(job1) != hash(job2) != hash(job3)
+
+    # test __getitem__
+    assert isinstance(job1["test"], OutputReference)
+    assert isinstance(job1[1], OutputReference)
+    assert job1["test"].attributes == (("i", "test"))
+    assert job1[1].attributes == (("a", 1))

@@ -403,6 +403,22 @@ class Job(MSONable):
     def __hash__(self) -> int:
         """Get the hash of the job."""
         return hash(self.uuid)
+    
+    def __getitem__(self, k: Any) -> OutputReference:
+        """
+        Convenience function for parsing the output of a Job.
+
+        Parameters
+        ----------
+        k
+            The index key or index.
+        
+        Returns
+        -------
+        OutputReference
+            The equivalent of `Job.output[k]`
+        """
+        return self.output[k]
 
     @property
     def input_references(self) -> tuple[jobflow.OutputReference, ...]:
