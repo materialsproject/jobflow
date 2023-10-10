@@ -1013,23 +1013,22 @@ def test_flow_repr():
     for expected, line in zip(lines, flow_repr):
         assert line.startswith(expected), f"{line=} doesn't start with {expected=}"
 
+
 def test_get_item():
     from jobflow import Flow, job, run_locally
 
     @job
     def make_str(s):
         return {"hello": s}
-    
+
     @job
     def capitalize(s):
         return s.upper()
-    
 
     job1 = make_str("world")
     job2 = capitalize(job1["hello"])
-    
-    
+
     flow = Flow([job1, job2])
-        
+
     responses = run_locally(flow, ensure_success=True)
     assert responses[job2.uuid][1].output == "WORLD"
