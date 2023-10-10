@@ -1301,5 +1301,5 @@ def test_job_magic_methods():
     # test __getitem__
     assert isinstance(job1["test"], OutputReference)
     assert isinstance(job1[1], OutputReference)
-    assert job1["test"].attributes == (("i", "test"))
-    assert job1[1].attributes == (("a", 1))
+    assert job1["test"].attributes == (("i", "test"),)
+    assert job1[1].attributes == (("a", 1),)
