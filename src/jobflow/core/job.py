@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from jobflow.core.reference import OnMissing, OutputReference
+from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
@@ -631,15 +632,15 @@ class Job(MSONable):
             ) from err
 
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
-        data = {
-            "uuid": self.uuid,
-            "index": self.index,
-            "output": output,
-            "completed_at": datetime.now().isoformat(),
-            "metadata": self.metadata,
-            "hosts": self.hosts,
-            "name": self.name,
-        }
+        data: JobStoreDocument = JobStoreDocument(
+            uuid=self.uuid,
+            index=self.index,
+            output=output,
+            completed_at=datetime.now().isoformat(),
+            metadata=self.metadata,
+            hosts=self.hosts,
+            name=self.name,
+        )
         store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()
