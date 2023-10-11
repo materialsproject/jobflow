@@ -8,6 +8,7 @@ from maggma.core import Store
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
+from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
@@ -253,7 +254,7 @@ class JobStore(Store):
 
     def update(
         self,
-        docs: list[dict] | dict,
+        docs: list[dict] | dict | JobStoreDocument | list[JobStoreDocument],
         key: list | str = None,
         save: bool | save_type = None,
     ):
@@ -263,7 +264,7 @@ class JobStore(Store):
         Parameters
         ----------
         docs
-            The document or list of documents to update.
+            The Pydantic document or list of Pydantic documents to update.
         key
             Field name(s) to determine uniqueness for a document, can be a list of
             multiple fields, a single field, or None if the Store's key field is to
