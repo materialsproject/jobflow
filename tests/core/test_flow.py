@@ -101,26 +101,16 @@ def test_flow_of_jobs_init():
     flow = Flow([add_job], output=add_job.output)
     assert flow.output == add_job.output
 
-    # # test multi job and list multi outputs
+    # test multi job and list multi outputs
     add_job1 = get_test_job()
     add_job2 = get_test_job()
     flow = Flow([add_job1, add_job2], output=[add_job1.output, add_job2.output])
     assert flow.output[1] == add_job2.output
 
-    # # test all jobs included needed to generate outputs
+    # test all jobs included needed to generate outputs
     add_job = get_test_job()
     with pytest.raises(ValueError):
         Flow([], output=add_job.output)
-
-    # test job given rather than outputs
-    add_job = get_test_job()
-    with pytest.warns(UserWarning):
-        Flow([add_job], output=add_job)
-
-    # test complex object containing job given rather than outputs
-    add_job = get_test_job()
-    with pytest.warns(UserWarning):
-        Flow([add_job], output={1: [[{"a": add_job}]]})
 
     # test job already belongs to another flow
     add_job = get_test_job()
@@ -196,18 +186,6 @@ def test_flow_of_flows_init():
     subflow = Flow([add_job], output=add_job.output)
     with pytest.raises(ValueError):
         Flow([], output=subflow.output)
-
-    # test flow given rather than outputs
-    add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    with pytest.warns(UserWarning):
-        Flow([subflow], output=subflow)
-
-    # test complex object containing job given rather than outputs
-    add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    with pytest.warns(UserWarning):
-        Flow([subflow], output={1: [[{"a": subflow}]]})
 
     # test flow already belongs to another flow
     add_job = get_test_job()
@@ -1032,3 +1010,47 @@ def test_get_item():
 
     responses = run_locally(flow, ensure_success=True)
     assert responses[job2.uuid][1].output == "WORLD"
+
+def test_get_item_job():
+    from jobflow import Flow, job, run_locally
+
+    @job
+    def make_str(s):
+        return s
+
+    @job
+    def capitalize(s):
+        return s.upper()
+
+    job1 = make_str("world")
+    job2 = capitalize(job1)
+
+    flow = Flow([job1, job2])
+
+    responses = run_locally(flow, ensure_success=True)
+    assert responses[job2.uuid][1].output == "WORLD"
+
+# def test_get_attr():
+#     from jobflow import Flow, job, run_locally
+#     from dataclasses import dataclass
+
+#     @job
+#     def make_str(s):
+
+#         @dataclass
+#         class MyClass:
+#             hello: str = s
+
+#         return MyClass
+
+#     @job
+#     def capitalize(s):
+#         return s.upper()
+
+#     job1 = make_str("world")
+#     job2 = capitalize(job1.hello)
+
+#     flow = Flow([job1, job2])
+
+#     responses = run_locally(flow, ensure_success=True)
+#     assert responses[job2.uuid][1].output == "WORLD"

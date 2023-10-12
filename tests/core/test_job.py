@@ -32,10 +32,6 @@ def test_job_init():
     assert test_job.uuid is not None
     assert test_job.output.uuid == test_job.uuid
 
-    # test job as another job as input
-    with pytest.warns(UserWarning):
-        Job(function=add, function_args=(test_job,))
-
     # test init with kwargs
     test_job = Job(function=add, function_args=(1,), function_kwargs={"b": 2})
     assert test_job
@@ -1303,3 +1299,7 @@ def test_job_magic_methods():
     assert isinstance(job1[1], OutputReference)
     assert job1["test"].attributes == (("i", "test"),)
     assert job1[1].attributes == (("i", 1),)
+
+    # test __getattr__
+    assert isinstance(job1.test, OutputReference)
+    assert job1.test.attributes == (("a", "test"),)

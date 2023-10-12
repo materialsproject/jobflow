@@ -199,11 +199,11 @@ def contains_flow_or_job(obj: Any) -> bool:
     from jobflow.core.job import Job
 
     if isinstance(obj, (Flow, Job)):
-        # if the argument is an flow or job then stop there
+        # if the argument is a flow or job then stop there
         return True
 
     elif isinstance(obj, (float, int, str, bool)):
-        # argument is a primitive, we won't find an flow or job here
+        # argument is a primitive, we won't find a flow or job here
         return False
 
     obj = jsanitize(obj, strict=True, allow_bson=True)
