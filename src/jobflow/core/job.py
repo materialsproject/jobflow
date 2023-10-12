@@ -352,8 +352,16 @@ class Job(MSONable):
         self.output = OutputReference(self.uuid, output_schema=self.output_schema)
 
         # check to see if job is included in the job args
-        self.function_args = tuple([arg.output if isinstance(arg, Job) else arg for arg in list(self.function_args)])
-        self.function_kwargs = {arg: v.output if isinstance(v, Job) else v for arg, v in self.function_kwargs.items()}
+        self.function_args = tuple(
+            [
+                arg.output if isinstance(arg, Job) else arg
+                for arg in list(self.function_args)
+            ]
+        )
+        self.function_kwargs = {
+            arg: v.output if isinstance(v, Job) else v
+            for arg, v in self.function_kwargs.items()
+        }
 
     def __repr__(self):
         """Get a string representation of the job."""

@@ -1011,6 +1011,7 @@ def test_get_item():
     responses = run_locally(flow, ensure_success=True)
     assert responses[job2.uuid][1].output == "WORLD"
 
+
 def test_get_item_job():
     from jobflow import Flow, job, run_locally
 
@@ -1029,6 +1030,7 @@ def test_get_item_job():
 
     responses = run_locally(flow, ensure_success=True)
     assert responses[job2.uuid][1].output == "WORLD"
+
 
 # def test_get_attr():
 #     from jobflow import Flow, job, run_locally
