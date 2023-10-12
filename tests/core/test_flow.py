@@ -1033,8 +1033,9 @@ def test_get_item_job():
 
 
 def test_get_attr():
-    from jobflow import Flow, job, run_locally
     from dataclasses import dataclass
+
+    from jobflow import Flow, job, run_locally
 
     @job
     def make_str(s):
