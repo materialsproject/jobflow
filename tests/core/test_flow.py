@@ -1038,7 +1038,6 @@ def test_get_attr():
 
     @job
     def make_str(s):
-
         @dataclass
         class MyClass:
             hello: str = s
