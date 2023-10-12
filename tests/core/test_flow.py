@@ -1032,27 +1032,27 @@ def test_get_item_job():
     assert responses[job2.uuid][1].output == "WORLD"
 
 
-# def test_get_attr():
-#     from jobflow import Flow, job, run_locally
-#     from dataclasses import dataclass
+def test_get_attr():
+    from jobflow import Flow, job, run_locally
+    from dataclasses import dataclass
 
-#     @job
-#     def make_str(s):
+    @job
+    def make_str(s):
 
-#         @dataclass
-#         class MyClass:
-#             hello: str = s
+        @dataclass
+        class MyClass:
+            hello: str = s
 
-#         return MyClass
+        return MyClass
 
-#     @job
-#     def capitalize(s):
-#         return s.upper()
+    @job
+    def capitalize(s):
+        return s.upper()
 
-#     job1 = make_str("world")
-#     job2 = capitalize(job1.hello)
+    job1 = make_str("world")
+    job2 = capitalize(job1.hello)
 
-#     flow = Flow([job1, job2])
+    flow = Flow([job1, job2])
 
-#     responses = run_locally(flow, ensure_success=True)
-#     assert responses[job2.uuid][1].output == "WORLD"
+    responses = run_locally(flow, ensure_success=True)
+    assert responses[job2.uuid][1].output == "WORLD"

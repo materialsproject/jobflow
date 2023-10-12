@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import typing
-import warnings
 from dataclasses import dataclass, field
 
 from monty.json import MSONable, jsanitize
@@ -316,8 +315,6 @@ class Job(MSONable):
         **kwargs,
     ):
         from copy import deepcopy
-
-        from jobflow.utils.find import contains_flow_or_job
 
         function_args = () if function_args is None else function_args
         function_kwargs = {} if function_kwargs is None else function_kwargs
