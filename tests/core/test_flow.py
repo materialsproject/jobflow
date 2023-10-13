@@ -1039,20 +1039,20 @@ def test_get_attr():
 
     @dataclass
     class MyClass:
-        hello: str 
-    
+        hello: str
+
     @job
     def make_str(s):
         return MyClass(hello=s)
-    
+
     @job
     def capitalize(s):
         return s.upper()
-    
+
     job1 = make_str("world")
     job2 = capitalize(job1.hello)
-    
+
     flow = Flow([job1, job2])
-    
+
     responses = run_locally(flow, ensure_success=True)
     assert responses[job2.uuid][1].output == "WORLD"
