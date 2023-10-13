@@ -405,8 +405,9 @@ class Job(MSONable):
 
     def __getitem__(self, key: Any) -> OutputReference:
         """
-        Get the corresponding `OutputReference` for the `Job`
-        when indexed like a dictionary or list.
+        Get the corresponding `OutputReference` for the `Job`.
+
+        This is for when it is indexed like a dictionary or list.
 
         Parameters
         ----------
@@ -422,8 +423,9 @@ class Job(MSONable):
 
     def __getattr__(self, name: str) -> OutputReference:
         """
-        Get the corresponding `OutputReference` for the `Job`
-        when indexed list a class attribute.
+        Get the corresponding `OutputReference` for the `Job`.
+
+        This is for when it is indexed like a class attribute.
 
         Parameters
         ----------
