@@ -437,7 +437,9 @@ class Job(MSONable):
         OutputReference
             The equivalent of `Job.output.name`
         """
-        return getattr(self.output, name)
+        if attr := getattr(self.output, name, None):
+            return attr
+        raise AttributeError(f"{type(self).__name__} has no attribute {name!r}")
 
     @property
     def input_references(self) -> tuple[jobflow.OutputReference, ...]:
