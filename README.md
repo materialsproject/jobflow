@@ -1,9 +1,9 @@
 # jobflow
 
-<a href="https://github.com/materialsproject/jobflow/actions?query=workflow%3Atesting"><img alt="code coverage" src="https://img.shields.io/github/actions/workflow/status/materialsproject/jobflow/testing.yml?branch=main&label=tests"></a>
-<a href="https://codecov.io/gh/materialsproject/jobflow/"><img alt="code coverage" src="https://img.shields.io/codecov/c/gh/materialsproject/jobflow/main"></a>
-<a href="https://pypi.org/project/jobflow"><img alt="pypi version" src="https://img.shields.io/pypi/v/jobflow?color=blue"></a>
-<img alt="supported python versions" src="https://img.shields.io/pypi/pyversions/jobflow">
+[![tests](https://img.shields.io/github/actions/workflow/status/materialsproject/jobflow/testing.yml?branch=main&label=tests)](https://github.com/materialsproject/jobflow/actions?query=workflow%3Atesting)
+[![code coverage](https://img.shields.io/codecov/c/gh/materialsproject/jobflow/main)](https://codecov.io/gh/materialsproject/jobflow/)
+[![pypi version](https://img.shields.io/pypi/v/jobflow?color=blue)](https://pypi.org/project/jobflow/)
+![supported python versions](https://img.shields.io/pypi/pyversions/jobflow)
 
 [Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow)
 
