@@ -71,7 +71,7 @@ def test_settings_object(clean_dir, test_data):
         },
     }
 
-    # set the path to lood settings from
+    # set the path to load settings from
     config_file_path = str(Path.cwd() / "config.yaml")
     os.environ["JOBFLOW_CONFIG_FILE"] = config_file_path
 
