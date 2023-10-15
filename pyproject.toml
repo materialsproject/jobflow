@@ -17,22 +17,21 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.9",
     "Topic :: Database :: Front-Ends",
     "Topic :: Other/Nonlisted Topic",
     "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "PyYAML",
     "maggma>=0.57.0",
     "monty>=2023.9.25",
     "networkx",
-    "pydantic>=2.0.1",
     "pydantic-settings>=2.0.3",
+    "pydantic>=2.0.1",
     "pydash",
 ]
 
@@ -47,7 +46,7 @@ docs = [
     "sphinx==7.2.6",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["pytest-cov==4.1.0", "pytest==7.4.2", "moto==4.2.5"]
+tests = ["moto==4.2.5", "pytest-cov==4.1.0", "pytest==7.4.2"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
@@ -58,8 +57,8 @@ strict = [
     "monty==2023.9.25",
     "moto==4.2.5",
     "networkx==3.1",
-    "pydantic==2.4.2",
     "pydantic-settings==2.0.3",
+    "pydantic==2.4.2",
     "pydash==7.0.6",
     "pydot==1.4.2",
     "typing-extensions==4.8.0",
@@ -83,7 +82,7 @@ max-line-length = 88
 max-doc-length = 88
 select = "C, E, F, W, B"
 extend-ignore = "E203, W503, E501, F401, RST21"
-min-python-version = "3.8.0"
+min-python-version = "3.9.0"
 docstring-convention = "numpy"
 rst-roles = "class, func, ref, obj"
 
@@ -119,7 +118,7 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 ignore-init-module-imports = true
 select = [
     "B",   # flake8-bugbear
@@ -144,4 +143,4 @@ isort.known-first-party = ["jobflow"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
-"**/tests/*" = ["D", "B018"]
+"**/tests/*" = ["B018", "D"]
