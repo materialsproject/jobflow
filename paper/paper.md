@@ -100,16 +100,13 @@ As a simple demonstration, the example below shows how one can construct a simpl
 ```python
 from jobflow import Flow, job, run_locally
 
-
 @job
 def add(a, b):
     return a + b
 
-
 @job
 def multiply(a, b):
     return a * b
-
 
 job1 = add(1, 2)  # 1 + 2 = 3
 job2 = multiply(job1.output, 3)  # 3 * 3 = 9
@@ -128,22 +125,18 @@ Beyond the typical acyclic graph of jobs, Jobflow fully supports dynamic workflo
 from random import randint
 from jobflow import Flow, Response, job, run_locally
 
-
 @job
 def add(a, b):
     return a + b
-
 
 @job
 def make_list(val):
     return [val] * randint(2, 6)
 
-
 @job
 def add_distributed(vals, c):
     jobs = [add(val, c) for val in vals]
     return Response(replace=Flow(jobs))
-
 
 job1 = add(1, 2)  # 1 + 2 = 3
 job2 = make_list(job1.output)  # e.g., [3, 3, 3]
@@ -168,7 +161,6 @@ from dataclasses import dataclass
 from jobflow import job, Flow, Maker
 from jobflow.managers.local import run_locally
 
-
 @dataclass
 class ExponentiateMaker(Maker):
     name: str = "Exponentiate"
@@ -177,7 +169,6 @@ class ExponentiateMaker(Maker):
     @job
     def make(self, a):
         return a**self.exponent
-
 
 job1 = ExponentiateMaker().make(a=2)  # 2**2 = 4
 job2 = ExponentiateMaker(exponent=3).make(job1.output)  # 4**3 = 64
