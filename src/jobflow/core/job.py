@@ -14,7 +14,8 @@ from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Hashable, Sequence
+    from collections.abc import Hashable, Sequence
+    from typing import Any, Callable
 
     from networkx import DiGraph
     from pydantic import BaseModel

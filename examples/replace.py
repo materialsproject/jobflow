@@ -1,6 +1,5 @@
 """A demonstration of how to use dynamic workflows with replace."""
 
-from typing import List
 
 from jobflow import Flow, job, run_locally
 
@@ -29,7 +28,7 @@ def time_website(website: str):
 
 
 @job
-def start_timing_jobs(websites: List[str]):
+def start_timing_jobs(websites: list[str]):
     """Time a list of websites."""
     from jobflow.core.job import Response
 
@@ -44,7 +43,7 @@ def start_timing_jobs(websites: List[str]):
 
 
 @job
-def sum_times(times: List[float]):
+def sum_times(times: list[float]):
     """Sum a list of loading times."""
     return sum(times)
 

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import warnings
+from collections.abc import Sequence
 from copy import deepcopy
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from monty.json import MSONable
 
@@ -14,7 +15,8 @@ from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterator
+    from collections.abc import Iterator
+    from typing import Any, Callable
 
     from networkx import DiGraph
 

@@ -1,6 +1,6 @@
 """A Pydantic model for Jobstore document."""
 
-from typing import Generic, List, TypeVar
+from typing import Generic, TypeVar
 
 from monty.json import MontyDecoder
 from pydantic import BaseModel, Field, field_validator
@@ -27,7 +27,7 @@ class JobStoreDocument(BaseModel, Generic[T]):
         None,
         description="Metadeta information supplied by the user.",
     )
-    hosts: List[str] = Field(
+    hosts: list[str] = Field(
         None,
         description="The list of UUIDs of the hosts containing the job.",
     )

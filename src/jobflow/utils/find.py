@@ -5,7 +5,8 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Hashable
+    from collections.abc import Hashable
+    from typing import Any
 
     from monty.json import MSONable
 

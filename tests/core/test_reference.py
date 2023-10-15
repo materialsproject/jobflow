@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Union
 
 import pytest
 
@@ -163,8 +163,8 @@ def test_schema():
         nested: InnerSchema
         nested_opt: InnerSchema = None
         nested_u: Union[InnerSchema, dict]
-        nested_l: List[InnerSchema]
-        nested_d: Dict[str, InnerSchema]
+        nested_l: list[InnerSchema]
+        nested_d: dict[str, InnerSchema]
 
     class MySchema(BaseModel):
         number: int
