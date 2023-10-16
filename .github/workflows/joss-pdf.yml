@@ -2,6 +2,7 @@ on:
   push:
     paths:
     - paper
+  workflow_dispatch:
 
 jobs:
   paper:
