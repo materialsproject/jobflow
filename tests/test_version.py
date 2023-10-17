@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 
@@ -18,11 +20,10 @@ def uninstall_jobflow(monkeypatch):
 def test_installed_version():
     from jobflow import __version__
 
-    assert __version__ != ""
+    assert re.match(r"^\d+\.\d+\.\d+$", __version__)
 
 
-@pytest.mark.usefixtures("uninstall_jobflow")
-def test_not_installed_version(monkeypatch):
+def test_not_installed_version(uninstall_jobflow):
     import importlib
 
     from jobflow import _version
