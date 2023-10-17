@@ -100,16 +100,13 @@ As a simple demonstration, the example below shows how one can construct a simpl
 ```python
 from jobflow import Flow, job, run_locally
 
-
 @job
 def add(a, b):
     return a + b
 
-
 @job
 def multiply(a, b):
     return a * b
-
 
 job1 = add(1, 2)  # 1 + 2 = 3
 job2 = multiply(job1.output, 3)  # 3 * 3 = 9
@@ -128,22 +125,18 @@ Beyond the typical acyclic graph of jobs, Jobflow fully supports dynamic workflo
 from random import randint
 from jobflow import Flow, Response, job, run_locally
 
-
 @job
 def add(a, b):
     return a + b
-
 
 @job
 def make_list(val):
     return [val] * randint(2, 6)
 
-
 @job
 def add_distributed(vals, c):
     jobs = [add(val, c) for val in vals]
     return Response(replace=Flow(jobs))
-
 
 job1 = add(1, 2)  # 1 + 2 = 3
 job2 = make_list(job1.output)  # e.g., [3, 3, 3]
@@ -155,7 +148,7 @@ responses = run_locally(flow)
 
 ## Data Management
 
-Jobflow has first-class support for a variety of data stores through an interface with the `maggma` Python package [@maggma]. This makes it possible to easily store the results of workflows in a manner that is independent of the choice of storage medium and that is entirely decoupled from the workflow logic itself. Additionally, it is possible within Jobflow to specify multiple types of data stores for specific Python objects (e.g., primitive types vs. large binary blobs) created by a given workflow, which is often useful for storing a combination of metadata (e.g., in a NoSQL database like MongoDB or file-system based store like MontyDB [@montydb]`) and raw data (e.g., in a cloud object store like Amazon S3 or Microsoft Azure).
+Jobflow has first-class support for a variety of data stores through an interface with the `maggma` Python package [@maggma]. This makes it possible to easily store the results of workflows in a manner that is independent of the choice of storage medium and that is entirely decoupled from the workflow logic itself. Additionally, it is possible within Jobflow to specify multiple types of data stores for specific Python objects (e.g., primitive types vs. large binary blobs) created by a given workflow, which is often useful for storing a combination of metadata (e.g., in a NoSQL database like MongoDB or file-system based store like MontyDB [@montydb]) and raw data (e.g., in a cloud object store like Amazon S3 or Microsoft Azure).
 
 ## Promoting Code Reuse
 
@@ -168,7 +161,6 @@ from dataclasses import dataclass
 from jobflow import job, Flow, Maker
 from jobflow.managers.local import run_locally
 
-
 @dataclass
 class ExponentiateMaker(Maker):
     name: str = "Exponentiate"
@@ -177,7 +169,6 @@ class ExponentiateMaker(Maker):
     @job
     def make(self, a):
         return a**self.exponent
-
 
 job1 = ExponentiateMaker().make(a=2)  # 2**2 = 4
 job2 = ExponentiateMaker(exponent=3).make(job1.output)  # 4**3 = 64

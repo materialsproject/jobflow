@@ -20,7 +20,10 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - uses: pre-commit/action@v3.0.0
+      - name: Run pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure
 
   test:
     services:
