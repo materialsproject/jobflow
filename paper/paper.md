@@ -148,7 +148,7 @@ responses = run_locally(flow)
 
 ## Data Management
 
-Jobflow has first-class support for a variety of data stores through an interface with the `maggma` Python package [@maggma]. This makes it possible to easily store the results of workflows in a manner that is independent of the choice of storage medium and that is entirely decoupled from the workflow logic itself. Additionally, it is possible within Jobflow to specify multiple types of data stores for specific Python objects (e.g., primitive types vs. large binary blobs) created by a given workflow, which is often useful for storing a combination of metadata (e.g., in a NoSQL database like MongoDB or file-system based store like MontyDB [@montydb]`) and raw data (e.g., in a cloud object store like Amazon S3 or Microsoft Azure).
+Jobflow has first-class support for a variety of data stores through an interface with the `maggma` Python package [@maggma]. This makes it possible to easily store the results of workflows in a manner that is independent of the choice of storage medium and that is entirely decoupled from the workflow logic itself. Additionally, it is possible within Jobflow to specify multiple types of data stores for specific Python objects (e.g., primitive types vs. large binary blobs) created by a given workflow, which is often useful for storing a combination of metadata (e.g., in a NoSQL database like MongoDB or file-system based store like MontyDB [@montydb]) and raw data (e.g., in a cloud object store like Amazon S3 or Microsoft Azure).
 
 ## Promoting Code Reuse
 
