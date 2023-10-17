@@ -149,7 +149,7 @@ html_title = "jobflow"
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.8", None),
+    "python": ("https://docs.python.org/3.9", None),
     "matplotlib": ("http://matplotlib.org", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
     "monty": ("https://materialsvirtuallab.github.io/monty/", None),

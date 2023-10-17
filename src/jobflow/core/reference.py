@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import contextlib
 import typing
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel

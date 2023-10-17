@@ -7,7 +7,7 @@ import typing
 from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_serialize
 
 if typing.TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
     import jobflow
 

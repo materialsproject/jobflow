@@ -12,15 +12,16 @@ from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterator
     from enum import Enum
     from pathlib import Path
-    from typing import Any, Dict, Iterator, List, Optional, Type, Union
+    from typing import Any, Optional, Union
 
     from maggma.core import Sort
 
-    obj_type = Union[str, Enum, Type[MSONable], List[Union[Enum, str, Type[MSONable]]]]
-    save_type = Optional[Dict[str, obj_type]]
-    load_type = Union[bool, Dict[str, Union[bool, obj_type]]]
+    obj_type = Union[str, Enum, type[MSONable], list[Union[Enum, str, type[MSONable]]]]
+    save_type = Optional[dict[str, obj_type]]
+    load_type = Union[bool, dict[str, Union[bool, obj_type]]]
 
 
 T = typing.TypeVar("T", bound="JobStore")
