@@ -17,8 +17,7 @@ def generate_big_data():
     The data=True in the job decorator tells jobflow to store all outputs in the "data"
     additional store.
     """
-    mydata = list(range(1000))
-    return mydata
+    return list(range(1000))
 
 
 big_data_job = generate_big_data()

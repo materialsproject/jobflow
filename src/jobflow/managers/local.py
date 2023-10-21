@@ -131,8 +131,7 @@ def run_locally(
 
         if not all(diversion_responses):
             return None, False
-        else:
-            return response, False
+        return response, False
 
     def _get_job_dir():
         if create_folders:
@@ -140,8 +139,7 @@ def run_locally(
             job_dir = root_dir / f"job_{time_now}-{randint(10000, 99999)}"
             job_dir.mkdir()
             return job_dir
-        else:
-            return root_dir
+        return root_dir
 
     def _run(root_flow):
         encountered_bad_response = False

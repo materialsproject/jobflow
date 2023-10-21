@@ -190,11 +190,10 @@ class JobFiretask(FiretaskBase):
             else:
                 detours = [detour_wf]
 
-        fwa = FWAction(
+        return FWAction(
             stored_data=response.stored_data,
             detours=detours,
             additions=additions,
             defuse_workflow=response.stop_jobflow,
             defuse_children=response.stop_children,
         )
-        return fwa

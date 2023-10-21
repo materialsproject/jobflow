@@ -203,7 +203,7 @@ def contains_flow_or_job(obj: Any) -> bool:
         # if the argument is an flow or job then stop there
         return True
 
-    elif isinstance(obj, (float, int, str, bool)):
+    if isinstance(obj, (float, int, str, bool)):
         # argument is a primitive, we won't find an flow or job here
         return False
 

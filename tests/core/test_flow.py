@@ -55,8 +55,7 @@ def get_maker_flow(return_makers=False):
 
     if return_makers:
         return flow, (AddMaker, DivMaker)
-    else:
-        return flow
+    return flow
 
 
 def test_flow_of_jobs_init():
