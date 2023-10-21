@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture()
 def memory_store():
     from maggma.stores import MemoryStore
 

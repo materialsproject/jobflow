@@ -15,8 +15,6 @@ import typing
 from monty.design_patterns import singleton
 
 if typing.TYPE_CHECKING:
-    pass
-
     import jobflow
 
 

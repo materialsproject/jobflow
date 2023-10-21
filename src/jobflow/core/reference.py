@@ -88,7 +88,7 @@ class OutputReference(MSONable):
         uuid: str,
         attributes: tuple[tuple[str, Any], ...] = (),
         output_schema: type[BaseModel] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.uuid = uuid
         self.attributes = attributes
@@ -263,7 +263,7 @@ class OutputReference(MSONable):
         """Return a hash of the reference."""
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Test for equality against another reference."""
         if isinstance(other, OutputReference):
             return (

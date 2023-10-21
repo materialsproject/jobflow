@@ -15,8 +15,6 @@ except ImportError:
 import typing
 
 if typing.TYPE_CHECKING:
-    pass
-
     import jobflow
 
 

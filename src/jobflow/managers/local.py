@@ -6,8 +6,6 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    pass
-
     import jobflow
 
 

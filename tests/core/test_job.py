@@ -853,7 +853,7 @@ def test_output_schema(memory_jobstore):
 
     @job(output_schema=AddSchema)
     def add_schema(a, b):
-        return AddSchema(**{"result": a + b})
+        return AddSchema(result=a + b)
 
     @job(output_schema=AddSchema)
     def add_schema_dict(a, b):
@@ -870,7 +870,6 @@ def test_output_schema(memory_jobstore):
     @job(output_schema=AddSchema)
     def add_schema_no_output(a, b):
         a + b
-        return None
 
     @job(output_schema=AddSchema)
     def add_schema_response_dict(a, b):
