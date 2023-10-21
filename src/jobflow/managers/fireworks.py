@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Sequence
 
     import jobflow
+    from jobflow.core.job import Job
 
 
 def flow_to_workflow(
@@ -146,7 +147,6 @@ class JobFiretask(FiretaskBase):
     def run_task(self, fw_spec):
         """Run the job and handle any dynamic firework submissions."""
         from jobflow import SETTINGS, initialize_logger
-        from jobflow.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")
@@ -190,11 +190,10 @@ class JobFiretask(FiretaskBase):
             else:
                 detours = [detour_wf]
 
-        fwa = FWAction(
+        return FWAction(
             stored_data=response.stored_data,
             detours=detours,
             additions=additions,
             defuse_workflow=response.stop_jobflow,
             defuse_children=response.stop_children,
         )
-        return fwa

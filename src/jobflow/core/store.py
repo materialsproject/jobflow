@@ -8,7 +8,6 @@ from maggma.core import Store
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
-from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
@@ -18,6 +17,8 @@ if typing.TYPE_CHECKING:
     from typing import Any, Optional, Union
 
     from maggma.core import Sort
+
+    from jobflow.schemas.job_output_schema import JobStoreDocument
 
     obj_type = Union[str, Enum, type[MSONable], list[Union[Enum, str, type[MSONable]]]]
     save_type = Optional[dict[str, obj_type]]
@@ -250,8 +251,7 @@ class JobStore(Store):
         docs = self.query(
             criteria=criteria, properties=properties, load=load, sort=sort, limit=1
         )
-        d = next(docs, None)
-        return d
+        return next(docs, None)
 
     def update(
         self,
@@ -496,7 +496,7 @@ class JobStore(Store):
         #       this could be fixed but will require more complicated logic just to
         #       catch a very unlikely event.
 
-        if isinstance(which, int) or which in ("last", "first"):
+        if isinstance(which, int) or which in {"last", "first"}:
             sort = -1 if which == "last" else 1
 
             criteria: dict[str, Any] = {"uuid": uuid}
@@ -522,28 +522,27 @@ class JobStore(Store):
             return find_and_resolve_references(
                 result["output"], self, cache=cache, on_missing=on_missing
             )
-        else:
-            results = list(
-                self.query(
-                    criteria={"uuid": uuid},
-                    properties=["output"],
-                    sort={"index": 1},
-                    load=load,
-                )
+        results = list(
+            self.query(
+                criteria={"uuid": uuid},
+                properties=["output"],
+                sort={"index": 1},
+                load=load,
             )
+        )
 
-            if len(results) == 0:
-                raise ValueError(f"UUID: {uuid} has no outputs.")
+        if len(results) == 0:
+            raise ValueError(f"UUID: {uuid} has no outputs.")
 
-            results = [r["output"] for r in results]
+        results = [r["output"] for r in results]
 
-            refs = find_and_get_references(results)
-            if any(ref.uuid == uuid for ref in refs):
-                raise RuntimeError("Reference cycle detected - aborting.")
+        refs = find_and_get_references(results)
+        if any(ref.uuid == uuid for ref in refs):
+            raise RuntimeError("Reference cycle detected - aborting.")
 
-            return find_and_resolve_references(
-                results, self, cache=cache, on_missing=on_missing
-            )
+        return find_and_resolve_references(
+            results, self, cache=cache, on_missing=on_missing
+        )
 
     @classmethod
     def from_file(cls: type[T], db_file: str | Path, **kwargs) -> T:
@@ -761,7 +760,7 @@ def _filter_blobs(
 
     new_blobs = []
     new_locations = []
-    for _store_name, store_load in load.items():
+    for store_load in load.values():
         for blob, location in zip(blob_infos, locations):
             if store_load is True:
                 new_blobs.append(blob)

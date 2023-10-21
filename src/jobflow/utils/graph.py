@@ -8,15 +8,13 @@ import networkx as nx
 from monty.dev import requires
 
 try:
-    import matplotlib
+    import matplotlib as mpl
 except ImportError:
-    matplotlib = None
+    mpl = None
 
 import typing
 
 if typing.TYPE_CHECKING:
-    pass
-
     import jobflow
 
 
@@ -54,7 +52,7 @@ def itergraph(graph: nx.DiGraph):
         yield from nx.topological_sort(subgraph)
 
 
-@requires(matplotlib, "matplotlib must be installed to plot flow graphs.")
+@requires(mpl, "matplotlib must be installed to plot flow graphs.")
 def draw_graph(
     graph: nx.DiGraph,
     layout_function: typing.Callable = None,

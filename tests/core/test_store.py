@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 import pytest
 
+if TYPE_CHECKING:
+    from jobflow.core.store import JobStore
 
-@pytest.fixture
+
+@pytest.fixture()
 def memory_store():
     from maggma.stores import MemoryStore
 
@@ -125,10 +130,12 @@ def test_data_update(memory_data_jobstore):
     # test bad store name fails
     results["data"]["store"] = "bad_store"
     memory_data_jobstore.update(results)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unrecognised additional store name"):
         memory_data_jobstore.query_one(c, load=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Unrecognised additional store name: bad_store"
+    ):
         memory_data_jobstore.update(d, save={"bad_store": "data"})
 
     d = {"index": 2, "uuid": 2, "e": 6, "x": 4, "data2": [1, 2, 3]}
@@ -228,8 +235,6 @@ def test_data_update(memory_data_jobstore):
 
 def test_nested_msonable(memory_data_jobstore):
     from monty.json import MSONable
-
-    from jobflow.core.store import JobStore
 
     class Child(MSONable):
         def __init__(self, x):
@@ -368,10 +373,10 @@ def test_get_output(memory_jobstore):
     output = memory_jobstore.get_output("1", which=3)
     assert output == 123
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="UUID: 1 has no outputs"):
         memory_jobstore.get_output(1, which="first")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="UUID: 1 has no outputs"):
         memory_jobstore.get_output(1, which="all")
 
     # test resolving reference in output of job
@@ -388,7 +393,9 @@ def test_get_output(memory_jobstore):
     # test missing reference in output of job
     r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "a"}
     memory_jobstore.update({"uuid": "8", "index": 1, "output": r})
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Could not resolve reference - a not in store or"
+    ):
         memory_jobstore.get_output("8", on_missing=OnMissing.ERROR)
 
     assert memory_jobstore.get_output("8", on_missing=OnMissing.NONE) is None
@@ -430,7 +437,7 @@ def test_from_db_file(test_data):
     assert data_store.name == "gridfs://localhost/jobflow_unittest/outputs_blobs"
 
     # test bad file
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unrecognised database file format"):
         JobStore.from_file(test_data / "db_bad.yaml")
 
 

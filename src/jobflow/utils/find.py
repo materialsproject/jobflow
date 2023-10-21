@@ -72,10 +72,8 @@ def find_key(
             if (
                 inspect.isclass(key)
                 and issubclass(key, MSONable)
-                and "@module" in obj
-                and obj["@module"] == key.__module__
-                and "@class" in obj
-                and obj["@class"] == key.__name__
+                and obj.get("@module") == key.__module__
+                and obj.get("@class") == key.__name__
             ):
                 found_items.add(path)
                 found = True
@@ -203,7 +201,7 @@ def contains_flow_or_job(obj: Any) -> bool:
         # if the argument is an flow or job then stop there
         return True
 
-    elif isinstance(obj, (float, int, str, bool)):
+    if isinstance(obj, (float, int, str, bool)):
         # argument is a primitive, we won't find an flow or job here
         return False
 

@@ -51,7 +51,8 @@ def test_apply_mod():
     assert e == {"List": 3}
 
     mod = {"_add_to_set": {"number": 3}}
-    with pytest.raises(ValueError):
+    expected_err_msg = "Keyword number does not refer to an array"
+    with pytest.raises(ValueError, match=expected_err_msg):
         apply_mod(mod, d)
 
     mod = {"_pull": {"List": 1}}
@@ -63,7 +64,7 @@ def test_apply_mod():
     assert d == {"Bye": "World", "List": [2, 3], "number": 10}
 
     mod = {"_pull": {"number": 3}}
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=expected_err_msg):
         apply_mod(mod, d)
 
     mod = {"_pull_all": {"List": [2, 3]}}
@@ -71,7 +72,7 @@ def test_apply_mod():
     assert d == {"Bye": "World", "List": [], "number": 10}
 
     mod = {"_pull_all": {"number": 3}}
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=expected_err_msg):
         apply_mod(mod, d)
 
     mod = {"_push_all": {"List": list(range(10))}}
@@ -95,7 +96,7 @@ def test_apply_mod():
     assert d == {"Bye": "World", "List": [1, 2, 3, 4, 5, 6, 7, 8], "number": 10}
 
     mod = {"_pop": {"number": -1}}
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=expected_err_msg):
         apply_mod(mod, d)
 
     d = {}
@@ -148,7 +149,7 @@ def test_apply_mod():
     assert d == {"a": {"b": {"c": 102}, "e": {"f": [201, 301]}}}
 
     mod = {"_abcd": {"a": "b"}}
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="_abcd is not a supported action"):
         apply_mod(mod, d)
 
     mod = {"_set": {"": ""}}

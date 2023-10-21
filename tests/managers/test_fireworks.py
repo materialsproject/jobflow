@@ -92,7 +92,7 @@ def test_job_to_firework(
     assert type(fw) == Firework
     assert fw.name == "func"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Both or neither of"):
         job_to_firework(job2, memory_jobstore, parents=[job.uuid])
 
 
@@ -356,7 +356,7 @@ def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in uuids if u not in {uuid1, uuid3})
     assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
@@ -565,7 +565,7 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in uuids if u not in {uuid1, uuid3})
 
     # Sort by firework id explicitly instead of assuming they are sorted
     states_dict = dict(zip(list(wf.id_fw.keys()), list(wf.fw_states.values())))
@@ -604,7 +604,7 @@ def test_replace_and_detour_flow(
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in uuids if u not in {uuid1, uuid3})
 
     assert all(s == "COMPLETED" for s in wf.fw_states.values())
 

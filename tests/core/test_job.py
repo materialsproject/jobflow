@@ -853,7 +853,7 @@ def test_output_schema(memory_jobstore):
 
     @job(output_schema=AddSchema)
     def add_schema(a, b):
-        return AddSchema(**{"result": a + b})
+        return AddSchema(result=a + b)
 
     @job(output_schema=AddSchema)
     def add_schema_dict(a, b):
@@ -870,7 +870,6 @@ def test_output_schema(memory_jobstore):
     @job(output_schema=AddSchema)
     def add_schema_no_output(a, b):
         a + b
-        return None
 
     @job(output_schema=AddSchema)
     def add_schema_response_dict(a, b):
@@ -970,7 +969,7 @@ def test_pass_manager_config():
     assert test_job2.config.manager_config == manager_config
 
     # test bad input
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unrecognised jobs format"):
         pass_manager_config(["str"], manager_config)
 
 
@@ -1218,7 +1217,7 @@ def test_update_config(memory_jobstore):
     assert not test_job.config.resolve_references
     assert test_job.config.pass_manager_config
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown JobConfig attribute: abc_xyz"):
         test_job.update_config(new_config, attributes="abc_xyz")
 
     # test dictionary config updates
@@ -1245,7 +1244,10 @@ def test_update_config(memory_jobstore):
     assert not test_job.config.resolve_references
     assert test_job.config.pass_manager_config
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Specified attributes include a key that is not present in the config",
+    ):
         test_job.update_config(new_config_dict, attributes="abc_xyz")
 
     # test applied dynamic updates
@@ -1289,8 +1291,8 @@ def test_job_magic_methods():
     assert "fake-uuid" not in job1
 
     # test __eq__
-    assert job1 == job1
-    assert job2 == job2
+    assert job1 == job1  # noqa: PLR0124
+    assert job2 == job2  # noqa: PLR0124
     assert job1 != job2
     assert job1 != job3  # Different UUIDs
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextlib
 import typing
-from collections.abc import Sequence
 from typing import Any
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
@@ -14,6 +13,8 @@ from pydantic.v1.utils import lenient_issubclass
 from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import jobflow
 
 
@@ -88,14 +89,14 @@ class OutputReference(MSONable):
         uuid: str,
         attributes: tuple[tuple[str, Any], ...] = (),
         output_schema: type[BaseModel] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.uuid = uuid
         self.attributes = attributes
         self.output_schema = output_schema
 
         for attr_type, attr in attributes:
-            if attr_type not in ("a", "i"):
+            if attr_type not in {"a", "i"}:
                 raise ValueError(
                     f"Unrecognised attribute type '{attr_type}' for attribute '{attr}'"
                 )
@@ -161,9 +162,9 @@ class OutputReference(MSONable):
                 f"Could not resolve reference - {self.uuid}{istr} not in store or "
                 f"{index=}, {cache=}"
             )
-        elif on_missing == OnMissing.NONE and index not in cache[self.uuid]:
+        if on_missing == OnMissing.NONE and index not in cache[self.uuid]:
             return None
-        elif on_missing == OnMissing.PASS and index not in cache[self.uuid]:
+        if on_missing == OnMissing.PASS and index not in cache[self.uuid]:
             return self
 
         data = cache[self.uuid][index]
@@ -200,12 +201,11 @@ class OutputReference(MSONable):
         if inplace:
             self.uuid = uuid
             return self
-        else:
-            from copy import deepcopy
+        from copy import deepcopy
 
-            new_reference = deepcopy(self)
-            new_reference.uuid = uuid
-            return new_reference
+        new_reference = deepcopy(self)
+        new_reference.uuid = uuid
+        return new_reference
 
     def __getitem__(self, item) -> OutputReference:
         """Index the reference."""
@@ -263,7 +263,7 @@ class OutputReference(MSONable):
         """Return a hash of the reference."""
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Test for equality against another reference."""
         if isinstance(other, OutputReference):
             return (
@@ -285,7 +285,7 @@ class OutputReference(MSONable):
         """Serialize the reference as a dict."""
         schema = self.output_schema
         schema_dict = MontyEncoder().default(schema) if schema is not None else None
-        data = {
+        return {
             "@module": self.__class__.__module__,
             "@class": type(self).__name__,
             "@version": None,
@@ -293,7 +293,6 @@ class OutputReference(MSONable):
             "attributes": self.attributes,
             "output_schema": schema_dict,
         }
-        return data
 
 
 def resolve_references(
@@ -376,7 +375,7 @@ def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
         # if the argument is a reference then stop there
         return (arg,)
 
-    elif isinstance(arg, (float, int, str, bool)):
+    if isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
         return ()
 
@@ -432,7 +431,7 @@ def find_and_resolve_references(
         # if the argument is a reference then stop there
         return arg.resolve(store, cache=cache, on_missing=on_missing)
 
-    elif isinstance(arg, (float, int, str, bool)):
+    if isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
         return arg
 
