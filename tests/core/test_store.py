@@ -234,7 +234,6 @@ def test_data_update(memory_data_jobstore):
 def test_nested_msonable(memory_data_jobstore):
     from monty.json import MSONable
 
-
     class Child(MSONable):
         def __init__(self, x):
             self.x = x

@@ -151,10 +151,26 @@ select = [
     "W",      # pycodestyle warning
     "YTT",    # flake8-2020
 ]
-ignore = ["B028", "PLW0603", "RUF013"]
+# PLR0911: too-many-return-statements
+# PLR0912: too-many-branches
+# PLR0913: too-many-arguments
+# PLR0915: too-many-statements
+ignore = [
+    "B028",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLW0603",
+    "RUF013",
+]
 pydocstyle.convention = "numpy"
 isort.known-first-party = ["jobflow"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
-"**/tests/*" = ["B018", "D"]
+# PLR2004: magic-value-comparison
+# PT004: pytest-missing-fixture-name-underscore
+# PLR0915: too-many-statements
+# PT011: pytest-raises-too-broad TODO fix these, should not be ignored
+"**/tests/*" = ["B018", "D", "PLR0915", "PLR2004", "PT004", "PT011"]
