@@ -92,7 +92,7 @@ def test_job_to_firework(
     assert type(fw) == Firework
     assert fw.name == "func"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Both or neither of"):
         job_to_firework(job2, memory_jobstore, parents=[job.uuid])
 
 

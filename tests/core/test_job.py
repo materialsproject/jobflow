@@ -969,7 +969,7 @@ def test_pass_manager_config():
     assert test_job2.config.manager_config == manager_config
 
     # test bad input
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unrecognised jobs format"):
         pass_manager_config(["str"], manager_config)
 
 
@@ -1217,7 +1217,7 @@ def test_update_config(memory_jobstore):
     assert not test_job.config.resolve_references
     assert test_job.config.pass_manager_config
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown JobConfig attribute: abc_xyz"):
         test_job.update_config(new_config, attributes="abc_xyz")
 
     # test dictionary config updates
@@ -1244,7 +1244,10 @@ def test_update_config(memory_jobstore):
     assert not test_job.config.resolve_references
     assert test_job.config.pass_manager_config
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Specified attributes include a key that is not present in the config",
+    ):
         test_job.update_config(new_config_dict, attributes="abc_xyz")
 
     # test applied dynamic updates

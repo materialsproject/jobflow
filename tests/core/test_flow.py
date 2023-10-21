@@ -108,7 +108,9 @@ def test_flow_of_jobs_init():
 
     # # test all jobs included needed to generate outputs
     add_job = get_test_job()
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="jobs array does not contain all jobs needed for flow output"
+    ):
         Flow([], output=add_job.output)
 
     # test job given rather than outputs
@@ -124,12 +126,14 @@ def test_flow_of_jobs_init():
     # test job already belongs to another flow
     add_job = get_test_job()
     Flow([add_job])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="already belongs to another flow"):
         Flow([add_job])
 
     # test that two of the same job cannot be used in the same flow
     add_job = get_test_job()
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="jobs array contains multiple jobs/flows with the same uuid"
+    ):
         Flow([add_job, add_job])
 
 
@@ -138,19 +142,19 @@ def test_flow_of_flows_init():
 
     # test single flow
     add_job = get_test_job()
-    subflow = Flow([add_job])
-    flow = Flow([subflow], name="add")
+    sub_flow = Flow([add_job])
+    flow = Flow([sub_flow], name="add")
     assert flow.name == "add"
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
-    assert flow.all_uuids == (add_job.uuid, subflow.uuid)
+    assert flow.all_uuids == (add_job.uuid, sub_flow.uuid)
     assert flow.jobs[0].host == flow.uuid
 
     # test single flow no list
     add_job = get_test_job()
-    subflow = Flow(add_job)
-    flow = Flow(subflow, name="add")
+    sub_flow = Flow(add_job)
+    flow = Flow(sub_flow, name="add")
     assert flow.name == "add"
     assert flow.host is None
     assert flow.output is None
@@ -177,8 +181,8 @@ def test_flow_of_flows_init():
 
     # test single job and outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    flow = Flow([subflow], output=subflow.output)
+    sub_flow = Flow([add_job], output=add_job.output)
+    flow = Flow([sub_flow], output=sub_flow.output)
     assert flow.output == add_job.output
 
     # test multi job and list multi outputs
@@ -192,34 +196,34 @@ def test_flow_of_flows_init():
 
     # test all jobflow included needed to generate outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
+    sub_flow = Flow([add_job], output=add_job.output)
     with pytest.raises(ValueError):
-        Flow([], output=subflow.output)
+        Flow([], output=sub_flow.output)
 
     # test flow given rather than outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
+    sub_flow = Flow([add_job], output=add_job.output)
     with pytest.warns(UserWarning):
-        Flow([subflow], output=subflow)
+        Flow([sub_flow], output=sub_flow)
 
     # test complex object containing job given rather than outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
+    sub_flow = Flow([add_job], output=add_job.output)
     with pytest.warns(UserWarning):
-        Flow([subflow], output={1: [[{"a": subflow}]]})
+        Flow([sub_flow], output={1: [[{"a": sub_flow}]]})
 
     # test flow already belongs to another flow
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    Flow([subflow])
+    sub_flow = Flow([add_job], output=add_job.output)
+    Flow([sub_flow])
     with pytest.raises(ValueError):
-        Flow([subflow])
+        Flow([sub_flow])
 
     # test that two of the same flow cannot be used in the same flow
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
+    sub_flow = Flow([add_job], output=add_job.output)
     with pytest.raises(ValueError):
-        Flow([subflow, subflow])
+        Flow([sub_flow, sub_flow])
 
 
 def test_flow_job_mixed():

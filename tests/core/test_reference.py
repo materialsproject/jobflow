@@ -11,7 +11,9 @@ def test_access():
     assert ref.attributes == ()
 
     # test bad init
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Unrecognised attribute type 'x' for attribute '1'"
+    ):
         OutputReference("123", (("x", 1),))
 
     new_ref = ref.a
@@ -224,7 +226,7 @@ def test_resolve(memory_jobstore):
     assert ref.resolve(memory_jobstore, on_missing=OnMissing.NONE) is None
     assert ref.resolve(memory_jobstore, on_missing=OnMissing.PASS) == ref
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         ref.resolve(memory_jobstore, on_missing=OnMissing.ERROR)
 
     # resolve using store
@@ -308,7 +310,7 @@ def test_resolve_references(memory_jobstore):
     assert output[ref2] == ref2
 
     ref2 = OutputReference("12345")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         resolve_references([ref1, ref2], memory_jobstore, on_missing=OnMissing.ERROR)
 
     # resolve using store and empty cache
@@ -425,7 +427,7 @@ def test_find_and_resolve_references(memory_jobstore):
     )
     assert output == [101, None]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         find_and_resolve_references(
             [ref1, ref3], memory_jobstore, on_missing=OnMissing.ERROR
         )
@@ -461,7 +463,7 @@ def test_reference_in_output(memory_jobstore):
     memory_jobstore.update(task_data)
     assert ref1.resolve(memory_jobstore, on_missing=OnMissing.NONE) is None
     assert ref1.resolve(memory_jobstore, on_missing=OnMissing.PASS) == ref2
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         ref1.resolve(memory_jobstore, on_missing=OnMissing.ERROR)
 
 
