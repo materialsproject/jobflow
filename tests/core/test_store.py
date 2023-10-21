@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 import pytest
+
+if TYPE_CHECKING:
+    from jobflow.core.store import JobStore
 
 
 @pytest.fixture()
@@ -229,7 +234,6 @@ def test_data_update(memory_data_jobstore):
 def test_nested_msonable(memory_data_jobstore):
     from monty.json import MSONable
 
-    from jobflow.core.store import JobStore
 
     class Child(MSONable):
         def __init__(self, x):

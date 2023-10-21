@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextlib
 import typing
-from collections.abc import Sequence
 from typing import Any
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
@@ -14,6 +13,8 @@ from pydantic.v1.utils import lenient_issubclass
 from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import jobflow
 
 

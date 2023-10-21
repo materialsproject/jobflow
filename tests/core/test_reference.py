@@ -162,7 +162,7 @@ def test_schema():
         s: str
         nested: InnerSchema
         nested_opt: InnerSchema = None
-        nested_u: Union[InnerSchema, dict]
+        nested_u: Union[InnerSchema, dict]  # noqa: FA100
         nested_l: list[InnerSchema]
         nested_d: dict[str, InnerSchema]
 
@@ -473,6 +473,6 @@ def test_not_iterable():
     with pytest.raises(TypeError):
         next(ref)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # noqa: PT012
         for _ in ref:
             pass

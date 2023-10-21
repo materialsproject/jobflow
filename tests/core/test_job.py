@@ -1288,8 +1288,8 @@ def test_job_magic_methods():
     assert "fake-uuid" not in job1
 
     # test __eq__
-    assert job1 == job1
-    assert job2 == job2
+    assert job1 == job1  # noqa: PLR0124
+    assert job2 == job2  # noqa: PLR0124
     assert job1 != job2
     assert job1 != job3  # Different UUIDs
 

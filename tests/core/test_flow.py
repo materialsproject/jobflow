@@ -900,7 +900,7 @@ def test_flow_magic_methods():
     assert job5 not in flow4
 
     # test __eq__ and __hash__
-    assert flow1 == flow1
+    assert flow1 == flow1  # noqa: PLR0124
     assert flow1 != flow2
     assert hash(flow1) != hash(flow2)
 

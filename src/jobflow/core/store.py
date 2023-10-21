@@ -8,7 +8,6 @@ from maggma.core import Store
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
-from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
@@ -18,6 +17,8 @@ if typing.TYPE_CHECKING:
     from typing import Any, Optional, Union
 
     from maggma.core import Sort
+
+    from jobflow.schemas.job_output_schema import JobStoreDocument
 
     obj_type = Union[str, Enum, type[MSONable], list[Union[Enum, str, type[MSONable]]]]
     save_type = Optional[dict[str, obj_type]]
@@ -759,7 +760,7 @@ def _filter_blobs(
 
     new_blobs = []
     new_locations = []
-    for _store_name, store_load in load.items():
+    for store_load in load.values():
         for blob, location in zip(blob_infos, locations):
             if store_load is True:
                 new_blobs.append(blob)
