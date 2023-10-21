@@ -16,24 +16,19 @@ def test_itergraph():
     # test branched
     graph = DiGraph([("a", "b"), ("b", "c"), ("a", "c"), ("d", "b")])
     result = list(itergraph(graph))
-    assert result == ["a", "d", "b", "c"] or result == ["d", "a", "b", "c"]
+    assert result in (["a", "d", "b", "c"], ["d", "a", "b", "c"])
 
     # test non-connected
     graph = DiGraph([("a", "b"), ("c", "d")])
     with pytest.warns(UserWarning):
         result = list(itergraph(graph))
-    assert (
-        result == ["a", "b", "c", "d"]
-        or result == ["c", "d", "a", "b"]
-        or result == ["a", "c", "b", "d"]
-        or result == ["a", "c", "d", "b"]
-        or result == ["c", "a", "b", "d"]
-        or result == ["c", "a", "d", "b"]
-    )
+    assert {*result} == {"a", "b", "c", "d"}
 
     # test non DAG
     graph = DiGraph([("a", "b"), ("b", "a")])
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Graph is not acyclic, cannot determine dependency order"
+    ):
         list(itergraph(graph))
 
 
