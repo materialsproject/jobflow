@@ -62,18 +62,18 @@ def test_contains_job_or_flow():
     job = Job(str)
     flow = Flow([])
 
-    assert contains_flow_or_job(True) is False
-    assert contains_flow_or_job(1) is False
-    assert contains_flow_or_job("abc") is False
-    assert contains_flow_or_job(job) is True
-    assert contains_flow_or_job(flow) is True
-    assert contains_flow_or_job([flow]) is True
-    assert contains_flow_or_job([[flow]]) is True
-    assert contains_flow_or_job({"a": flow}) is True
-    assert contains_flow_or_job({"a": [flow]}) is True
-    assert contains_flow_or_job(job) is True
-    assert contains_flow_or_job([job]) is True
-    assert contains_flow_or_job([[job]]) is True
-    assert contains_flow_or_job({"a": job}) is True
-    assert contains_flow_or_job({"a": [job]}) is True
-    assert contains_flow_or_job({"a": [job], "b": datetime.now()}) is True
+    assert contains_flow_or_job(obj=True) is False
+    assert contains_flow_or_job(obj=1) is False
+    assert contains_flow_or_job(obj="abc") is False
+    assert contains_flow_or_job(obj=job) is True
+    assert contains_flow_or_job(obj=flow) is True
+    assert contains_flow_or_job(obj=[flow]) is True
+    assert contains_flow_or_job(obj=[[flow]]) is True
+    assert contains_flow_or_job(obj={"a": flow}) is True
+    assert contains_flow_or_job(obj={"a": [flow]}) is True
+    assert contains_flow_or_job(obj=job) is True
+    assert contains_flow_or_job(obj=[job]) is True
+    assert contains_flow_or_job(obj=[[job]]) is True
+    assert contains_flow_or_job(obj={"a": job}) is True
+    assert contains_flow_or_job(obj={"a": [job]}) is True
+    assert contains_flow_or_job(obj={"a": [job], "b": datetime.now()}) is True

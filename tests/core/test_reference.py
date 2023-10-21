@@ -371,7 +371,7 @@ def test_find_and_resolve_references(memory_jobstore):
     memory_jobstore.update({"uuid": "1234", "index": 1, "output": {"a": "xyz", "b": 5}})
 
     # test no reference
-    assert find_and_resolve_references(True, memory_jobstore) is True
+    assert find_and_resolve_references(arg=True, store=memory_jobstore) is True
     assert find_and_resolve_references("xyz", memory_jobstore) == "xyz"
     assert find_and_resolve_references([101], memory_jobstore) == [101]
 
