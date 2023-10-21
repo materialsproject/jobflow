@@ -394,7 +394,7 @@ def test_get_output(memory_jobstore):
     r = {"@module": "jobflow.core.reference", "@class": "OutputReference", "uuid": "a"}
     memory_jobstore.update({"uuid": "8", "index": 1, "output": r})
     with pytest.raises(
-        ValueError, match="Could not resolve reference - a not in store or cache"
+        ValueError, match="Could not resolve reference - a not in store or"
     ):
         memory_jobstore.get_output("8", on_missing=OnMissing.ERROR)
 

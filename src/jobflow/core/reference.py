@@ -96,7 +96,7 @@ class OutputReference(MSONable):
         self.output_schema = output_schema
 
         for attr_type, attr in attributes:
-            if attr_type not in ("a", "i"):
+            if attr_type not in {"a", "i"}:
                 raise ValueError(
                     f"Unrecognised attribute type '{attr_type}' for attribute '{attr}'"
                 )

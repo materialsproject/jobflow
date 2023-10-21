@@ -496,7 +496,7 @@ class JobStore(Store):
         #       this could be fixed but will require more complicated logic just to
         #       catch a very unlikely event.
 
-        if isinstance(which, int) or which in ("last", "first"):
+        if isinstance(which, int) or which in {"last", "first"}:
             sort = -1 if which == "last" else 1
 
             criteria: dict[str, Any] = {"uuid": uuid}

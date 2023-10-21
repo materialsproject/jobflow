@@ -886,7 +886,7 @@ def test_flow_magic_methods():
 
     # test __iter__
     for job in flow2:
-        assert job in [job4, job3]
+        assert job in {job4, job3}
 
     # test __contains__
     assert job1 in flow1

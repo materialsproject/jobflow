@@ -72,10 +72,8 @@ def find_key(
             if (
                 inspect.isclass(key)
                 and issubclass(key, MSONable)
-                and "@module" in obj
-                and obj["@module"] == key.__module__
-                and "@class" in obj
-                and obj["@class"] == key.__name__
+                and obj.get("@module") == key.__module__
+                and obj.get("@class") == key.__name__
             ):
                 found_items.add(path)
                 found = True
