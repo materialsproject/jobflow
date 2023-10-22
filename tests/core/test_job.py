@@ -59,7 +59,9 @@ def test_job_init():
     assert test_job._kwargs == {"data": "output", "graphs": "graph"}
 
     # check giving True for multiple stores fails
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Cannot select True for multiple additional stores"
+    ):
         Job(function=add, function_args=(1,), data=True, graphs=True)
 
     # test changing job name (test needed due to setattr override
@@ -260,7 +262,9 @@ def test_job_config(memory_jobstore):
     ref = OutputReference("xyz")
     config = JobConfig(on_missing_references=OnMissing.ERROR)
     test_job = Job(return_arg, function_args=(ref,), config=config)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Could not resolve reference - xyz not in store"
+    ):
         test_job.run(memory_jobstore)
 
     config = JobConfig(on_missing_references=OnMissing.NONE)
@@ -535,7 +539,10 @@ def test_response():
     assert response_original == response_processed
 
     # test Response and another output
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Response cannot be returned in combination with other outputs",
+    ):
         Response.from_job_returns([response_original, 5])
 
     # test schema
@@ -909,15 +916,20 @@ def test_output_schema(memory_jobstore):
     assert response.replace.jobs[-1].output_schema.__name__ == "AddSchema"
 
     test_job = add_schema_bad(5, 6)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Expected output to be AddSchema or dict but got output type of int",
+    ):
         test_job.run(memory_jobstore)
 
     test_job = add_schema_wrong_key(5, 6)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="1 validation error for AddSchema\n"):
         test_job.run(memory_jobstore)
 
     test_job = add_schema_no_output(5, 6)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Expected output of type AddSchema but got no output"
+    ):
         test_job.run(memory_jobstore)
 
 

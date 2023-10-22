@@ -197,7 +197,7 @@ def test_flow_of_flows_init():
     # test all jobflow included needed to generate outputs
     add_job = get_test_job()
     sub_flow = Flow([add_job], output=add_job.output)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array does not contain all jobs"):
         Flow([], output=sub_flow.output)
 
     # test flow given rather than outputs
@@ -216,13 +216,13 @@ def test_flow_of_flows_init():
     add_job = get_test_job()
     sub_flow = Flow([add_job], output=add_job.output)
     Flow([sub_flow])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="already belongs to another flow"):
         Flow([sub_flow])
 
     # test that two of the same flow cannot be used in the same flow
     add_job = get_test_job()
     sub_flow = Flow([add_job], output=add_job.output)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
         Flow([sub_flow, sub_flow])
 
 
@@ -252,7 +252,7 @@ def test_flow_job_mixed():
     add_job = get_test_job()
     add_job2 = get_test_job()
     subflow = Flow([add_job2], output=add_job2.output)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array does not contain all jobs"):
         Flow([add_job], output=[add_job.output, subflow.output])
 
 
@@ -456,7 +456,7 @@ def test_iterflow():
     add_job2 = get_test_job()
     add_job1.function_args = (2, add_job2.output)
     flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Job connectivity contains cycles"):
         list(flow.iterflow())
 
     # test with external reference
@@ -615,7 +615,10 @@ def test_get_flow():
     # test all jobs included for graph to work
     job1 = Job(add, function_args=(1, 2))
     job2 = Job(add, function_args=(job1.output.value, 2))
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="The following jobs were not found in the jobs array and are needed to ",
+    ):
         get_flow(job2, allow_external_references=False)
 
     job1 = Job(add, function_args=(1, 2))
@@ -683,18 +686,18 @@ def test_add_jobs():
     assert len(flow1.jobs) == 2
     assert add_job2.hosts == [flow1.uuid]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
         flow1.add_jobs(add_job2)
 
     add_job3 = get_test_job()
     Flow(add_job3)
 
     # job belongs to another Flow
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="already belongs to another flow"):
         flow1.add_jobs(add_job3)
 
     add_job4 = get_test_job()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
         flow1.add_jobs([add_job4, add_job4])
 
     # nested flows
@@ -709,7 +712,9 @@ def test_add_jobs():
     flow1 = Flow([get_test_flow()])
     flow2 = Flow([flow1])
     flow3 = Flow([flow2])
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="circular dependency: Flow .+ contains the current Flow"
+    ):
         flow1.add_jobs(flow3)
 
     # test passing single job to @jobs setter
@@ -730,9 +735,12 @@ def test_remove_jobs():
     assert len(flow1.jobs) == 1
     assert flow1.jobs[0].uuid is add_job2.uuid
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Only indices between 0 and the number of"):
         flow1.remove_jobs(-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Only indices between 0 and the number of the jobs are accepted",
+    ):
         flow1.remove_jobs(10)
 
     # test removing two jobs
@@ -750,7 +758,9 @@ def test_remove_jobs():
     add_job2 = get_test_job()
     flow2 = Flow([add_job1, add_job2], output=add_job2.output)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Removed Jobs/Flows are referenced in the output of the Flow"
+    ):
         flow2.remove_jobs(1)
 
     # test removing a flow
@@ -771,7 +781,9 @@ def test_remove_jobs():
     flow_inner = Flow([add_job1, add_job2])
     flow = Flow([flow_inner, add_job3], output=flow_inner.jobs[0].output)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Removed Jobs/Flows are referenced in the output of the Flow"
+    ):
         flow.remove_jobs(0)
 
     # test removing a job in a flow containing another flow
@@ -797,7 +809,9 @@ def test_set_output():
     flow.output = add_job1.output
     assert flow.output.uuid == add_job1.uuid
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="jobs array does not contain all jobs needed for flow output"
+    ):
         flow.output = [add_job3.output]
 
 
