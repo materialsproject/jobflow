@@ -186,25 +186,26 @@ def test_schema():
     assert new_ref.output_schema is None
 
     with pytest.raises(AttributeError):
-        ref.a.uuid
+        _ = ref.a.uuid
 
     with pytest.raises(AttributeError):
-        ref["a"].uuid
+        _ = ref["a"].uuid
 
     with pytest.raises(AttributeError):
-        ref[1].uuid
+        _ = ref[1].uuid
 
     # check valid nested schemas
     assert ref.nested.s.uuid == "123"
     with pytest.raises(AttributeError):
-        ref.nested.m.uuid
+        _ = ref.nested.m.uuid
+
     assert ref.nested.nested.n.uuid == "123"
     with pytest.raises(AttributeError):
-        ref.nested.nested.m.uuid
+        _ = ref.nested.nested.m.uuid
 
     assert ref.nested.nested_opt.n.uuid == "123"
     with pytest.raises(AttributeError):
-        ref.nested.nested_opt.m.uuid
+        _ = ref.nested.nested_opt.m.uuid
 
     # Union, List and Dict are currently not recognized by their inner type
     # but check that there is no problem with them
