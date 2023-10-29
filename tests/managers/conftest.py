@@ -46,7 +46,7 @@ def nested_flow(connected_flow):
     def _gen():
         flow1 = connected_flow()
         flow2 = connected_flow()
-        flow2.jobs[0].function_args = (flow1.jobs[1].output,)
+        flow2[0].function_args = (flow1[1].output,)
         return Flow([flow1, flow2], flow2.output)
 
     return _gen
