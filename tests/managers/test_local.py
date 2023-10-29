@@ -29,7 +29,7 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     from jobflow import run_locally
 
     flow = simple_flow()
-    uuid = flow.jobs[0].uuid
+    uuid = flow[0].uuid
 
     # run without log
     run_locally(flow, store=memory_jobstore, log=False)
@@ -67,8 +67,8 @@ def test_connected_flow(memory_jobstore, clean_dir, connected_flow):
     from jobflow import run_locally
 
     flow = connected_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -90,10 +90,10 @@ def test_nested_flow(memory_jobstore, clean_dir, nested_flow):
     from jobflow import run_locally
 
     flow = nested_flow()
-    uuid1 = flow.jobs[0].jobs[0].uuid
-    uuid2 = flow.jobs[0].jobs[1].uuid
-    uuid3 = flow.jobs[1].jobs[0].uuid
-    uuid4 = flow.jobs[1].jobs[1].uuid
+    uuid1 = flow[0][0].uuid
+    uuid2 = flow[0][1].uuid
+    uuid3 = flow[1][0].uuid
+    uuid4 = flow[1][1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -121,7 +121,7 @@ def test_addition_flow(memory_jobstore, clean_dir, addition_flow):
     from jobflow import run_locally
 
     flow = addition_flow()
-    uuid1 = flow.jobs[0].uuid
+    uuid1 = flow[0].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -145,8 +145,8 @@ def test_detour_flow(memory_jobstore, clean_dir, detour_flow):
     from jobflow import run_locally
 
     flow = detour_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -176,8 +176,8 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow):
     from jobflow import run_locally
 
     flow = replace_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -207,8 +207,8 @@ def test_replace_flow_nested(memory_jobstore, clean_dir, replace_flow_nested):
     from jobflow import run_locally
 
     flow = replace_flow_nested()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -238,7 +238,7 @@ def test_stop_jobflow_flow(memory_jobstore, clean_dir, stop_jobflow_flow):
     from jobflow import run_locally
 
     flow = stop_jobflow_flow()
-    uuid1 = flow.jobs[0].uuid
+    uuid1 = flow[0].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -280,9 +280,9 @@ def test_stop_children_flow(memory_jobstore, clean_dir, stop_children_flow):
     from jobflow import run_locally
 
     flow = stop_children_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
-    uuid3 = flow.jobs[2].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
+    uuid3 = flow[2].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -393,8 +393,8 @@ def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
     from jobflow import run_locally
 
     flow = detour_stop_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)

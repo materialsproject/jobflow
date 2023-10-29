@@ -149,7 +149,7 @@ def test_flow_of_flows_init():
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
     assert flow.all_uuids == (add_job.uuid, sub_flow.uuid)
-    assert flow.jobs[0].host == flow.uuid
+    assert flow[0].host == flow.uuid
 
     # test single flow no list
     add_job = get_test_job()
@@ -159,7 +159,7 @@ def test_flow_of_flows_init():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
-    assert flow.jobs[0].host == flow.uuid
+    assert flow[0].host == flow.uuid
 
     # test multiple flows
     add_job1 = get_test_job()
@@ -176,8 +176,8 @@ def test_flow_of_flows_init():
         add_job2.uuid,
         subflow2.uuid,
     )
-    assert flow.jobs[0].host == flow.uuid
-    assert flow.jobs[1].host == flow.uuid
+    assert flow[0].host == flow.uuid
+    assert flow[1].host == flow.uuid
 
     # test single job and outputs
     add_job = get_test_job()
@@ -237,8 +237,8 @@ def test_flow_job_mixed():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid, add_job2.uuid)
-    assert flow.jobs[0].host == flow.uuid
-    assert flow.jobs[1].host == flow.uuid
+    assert flow[0].host == flow.uuid
+    assert flow[1].host == flow.uuid
 
     # test with list multi outputs
     add_job = get_test_job()
@@ -496,41 +496,41 @@ def test_serialization():
     encoded_flow = json.loads(MontyEncoder().encode(flow_host))
     decoded_flow = MontyDecoder().process_decoded(encoded_flow)
 
-    assert decoded_flow.jobs[0].host == host_uuid
+    assert decoded_flow[0].host == host_uuid
 
 
 def test_update_kwargs():
     # test no filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5})
-    assert flow.jobs[0].function_kwargs["b"] == 5
-    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow[0].function_kwargs["b"] == 5
+    assert flow[1].function_kwargs["b"] == 5
 
     # test name filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, name_filter="div")
-    assert "b" not in flow.jobs[0].function_kwargs
-    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert "b" not in flow[0].function_kwargs
+    assert flow[1].function_kwargs["b"] == 5
 
     # test function filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, function_filter=div)
-    assert "b" not in flow.jobs[0].function_kwargs
-    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert "b" not in flow[0].function_kwargs
+    assert flow[1].function_kwargs["b"] == 5
 
     # test dict mod
     flow = get_test_flow()
     flow.update_kwargs({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
-    assert "b" not in flow.jobs[0].function_kwargs
-    assert flow.jobs[1].function_kwargs["b"] == 8
+    assert "b" not in flow[0].function_kwargs
+    assert flow[1].function_kwargs["b"] == 8
 
 
 def test_update_maker_kwargs():
     # test no filter
     flow = get_maker_flow()
     flow.update_maker_kwargs({"b": 10})
-    assert flow.jobs[0].maker.b == 10
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 10
+    assert flow[1].maker.b == 10
 
     # test bad kwarg
     flow = get_maker_flow()
@@ -540,27 +540,27 @@ def test_update_maker_kwargs():
     # test name filter
     flow = get_maker_flow()
     flow.update_maker_kwargs({"b": 10}, name_filter="div")
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 10
 
     # test class filter
     flow, (_, DivMaker) = get_maker_flow(return_makers=True)
     flow.update_maker_kwargs({"b": 10}, class_filter=DivMaker)
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 10
 
     # test class filter with instance
     flow, (_, DivMaker) = get_maker_flow(return_makers=True)
     div_maker = DivMaker()
     flow.update_maker_kwargs({"b": 10}, class_filter=div_maker)
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 10
 
     # test dict mod
     flow = get_maker_flow()
     flow.update_maker_kwargs({"_inc": {"b": 10}}, name_filter="div", dict_mod=True)
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 14
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 14
 
 
 def test_append_name():
@@ -570,13 +570,13 @@ def test_append_name():
     flow = get_test_flow()
     flow.append_name(" test")
     assert flow.name == "Flow test"
-    assert flow.jobs[0].name == "add test"
+    assert flow[0].name == "add test"
 
     # test prepend
     flow = get_test_flow()
     flow.append_name("test ", prepend=True)
     assert flow.name == "test Flow"
-    assert flow.jobs[0].name == "test add"
+    assert flow[0].name == "test add"
 
     # test empty Flow
     flow = Flow([], name="abc")
@@ -594,16 +594,16 @@ def test_get_flow():
     assert isinstance(job, jobflow.Job)
     flow = get_flow(job)
     assert isinstance(flow, jobflow.Flow)
-    assert flow.jobs[0] is job
+    assert flow[0] is job
 
     # test get_flow method with a list of jobs
     job1 = get_test_job()
     job2 = get_test_job()
     flow = get_flow([job1, job2])
     assert isinstance(flow, jobflow.Flow)
-    assert len(flow.jobs) == 2
-    assert flow.jobs[0] is job1
-    assert flow.jobs[1] is job2
+    assert len(flow) == 2
+    assert flow[0] is job1
+    assert flow[1] is job2
 
     # test get_flow method with a flow
     flw = get_test_flow()
@@ -646,17 +646,17 @@ def test_add_hosts_uuids():
     # test appending specific uuid
     flow = Flow([get_test_job()])
     flow.add_hosts_uuids("abc")
-    assert flow.jobs[0].hosts == [flow.uuid, "abc"]
+    assert flow[0].hosts == [flow.uuid, "abc"]
 
     # test appending several uuid
     flow = Flow([get_test_job()])
     flow.add_hosts_uuids(["abc", "xyz"])
-    assert flow.jobs[0].hosts == [flow.uuid, "abc", "xyz"]
+    assert flow[0].hosts == [flow.uuid, "abc", "xyz"]
 
     # test prepending specific uuid
     flow = Flow([get_test_job()])
     flow.add_hosts_uuids("abc", prepend=True)
-    assert flow.jobs[0].hosts == ["abc", flow.uuid]
+    assert flow[0].hosts == ["abc", flow.uuid]
 
 
 def test_hosts():
@@ -683,7 +683,7 @@ def test_add_jobs():
     add_job2 = get_test_job()
     flow1 = Flow(add_job1)
     flow1.add_jobs(add_job2)
-    assert len(flow1.jobs) == 2
+    assert len(flow1) == 2
     assert add_job2.hosts == [flow1.uuid]
 
     with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
@@ -719,8 +719,8 @@ def test_add_jobs():
 
     # test passing single job to @jobs setter
     flow1.jobs = add_job1
-    assert len(flow1.jobs) == 1
-    assert flow1.jobs[0] is add_job1
+    assert len(flow1) == 1
+    assert flow1[0] is add_job1
 
 
 def test_remove_jobs():
@@ -732,8 +732,8 @@ def test_remove_jobs():
     flow1 = Flow([add_job1, add_job2])
 
     flow1.remove_jobs(0)
-    assert len(flow1.jobs) == 1
-    assert flow1.jobs[0].uuid is add_job2.uuid
+    assert len(flow1) == 1
+    assert flow1[0].uuid is add_job2.uuid
 
     with pytest.raises(ValueError, match="Only indices between 0 and the number of"):
         flow1.remove_jobs(-1)
@@ -750,8 +750,8 @@ def test_remove_jobs():
     flow = Flow([add_job1, add_job2, add_job3])
 
     flow.remove_jobs([0, 2])
-    assert len(flow.jobs) == 1
-    assert flow.jobs[0].uuid is add_job2.uuid
+    assert len(flow) == 1
+    assert flow[0].uuid is add_job2.uuid
 
     # test removing job which is used in output
     add_job1 = get_test_job()
@@ -771,15 +771,15 @@ def test_remove_jobs():
     flow = Flow([flow_inner, add_job3])
 
     flow.remove_jobs(0)
-    assert len(flow.jobs) == 1
-    assert flow.jobs[0].uuid is add_job3.uuid
+    assert len(flow) == 1
+    assert flow[0].uuid is add_job3.uuid
 
     # test removing a flow which is used in output
     add_job1 = get_test_job()
     add_job2 = get_test_job()
     add_job3 = get_test_job()
     flow_inner = Flow([add_job1, add_job2])
-    flow = Flow([flow_inner, add_job3], output=flow_inner.jobs[0].output)
+    flow = Flow([flow_inner, add_job3], output=flow_inner[0].output)
 
     with pytest.raises(
         ValueError, match="Removed Jobs/Flows are referenced in the output of the Flow"
@@ -794,8 +794,8 @@ def test_remove_jobs():
     flow = Flow([flow_inner, add_job3])
 
     flow.remove_jobs(1)
-    assert len(flow.jobs) == 1
-    assert flow.jobs[0].uuid is flow_inner.uuid
+    assert len(flow) == 1
+    assert flow[0].uuid is flow_inner.uuid
 
 
 def test_set_output():
@@ -819,26 +819,26 @@ def test_update_metadata():
     # test no filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5})
-    assert flow.jobs[0].metadata["b"] == 5
-    assert flow.jobs[1].metadata["b"] == 5
+    assert flow[0].metadata["b"] == 5
+    assert flow[1].metadata["b"] == 5
 
     # test name filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5}, name_filter="div")
-    assert "b" not in flow.jobs[0].metadata
-    assert flow.jobs[1].metadata["b"] == 5
+    assert "b" not in flow[0].metadata
+    assert flow[1].metadata["b"] == 5
 
     # test function filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5}, function_filter=div)
-    assert "b" not in flow.jobs[0].metadata
-    assert flow.jobs[1].metadata["b"] == 5
+    assert "b" not in flow[0].metadata
+    assert flow[1].metadata["b"] == 5
 
     # test dict mod
     flow = get_test_flow()
     flow.update_metadata({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
-    assert "b" not in flow.jobs[0].metadata
-    assert flow.jobs[1].metadata["b"] == 8
+    assert "b" not in flow[0].metadata
+    assert flow[1].metadata["b"] == 8
 
 
 def test_update_config():
@@ -853,28 +853,28 @@ def test_update_config():
     # test no filter
     flow = get_test_flow()
     flow.update_config(new_config)
-    assert flow.jobs[0].config == new_config
-    assert flow.jobs[1].config == new_config
+    assert flow[0].config == new_config
+    assert flow[1].config == new_config
 
     # test name filter
     flow = get_test_flow()
     flow.update_config(new_config, name_filter="div")
-    assert flow.jobs[0].config != new_config
-    assert flow.jobs[1].config == new_config
+    assert flow[0].config != new_config
+    assert flow[1].config == new_config
 
     # test function filter
     flow = get_test_flow()
     flow.update_config(new_config, function_filter=div)
-    assert flow.jobs[0].config != new_config
-    assert flow.jobs[1].config == new_config
+    assert flow[0].config != new_config
+    assert flow[1].config == new_config
 
     # test attributes
     flow = get_test_flow()
     flow.update_config(new_config, function_filter=div, attributes=["manager_config"])
-    assert flow.jobs[0].config.manager_config == {}
-    assert flow.jobs[0].config.resolve_references
-    assert flow.jobs[1].config.manager_config == {"a": "b"}
-    assert flow.jobs[1].config.resolve_references
+    assert flow[0].config.manager_config == {}
+    assert flow[0].config.resolve_references
+    assert flow[1].config.manager_config == {"a": "b"}
+    assert flow[1].config.resolve_references
 
 
 def test_flow_magic_methods():
