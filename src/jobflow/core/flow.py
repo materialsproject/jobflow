@@ -176,7 +176,7 @@ class Flow(MSONable):
 
     def __contains__(self, item: Flow | Job) -> bool:
         """Check if the flow contains a job or subflow."""
-        return item in self
+        return item in self.jobs
 
     def __add__(self, other: Job | Flow | Sequence[Flow | Job]) -> Flow:
         """Add a job or subflow to the flow."""
