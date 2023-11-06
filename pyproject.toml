@@ -54,7 +54,7 @@ strict = [
     "PyYAML==6.0.1",
     "maggma==0.57.5",
     "matplotlib==3.8.1",
-    "monty==2023.9.25",
+    "monty==2023.11.3",
     "moto==4.2.7",
     "networkx==3.2.1",
     "pydantic-settings==2.0.3",
