@@ -661,6 +661,10 @@ class JobStore(Store):
 
         all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
 
+        # add ssh tunnel support
+        tunnel = maggma.stores.ssh_tunnel.SSHTunnel
+        all_stores[tunnel.__name__] = tunnel
+
         docs_store_info = spec["docs_store"]
         docs_store = _construct_store(docs_store_info, all_stores)
 
