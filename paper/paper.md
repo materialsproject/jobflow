@@ -117,7 +117,7 @@ responses = run_locally(flow)
 
 ## Dynamic Workflows
 
-Beyond the typical acyclic graph of jobs, Jobflow fully supports dynamic workflows where the precise number of jobs is unknown until runtime. This is a particularly common requirement in chemistry and materials science workflows and is made possible through the use of a `Response` object that controls the flow execution. For instance, the example below is a `Flow` that will add two numbers (`1 + 2`), construct a list of random length containing the prior result (e.g. `[3, 3, 3]`), and then add an integer to each element of the list (`[3 + 10, 3 + 10, 3 + 10]`). The `Response(replace=Flow(jobs))` syntax tells Jobflow to replace the current `Job` with a (sub)workflow after the `Job` completes.
+Beyond the typical acyclic graph of jobs, Jobflow fully supports dynamic workflows where the precise number of jobs is unknown until runtime. This is a particularly common requirement in chemistry and materials science workflows and is made possible through the use of a `Response` object that controls the flow execution. For instance, the example below is a `Flow` that will add two numbers (`1 + 2`), construct a list of random length containing the prior result (e.g., `[3, 3, 3]`), and then add an integer to each element of the list (`[3 + 10, 3 + 10, 3 + 10]`). The `Response(replace=Flow(jobs))` syntax tells Jobflow to replace the current `Job` with a (sub)workflow after the `Job` completes.
 
 ![](figure2.png)
 
