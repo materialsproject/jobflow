@@ -6,8 +6,9 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    import jobflow
+    from pathlib import Path
 
+    import jobflow
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ def run_locally(
     log: bool = True,
     store: jobflow.JobStore = None,
     create_folders: bool = False,
+    root_dir: str | Path | None = None,
     ensure_success: bool = False,
     allow_external_references: bool = False,
 ) -> dict[str, dict[int, jobflow.Response]]:
@@ -25,25 +27,29 @@ def run_locally(
 
     Parameters
     ----------
-    flow
+    flow : Flow | Job | list[Job]
         A job or flow.
-    log
+    log : bool
         Whether to print log messages.
-    store
+    store : JobStore
         A job store. If a job store is not specified then
         :obj:`JobflowSettings.JOB_STORE` will be used. By default this is a maggma
         ``MemoryStore`` but can be customised by setting the jobflow configuration file.
-    create_folders
+    create_folders : bool
         Whether to run each job in a new folder.
-    ensure_success
+    root_dir : str | Path | None
+        The root directory to run the jobs in or where to create new subfolders if
+            ``create_folders`` is True. If None then the current working
+            directory will be used.
+    ensure_success : bool
         Raise an error if the flow was not executed successfully.
-    allow_external_references
+    allow_external_references : bool
         If False all the references to other outputs should be from other Jobs
         of the Flow.
 
     Returns
     -------
-    Dict[str, Dict[int, Response]]
+    dict[str, dict[int, Response]]
         The responses of the jobs, as a dict of ``{uuid: {index: response}}``.
     """
     from collections import defaultdict
@@ -60,6 +66,9 @@ def run_locally(
     if store is None:
         store = SETTINGS.JOB_STORE
 
+    root_dir = Path.cwd() if root_dir is None else Path(root_dir).resolve()
+    root_dir.mkdir(exist_ok=True)
+
     store.connect()
 
     if log:
@@ -71,8 +80,6 @@ def run_locally(
     errored: set[str] = set()
     responses: dict[str, dict[int, jobflow.Response]] = defaultdict(dict)
     stop_jobflow = False
-
-    root_dir = Path.cwd()
 
     def _run_job(job: jobflow.Job, parents):
         nonlocal stop_jobflow
