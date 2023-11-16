@@ -63,11 +63,12 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     assert len(folders) == 1
 
     # run with folders and root_dir
+    assert Path(root_dir := "test").exists() is False
     responses = run_locally(
-        flow, store=memory_jobstore, create_folders=True, root_dir="test"
+        flow, store=memory_jobstore, create_folders=True, root_dir=root_dir
     )
     assert responses[uuid][1].output == "12345_end"
-    folders = list(Path("test").glob("job_*/"))
+    folders = list(Path(root_dir).glob("job_*/"))
     assert len(folders) == 1
 
 
