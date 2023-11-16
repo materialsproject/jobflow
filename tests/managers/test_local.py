@@ -62,6 +62,14 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     folders = list(Path(".").glob("job_*/"))
     assert len(folders) == 1
 
+    # run with folders and root_dir
+    responses = run_locally(
+        flow, store=memory_jobstore, create_folders=True, root_dir="test"
+    )
+    assert responses[uuid][1].output == "12345_end"
+    folders = list(Path("test").glob("job_*/"))
+    assert len(folders) == 1
+
 
 def test_connected_flow(memory_jobstore, clean_dir, connected_flow):
     from jobflow import run_locally
