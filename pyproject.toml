@@ -46,7 +46,7 @@ docs = [
     "sphinx==7.2.6",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["moto==4.2.9", "pytest-cov==4.1.0", "pytest==7.4.3"]
+tests = ["moto==4.2.10", "pytest-cov==4.1.0", "pytest==7.4.3"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
@@ -55,7 +55,7 @@ strict = [
     "maggma==0.57.10",
     "matplotlib==3.8.2",
     "monty==2023.11.3",
-    "moto==4.2.9",
+    "moto==4.2.10",
     "networkx==3.2.1",
     "pydantic-settings==2.0.3",
     "pydantic==2.5.2",
