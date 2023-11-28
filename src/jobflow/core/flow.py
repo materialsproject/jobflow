@@ -794,7 +794,8 @@ class Flow(MSONable):
                     f"current Flow ({self.uuid})"
                 )
             job_ids.add(job.uuid)
-            job.add_hosts_uuids(hosts)
+            if job.host != self.uuid:
+                job.add_hosts_uuids(hosts)
         self._jobs += tuple(jobs)
 
     def remove_jobs(self, indices: int | list[int]):
