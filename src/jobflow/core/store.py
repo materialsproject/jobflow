@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
 
     from maggma.core import Sort
 
-    from jobflow.schemas.job_output_schema import JobStoreDocument
+    from jobflow.core.schemas import JobStoreDocument
 
     obj_type = Union[str, Enum, type[MSONable], list[Union[Enum, str, type[MSONable]]]]
     save_type = Optional[dict[str, obj_type]]

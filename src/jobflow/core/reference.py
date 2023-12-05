@@ -177,7 +177,11 @@ class OutputReference(MSONable):
 
         for attr_type, attr in self.attributes:
             # i means index else use attribute access
-            data = data[attr] if attr_type == "i" else getattr(data, attr)
+            data = (
+                data[attr]
+                if attr_type == "i" or isinstance(data, dict)
+                else getattr(data, attr)
+            )
 
         return data
 

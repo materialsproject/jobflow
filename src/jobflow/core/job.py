@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.schemas.job_output_schema import JobStoreDocument
 from jobflow.utils.uuid import suuid
 
 if typing.TYPE_CHECKING:
@@ -560,6 +559,7 @@ class Job(MSONable):
 
         from jobflow import CURRENT_JOB
         from jobflow.core.flow import get_flow
+        from jobflow.core.schemas import JobStoreDocument
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
