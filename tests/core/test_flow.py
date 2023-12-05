@@ -497,6 +497,7 @@ def test_serialization():
     decoded_flow = MontyDecoder().process_decoded(encoded_flow)
 
     assert decoded_flow[0].host == host_uuid
+    assert flow_host.jobs[0].hosts == decoded_flow.jobs[0].hosts
 
 
 def test_update_kwargs():
