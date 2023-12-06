@@ -1354,11 +1354,7 @@ def pass_manager_config(
         A job, flow, or list of jobs/flows.
     manager_config
         A manager config to pass on.
-    metadata
-        Metadata to pass on.
     """
-    from copy import deepcopy
-
     all_jobs: list[Job] = []
 
     def get_jobs(arg):
@@ -1378,4 +1374,4 @@ def pass_manager_config(
 
     # update manager config
     for ajob in all_jobs:
-        ajob.config.manager_config = deepcopy(manager_config)
+        ajob.config.manager_config = manager_config | ajob.config.manager_config
