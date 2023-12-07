@@ -1266,7 +1266,6 @@ def apply_schema(output: Any, schema: type[BaseModel] | None):
     return schema(**output)
 
 
-@job(config=JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE))
 def store_inputs(inputs: Any) -> Any:
     """
     Job to store inputs.
@@ -1316,7 +1315,8 @@ def prepare_replace(
         # add a job with same UUID as the current job to store the outputs of the
         # flow; this job will inherit the metadata and output schema of the current
         # job
-        store_output_job = store_inputs(replace.output)
+        new_config = JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE)
+        store_output_job = Job(store_inputs, function_args=(replace.output,), config=new_config)
         store_output_job.set_uuid(current_job.uuid)
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
