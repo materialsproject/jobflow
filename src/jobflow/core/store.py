@@ -282,7 +282,7 @@ class JobStore(Store):
 
         from jobflow.utils.find import find_key, update_in_dictionary
 
-        if save in (None, True):
+        if save in {None, True}:
             save = self.save
 
         save_keys = _prepare_save(save)
@@ -766,7 +766,7 @@ def _filter_blobs(
     new_locations = []
     for store_load in load.values():
         for blob, location in zip(blob_infos, locations):
-            if store_load:
+            if store_load is True:
                 new_blobs.append(blob)
                 new_locations.append(location)
             elif isinstance(store_load, bool):

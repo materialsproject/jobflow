@@ -107,7 +107,7 @@ class JobflowSettings(BaseSettings):
     JOB_STORE: JobStore = Field(
         default_factory=lambda: JobStore(
             MemoryStore(),
-            additional_stores=defaultdict(lambda: _default_additional_store()),
+            additional_stores=defaultdict(_default_additional_store),
         ),
         description="Default JobStore to use when running locally or using FireWorks. "
         "See the :obj:`JobflowSettings` docstring for more details on the "
