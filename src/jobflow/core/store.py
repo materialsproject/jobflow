@@ -282,7 +282,7 @@ class JobStore(Store):
 
         from jobflow.utils.find import find_key, update_in_dictionary
 
-        if save is None or save is True:
+        if save in (None, True):
             save = self.save
 
         save_keys = _prepare_save(save)

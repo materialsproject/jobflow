@@ -46,7 +46,9 @@ def itergraph(graph: nx.DiGraph):
     subgraphs = [graph.subgraph(c) for c in nx.weakly_connected_components(graph)]
 
     if len(subgraphs) > 1:
-        warnings.warn("Some jobs are not connected, their ordering may be random")
+        warnings.warn(
+            "Some jobs are not connected, their ordering may be random", stacklevel=2
+        )
 
     for subgraph in subgraphs:
         yield from nx.topological_sort(subgraph)
