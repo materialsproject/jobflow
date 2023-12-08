@@ -137,7 +137,8 @@ class JobflowSettings(BaseSettings):
         if Path(config_file_path).exists():
             if Path(config_file_path).stat().st_size == 0:
                 warnings.warn(
-                    f"An empty JobFlow config file was located at {config_file_path}"
+                    f"An empty JobFlow config file was located at {config_file_path}",
+                    stacklevel=2,
                 )
             else:
                 try:

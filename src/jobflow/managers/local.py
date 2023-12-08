@@ -156,7 +156,7 @@ def run_locally(
                 response, jobflow_stopped = _run_job(job, parents)
 
             encountered_bad_response = encountered_bad_response or response is None
-            if jobflow_stopped is True:
+            if jobflow_stopped:
                 return False
 
         return not encountered_bad_response
