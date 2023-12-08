@@ -6,6 +6,7 @@
    Install jobflow <install>
    Install FireWorks (Optional) <install_fireworks>
    Tutorials <tutorials>
+   Configuring Data Stores <stores>
 
 .. toctree::
    :caption: Information
