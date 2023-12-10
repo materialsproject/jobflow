@@ -46,5 +46,5 @@ Before a pull request can be merged, the following items must be checked:
 Note that the CI system will run all the above checks. But it will be much more
 efficient if you already fix most errors prior to submitting the PR. It is highly
 recommended that you use the pre-commit hook provided in the repository. Simply
-`pip install pre-commit` and then `pre-commit install` and a check will be run 
+`pip install pre-commit` and then `pre-commit install` and a check will be run
 prior to allowing commits.
