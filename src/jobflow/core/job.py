@@ -359,7 +359,8 @@ class Job(MSONable):
                 f"Job '{self.name}' contains an Flow or Job as an input. "
                 f"Usually inputs should be the output of a Job or an Flow (e.g. "
                 f"job.output). If this message is unexpected then double check the "
-                f"inputs to your Job."
+                f"inputs to your Job.",
+                stacklevel=2,
             )
 
     def __repr__(self):

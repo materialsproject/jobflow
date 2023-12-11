@@ -274,7 +274,8 @@ class Flow(MSONable):
                     f"Flow '{self.name}' contains a Flow or Job as an output. "
                     f"Usually the Flow output should be the output of a Job or "
                     f"another Flow (e.g. job.output). If this message is "
-                    f"unexpected then double check the outputs of your Flow."
+                    f"unexpected then double check the outputs of your Flow.",
+                    stacklevel=2,
                 )
 
             # check if the jobs array contains all jobs needed for the references
