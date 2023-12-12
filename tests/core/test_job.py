@@ -934,7 +934,13 @@ def test_output_schema(memory_jobstore):
 
 
 def test_store_inputs(memory_jobstore):
-    from jobflow.core.job import Job, OutputReference, store_inputs, JobConfig, OnMissing
+    from jobflow.core.job import (
+        Job,
+        OutputReference,
+        store_inputs,
+        JobConfig,
+        OnMissing,
+    )
 
     configs = JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE)
     test_job = Job(store_inputs, (1,), config=configs)
