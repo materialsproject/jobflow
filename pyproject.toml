@@ -52,7 +52,7 @@ fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.59.0",
+    "maggma==0.60.0",
     "matplotlib==3.8.2",
     "monty==2023.11.3",
     "moto==4.2.12",
