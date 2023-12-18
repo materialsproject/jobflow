@@ -1,5 +1,40 @@
 # Change log
 
+## v0.1.15
+
+### Bug Fixes 🐛
+* Fix JobStoreDocument validator by @utf in https://github.com/materialsproject/jobflow/pull/478
+* fix Flow deserialization for hosts by @gpetretto in https://github.com/materialsproject/jobflow/pull/499
+### Enhancements 🛠
+* Formalizing the JobStore document format as a pydantic model by @hrushikesh-s in https://github.com/materialsproject/jobflow/pull/424
+* Simplify code by using `Flow` methods `__len__` and `__getitem__` by @janosh in https://github.com/materialsproject/jobflow/pull/467
+* `run_locally()` add `root_dir: str | Path | None` keyword by @janosh in https://github.com/materialsproject/jobflow/pull/486
+* Allow SSHTunnel in job stores  by @mjwen in https://github.com/materialsproject/jobflow/pull/477
+### Documentation 📖
+* JOSS paper by @utf in https://github.com/materialsproject/jobflow/pull/446
+* JOSS Paper: Add missing DOIs by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/452
+* JOSS Paper: Reduce line-spacing in code blocks by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/454
+* JOSS Paper update: Add missing year to `refs.bib` by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/458
+* JOSS Paper: Remove stray tick mark in "[@montydb]`" by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/459
+* JOSS Paper: Add another missing year to `refs.bib` by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/461
+* Update refs.bib by @xuanxu in https://github.com/materialsproject/jobflow/pull/462
+* JOSS: Add missing `,` to paper by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/479
+* JOSS: Add more complete Zenodo reference info by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/481
+* JOSS: Fix references to include all coauthors and remove "others" by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/480
+* Add fibonacci example to tutorial by @JaGeo in https://github.com/materialsproject/jobflow/pull/494
+### House-Keeping 🧹
+* Remove `__all__` from all modules by @janosh in https://github.com/materialsproject/jobflow/pull/442
+* Bump minimum Python version to 3.9 by @janosh in https://github.com/materialsproject/jobflow/pull/455
+* Replace deprecated `pkg_resources` with `importlib.metadata.version` by @janosh in https://github.com/materialsproject/jobflow/pull/460
+* Match `atomate2` `ruff` config by @janosh in https://github.com/materialsproject/jobflow/pull/464
+* Test error messages by @janosh in https://github.com/materialsproject/jobflow/pull/465
+
+## New Contributors
+* @hrushikesh-s made their first contribution in https://github.com/materialsproject/jobflow/pull/424
+* @xuanxu made their first contribution in https://github.com/materialsproject/jobflow/pull/462
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.14...v0.1.15
+
 ## v0.1.14
 
 ### Bug Fixes 🐛

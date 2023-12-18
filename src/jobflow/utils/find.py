@@ -233,7 +233,7 @@ def get_root_locations(locations):
         >>> _get_root_locations([["a", "b"], ["a"], ["c", "d"]])
         [["a"], ["c", "d"]]
     """
-    sorted_locs = sorted(locations, key=lambda x: len(x))
+    sorted_locs = sorted(locations, key=len)
     root_locations = []
     for loc in sorted_locs:
         if any(loc[: len(rloc)] == rloc for rloc in root_locations):

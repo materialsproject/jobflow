@@ -8,7 +8,7 @@ description = "jobflow is a library for writing computational workflows"
 readme = "README.md"
 keywords = ["high-throughput", "workflow"]
 license = { text = "modified BSD" }
-authors = [{ name = "Alex Ganose", email = "alexganose@gmail.com" }]
+authors = [{ name = "Alex Ganose", email = "a.ganose@imperial.ac.uk" }]
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -46,22 +46,22 @@ docs = [
     "sphinx==7.2.6",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["moto==4.2.10", "pytest-cov==4.1.0", "pytest==7.4.3"]
+tests = ["moto==4.2.11", "pytest-cov==4.1.0", "pytest==7.4.3"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.58.0",
+    "maggma==0.59.0",
     "matplotlib==3.8.2",
     "monty==2023.11.3",
-    "moto==4.2.10",
+    "moto==4.2.11",
     "networkx==3.2.1",
     "pydantic-settings==2.1.0",
     "pydantic==2.5.2",
     "pydash==7.0.6",
     "pydot==1.4.2",
-    "typing-extensions==4.8.0",
+    "typing-extensions==4.9.0",
 ]
 
 [project.urls]
