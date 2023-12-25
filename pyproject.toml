@@ -58,7 +58,7 @@ strict = [
     "moto==4.2.12",
     "networkx==3.2.1",
     "pydantic-settings==2.1.0",
-    "pydantic==2.5.2",
+    "pydantic==2.5.3",
     "pydash==7.0.6",
     "pydot==1.4.2",
     "typing-extensions==4.9.0",
