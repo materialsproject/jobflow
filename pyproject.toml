@@ -60,7 +60,7 @@ strict = [
     "pydantic-settings==2.1.0",
     "pydantic==2.5.3",
     "pydash==7.0.6",
-    "pydot==1.4.2",
+    "pydot==2.0.0",
     "typing-extensions==4.9.0",
 ]
 
