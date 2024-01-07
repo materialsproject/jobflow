@@ -372,7 +372,6 @@ def test_job_config(memory_jobstore):
     test_job = Job(addition_job, config=pass_config)
     response = test_job.run(memory_jobstore)
     assert len(response.addition) == 1
-    print(response.addition)
     assert response.addition[0].config.manager_config == manager_config
     assert response.addition[0].hosts == [response.addition.uuid]
 

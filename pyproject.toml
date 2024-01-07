@@ -153,11 +153,16 @@ select = [
 ]
 ignore = [
     "B028",
+    "COM812",
+    "DTZ005",
+    "FBT001",
+    "FBT002",
     "PLR0911", # too-many-return-statements
     "PLR0912", # too-many-branches
     "PLR0913", # too-many-arguments
     "PLR0915", # too-many-statements
     "PLW0603",
+    "PTH",
     "RUF013",
 ]
 pydocstyle.convention = "numpy"
@@ -169,4 +174,4 @@ isort.known-first-party = ["jobflow"]
 # D: pydocstyle
 # PLR2004: magic-value-comparison
 # PT004: pytest-missing-fixture-name-underscore
-"**/tests/*" = ["D", "PLR2004", "PT004"]
+"**/tests/*" = ["ANN", "ARG001", "D", "PLR2004", "PT004", "S101"]
