@@ -123,6 +123,13 @@ def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
     with pytest.raises(RuntimeError):
         test_job.run(memory_jobstore)
 
+    # test on standard library functions
+    import time
+
+    test_job = Job(time.sleep, function_args=(0.001,))
+    response = test_job.run(memory_jobstore)
+    assert isinstance(response, Response)
+
 
 def test_replace_response(memory_jobstore):
     from jobflow import Flow, Job, Response
