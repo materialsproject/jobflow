@@ -658,5 +658,4 @@ def test_external_reference(lpad, mongo_jobstore, fw_dir, simple_job, capsys):
 
     # check response
     result2 = mongo_jobstore.query_one({"uuid": uuid2})
-    print(result2)
     assert result2["output"] == "12345_end_end"
