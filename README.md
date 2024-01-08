@@ -6,7 +6,7 @@
 ![supported python versions](https://img.shields.io/pypi/pyversions/jobflow)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.05995/status.svg)](https://doi.org/10.21105/joss.05995)
 
-[Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow)
+[Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow) | [Paper](https://doi.org/10.21105/joss.05995)
 
 Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
