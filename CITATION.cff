@@ -1,0 +1,102 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Rosen
+  given-names: Andrew S.
+  orcid: "https://orcid.org/0000-0002-0141-7006"
+- family-names: Gallant
+  given-names: Max
+  orcid: "https://orcid.org/0009-0008-4099-6144"
+- family-names: George
+  given-names: Janine
+  orcid: "https://orcid.org/0000-0001-8907-0336"
+- family-names: Riebesell
+  given-names: Janosh
+  orcid: "https://orcid.org/0000-0001-5233-3462"
+- family-names: Sahasrabuddhe
+  given-names: Hrushikesh
+  orcid: "https://orcid.org/0000-0001-7346-4568"
+- family-names: Shen
+  given-names: Jimmy-Xuan
+  orcid: "https://orcid.org/0000-0002-2743-7531"
+- family-names: Wen
+  given-names: Mingjian
+  orcid: "https://orcid.org/0000-0003-0013-575X"
+- family-names: Evans
+  given-names: Matthew L.
+  orcid: "https://orcid.org/0000-0002-1182-9098"
+- family-names: Petretto
+  given-names: Guido
+- family-names: Waroquiers
+  given-names: David
+  orcid: "https://orcid.org/0000-0001-8943-9762"
+- family-names: Rignanese
+  given-names: Gian-Marco
+  orcid: "https://orcid.org/0000-0002-1422-1205"
+- family-names: Persson
+  given-names: Kristin A.
+  orcid: "https://orcid.org/0000-0002-7212-6310"
+- family-names: Jain
+  given-names: Anubhav
+  orcid: "https://orcid.org/0000-0001-5893-9967"
+- family-names: Ganose
+  given-names: Alex M.
+  orcid: "https://orcid.org/0000-0002-4486-3321"
+doi: 10.5281/zenodo.10466868
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Rosen
+    given-names: Andrew S.
+    orcid: "https://orcid.org/0000-0002-0141-7006"
+  - family-names: Gallant
+    given-names: Max
+    orcid: "https://orcid.org/0009-0008-4099-6144"
+  - family-names: George
+    given-names: Janine
+    orcid: "https://orcid.org/0000-0001-8907-0336"
+  - family-names: Riebesell
+    given-names: Janosh
+    orcid: "https://orcid.org/0000-0001-5233-3462"
+  - family-names: Sahasrabuddhe
+    given-names: Hrushikesh
+    orcid: "https://orcid.org/0000-0001-7346-4568"
+  - family-names: Shen
+    given-names: Jimmy-Xuan
+    orcid: "https://orcid.org/0000-0002-2743-7531"
+  - family-names: Wen
+    given-names: Mingjian
+    orcid: "https://orcid.org/0000-0003-0013-575X"
+  - family-names: Evans
+    given-names: Matthew L.
+    orcid: "https://orcid.org/0000-0002-1182-9098"
+  - family-names: Petretto
+    given-names: Guido
+  - family-names: Waroquiers
+    given-names: David
+    orcid: "https://orcid.org/0000-0001-8943-9762"
+  - family-names: Rignanese
+    given-names: Gian-Marco
+    orcid: "https://orcid.org/0000-0002-1422-1205"
+  - family-names: Persson
+    given-names: Kristin A.
+    orcid: "https://orcid.org/0000-0002-7212-6310"
+  - family-names: Jain
+    given-names: Anubhav
+    orcid: "https://orcid.org/0000-0001-5893-9967"
+  - family-names: Ganose
+    given-names: Alex M.
+    orcid: "https://orcid.org/0000-0002-4486-3321"
+  date-published: 2024-01-07
+  doi: 10.21105/joss.05995
+  issn: 2475-9066
+  issue: 93
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 5995
+  title: "Jobflow: Computational Workflows Made Simple"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.05995"
+  volume: 9
+title: "Jobflow: Computational Workflows Made Simple"
