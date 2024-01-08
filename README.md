@@ -115,7 +115,7 @@ jobflow is released under a modified BSD license; the full text can be found [he
 
 If you use Jobflow in your work, please cite it as follows:
 
-- "Jobflow: Computational Workflows Made Simple", A.S. Rosen, M. Gallant, J. George, J. Riebesell, H. Sahasrabuddhe, J.X. Shen, M. Wen, M.L. Evans, G. Petretto, D. Waroquiers, G.‑M. Rignanese, K.A. Persson, A. Jain, A.M. Ganose, _Journal of Open Source Software_, 9(93), 5995 (2024).
+- "Jobflow: Computational Workflows Made Simple", A.S. Rosen, M. Gallant, J. George, J. Riebesell, H. Sahasrabuddhe, J.X. Shen, M. Wen, M.L. Evans, G. Petretto, D. Waroquiers, G.‑M. Rignanese, K.A. Persson, A. Jain, A.M. Ganose, _Journal of Open Source Software_, 9(93), 5995 (2024) DOI: [10.21105/joss.05995](https://doi.org/10.21105/joss.05995)
 
 ## Acknowledgements
 
