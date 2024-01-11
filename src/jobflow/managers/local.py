@@ -102,14 +102,19 @@ def run_locally(
             errored.add(job.uuid)
             return None, False
 
-        try:
+        if SETTINGS.RAISE_IMMEDIATELY:
             response = job.run(store=store)
-        except Exception:
-            import traceback
+        else:
+            try:
+                response = job.run(store=store)
+            except Exception:
+                import traceback
 
-            logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
-            errored.add(job.uuid)
-            return None, False
+                logger.info(
+                    f"{job.name} failed with exception:\n{traceback.format_exc()}"
+                )
+                errored.add(job.uuid)
+                return None, False
 
         responses[job.uuid][job.index] = response
 
