@@ -106,6 +106,7 @@ class OutputReference(MSONable):
         store: jobflow.JobStore | None,
         cache: dict[str, Any] = None,
         on_missing: OnMissing = OnMissing.ERROR,
+        deserialize: bool = True,
     ) -> Any:
         """
         Resolve the reference.
@@ -127,6 +128,10 @@ class OutputReference(MSONable):
         on_missing
             What to do if the output reference is missing in the database and cache.
             See :obj:`OnMissing` for the available options.
+        deserialize
+            If False, the data extracted from the store will not be deserialized.
+            Note that in this case, if a reference contains a derived property,
+            it cannot be resolved.
 
         Raises
         ------
@@ -170,7 +175,8 @@ class OutputReference(MSONable):
         data = cache[self.uuid][index]
 
         # decode objects before attribute access
-        data = MontyDecoder().process_decoded(data)
+        if deserialize:
+            data = MontyDecoder().process_decoded(data)
 
         # re-cache data in case other references need it
         cache[self.uuid][index] = data
@@ -304,6 +310,7 @@ def resolve_references(
     store: jobflow.JobStore,
     cache: dict[str, Any] = None,
     on_missing: OnMissing = OnMissing.ERROR,
+    deserialize: bool = True,
 ) -> dict[OutputReference, Any]:
     """
     Resolve multiple output references.
@@ -321,6 +328,10 @@ def resolve_references(
     on_missing
         What to do if the output reference is missing in the database and cache.
         See :obj:`OnMissing` for the available options.
+    deserialize
+        If False, the data extracted from the store will not be deserialized.
+        Note that in this case, if a reference contains a derived property,
+        it cannot be resolved.
 
     Returns
     -------
@@ -348,7 +359,7 @@ def resolve_references(
 
         for ref in ref_group:
             resolved_references[ref] = ref.resolve(
-                store, cache=cache, on_missing=on_missing
+                store, cache=cache, on_missing=on_missing, deserialize=deserialize
             )
 
     return resolved_references
@@ -397,6 +408,7 @@ def find_and_resolve_references(
     store: jobflow.JobStore,
     cache: dict[str, Any] = None,
     on_missing: OnMissing = OnMissing.ERROR,
+    deserialize: bool = True,
 ) -> Any:
     """
     Return the input but with all output references replaced with their resolved values.
@@ -415,6 +427,10 @@ def find_and_resolve_references(
     on_missing
         What to do if the output reference is missing in the database and cache.
         See :obj:`OnMissing` for the available options.
+    deserialize
+        If False, the data extracted from the store will not be deserialized.
+        Note that in this case, if a reference contains a derived property,
+        it cannot be resolved.
 
     Returns
     -------
@@ -428,12 +444,14 @@ def find_and_resolve_references(
     from jobflow.utils.find import find_key_value
 
     if isinstance(arg, dict) and arg.get("@class") == "OutputReference":
-        # if arg is a deserialized reference, serialize it
+        # if arg is a serialized reference, deserialize it
         arg = OutputReference.from_dict(arg)
 
     if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
-        return arg.resolve(store, cache=cache, on_missing=on_missing)
+        return arg.resolve(
+            store, cache=cache, on_missing=on_missing, deserialize=deserialize
+        )
 
     if isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
@@ -453,7 +471,7 @@ def find_and_resolve_references(
         OutputReference.from_dict(get(encoded_arg, list(loc))) for loc in locations
     ]
     resolved_references = resolve_references(
-        references, store, cache=cache, on_missing=on_missing
+        references, store, cache=cache, on_missing=on_missing, deserialize=deserialize
     )
 
     # replace the references in the arg dict

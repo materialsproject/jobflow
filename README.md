@@ -4,8 +4,9 @@
 [![code coverage](https://img.shields.io/codecov/c/gh/materialsproject/jobflow/main)](https://codecov.io/gh/materialsproject/jobflow/)
 [![pypi version](https://img.shields.io/pypi/v/jobflow?color=blue)](https://pypi.org/project/jobflow/)
 ![supported python versions](https://img.shields.io/pypi/pyversions/jobflow)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.05995/status.svg)](https://doi.org/10.21105/joss.05995)
 
-[Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow)
+[Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow) | [Paper](https://doi.org/10.21105/joss.05995)
 
 Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
@@ -109,6 +110,12 @@ We maintain a list of all contributors [here][contributors].
 ## License
 
 jobflow is released under a modified BSD license; the full text can be found [here][license].
+
+## Citation
+
+If you use Jobflow in your work, please cite it as follows:
+
+- "Jobflow: Computational Workflows Made Simple", A.S. Rosen, M. Gallant, J. George, J. Riebesell, H. Sahasrabuddhe, J.X. Shen, M. Wen, M.L. Evans, G. Petretto, D. Waroquiers, G.‑M. Rignanese, K.A. Persson, A. Jain, A.M. Ganose, _Journal of Open Source Software_, 9(93), 5995 (2024) DOI: [10.21105/joss.05995](https://doi.org/10.21105/joss.05995)
 
 ## Acknowledgements
 

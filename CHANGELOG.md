@@ -1,5 +1,32 @@
 # Change log
 
+## v0.1.16
+
+### Bug Fixes 🐛
+* Explicit warning stacklevels by @janosh in https://github.com/materialsproject/jobflow/pull/503
+* Fix handling of function from standard library by @gpetretto in https://github.com/materialsproject/jobflow/pull/516
+
+### Enhancements 🛠
+* Optionally avoid deserialization when resolving references by @gpetretto in https://github.com/materialsproject/jobflow/pull/512
+
+### Documentation 📖
+* Add documentation for how to deal with stores beyond `MemoryStore` by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/506
+* Fix tutorial bug by @mcgalcode in https://github.com/materialsproject/jobflow/pull/505
+* Fix tutorial link formatting in docs by @ml-evs in https://github.com/materialsproject/jobflow/pull/504
+* Add reference for jobflow-remote by @ml-evs in https://github.com/materialsproject/jobflow/pull/513
+
+### House-Keeping 🧹
+* Build docs on every push by @utf in https://github.com/materialsproject/jobflow/pull/507
+* Update deploy.yml by @utf in https://github.com/materialsproject/jobflow/pull/508
+
+### Other Changes
+* Auto-update pre-commit hooks by @github-actions in https://github.com/materialsproject/jobflow/pull/511
+
+### New Contributors
+* @ml-evs made their first contribution in https://github.com/materialsproject/jobflow/pull/504
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.15...v0.1.16
+
 ## v0.1.15
 
 ### Bug Fixes 🐛
