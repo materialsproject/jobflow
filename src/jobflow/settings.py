@@ -5,7 +5,7 @@ import warnings
 from collections import defaultdict
 from pathlib import Path
 
-from maggma.stores import MemoryStore, Store
+from maggma.stores import MemoryStore
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -113,12 +113,6 @@ class JobflowSettings(BaseSettings):
         description="Default JobStore to use when running locally or using FireWorks. "
         "See the :obj:`JobflowSettings` docstring for more details on the "
         "accepted formats.",
-    )
-    COUNTER_STORE: Store | str | None = Field(
-        None,
-        description="Store to keep track of counters. "
-        "Jobflow does not explicitly use this. However, some workflows may benefit "
-        "from incrementing global counters.",
     )
     DIRECTORY_FORMAT: str = Field(
         "%Y-%m-%d-%H-%M-%S-%f",
