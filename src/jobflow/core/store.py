@@ -5,6 +5,7 @@ from __future__ import annotations
 import typing
 
 from maggma.core import Store
+from maggma.stores import MongoStore
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
@@ -28,6 +29,17 @@ if typing.TYPE_CHECKING:
 T = typing.TypeVar("T", bound="JobStore")
 
 
+def require_counter_store(func):
+    """Check that a counter store is set."""
+
+    def wrapper(self, *args, **kwargs):
+        if self.counter_store is None:
+            raise ValueError("No counter store has been set.")
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class JobStore(Store):
     """Store intended to allow pushing and pulling documents into multiple stores.
 
@@ -38,6 +50,11 @@ class JobStore(Store):
     additional_stores
         Additional stores to use for storing large data/specific objects. Given as a
         mapping of ``{store name: store}`` where store is a maggma :obj:`.Store` object.
+    counter_store:
+        The store used to track counters for different jobs used by jobflow. If only a
+        string is given, we will assume that the counter store is a MongoStore with the
+        exact same settings as the ``docs_store``, only with the collection name set to
+        ``counter_store``.
     save
         Which items to save in additional stores when uploading documents. Given as a
         mapping of ``{store name: store_type}`` where ``store_type`` can be a dictionary
@@ -54,10 +71,17 @@ class JobStore(Store):
         self,
         docs_store: Store,
         additional_stores: dict[str, Store] = None,
+        counter_store: str | Store | None = None,
         save: save_type = None,
         load: load_type = False,
     ):
         self.docs_store = docs_store
+        if isinstance(counter_store, str):
+            counter_store = _get_counter_store_from_docs_store(
+                docs_store, counter_store
+            )
+        self.counter_store: Store | None = counter_store
+
         if additional_stores is None:
             self.additional_stores = {}
         else:
@@ -110,6 +134,8 @@ class JobStore(Store):
             Whether to reset the connection or not.
         """
         self.docs_store.connect(force_reset=force_reset)
+        if self.counter_store is not None:
+            self.counter_store.connect(force_reset=force_reset)
         for additional_store in self.additional_stores.values():
             additional_store.connect(force_reset=force_reset)
 
@@ -672,7 +698,74 @@ class JobStore(Store):
         if "additional_stores" in spec:
             for store_name, info in spec["additional_stores"].items():
                 additional_stores[store_name] = _construct_store(info, all_stores)
-        return cls(docs_store, additional_stores, **kwargs)
+
+        counter_store = spec.get("counter_store", None)
+        if isinstance(counter_store, dict):
+            counter_store = _construct_store(counter_store, all_stores)
+
+        return cls(docs_store, additional_stores, counter_store=counter_store, **kwargs)
+
+    @require_counter_store
+    def get_counter(self, key: str) -> int:
+        """
+        Get the current value of a counter.
+
+        Parameters
+        ----------
+        key
+            The counter key.
+
+        Returns
+        -------
+        int
+            The current value of the counter.
+        """
+        counter = self.counter_store.query_one(criteria={"key": key})
+        if counter is None:
+            raise ValueError(f"Counter with key {key} does not exist.")
+        return counter["value"]
+
+    @require_counter_store
+    def increment_counter(self, key: str, inc_value: int = 1) -> int:
+        """
+        Increment a counter.
+
+        Parameters
+        ----------
+        key
+            The counter key.
+        inc_value
+            The value to increment the counter by.
+
+        Returns
+        -------
+        int
+            The new value of the counter.
+        """
+        counter = self.counter_store.query_one(criteria={"key": key})
+        if counter is None:
+            raise ValueError(f"Counter with key {key} does not exist.")
+        counter["value"] += inc_value
+        self.counter_store.update(counter, key="key")
+        return counter["value"]
+
+    @require_counter_store
+    def reset_counter(self, key: str, value: int = 0):
+        """
+        Reset a counter.
+
+        Parameters
+        ----------
+        key
+            The counter key.
+        value
+            The value to set the counter to.
+        """
+        counter = self.counter_store.query_one(criteria={"key": key})
+        if counter is None:
+            counter = {"key": key, "value": value}
+        counter["value"] = value
+        self.counter_store.update(counter, key="key")
 
 
 def _construct_store(spec_dict, valid_stores):
@@ -800,3 +893,13 @@ def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
         "blob_uuid": suuid(),
         "store": store_name,
     }
+
+
+def _get_counter_store_from_docs_store(docs_store: Store, coll_name: str):
+    if not isinstance(docs_store, MongoStore):
+        raise ValueError(
+            "To create a counter store, the docs store must be a MongoStore."
+        )
+    store_dict_ = docs_store.as_dict()
+    store_dict_["collection_name"] = store_dict_["collection_name"] + coll_name
+    return docs_store.__class__.from_dict(store_dict_)

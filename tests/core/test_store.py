@@ -483,3 +483,27 @@ def test_from_dict_spec():
 def test_ensure_index(memory_jobstore):
     assert memory_jobstore.ensure_index("test_key")
     # TODO: How to check for exception?
+
+
+def test_counter_store():
+    from maggma.stores import MemoryStore
+
+    from jobflow import JobStore
+
+    store1 = JobStore(MemoryStore(), counter_store=MemoryStore())
+    store1.connect()
+    store1.reset_counter("c1")
+    assert store1.get_counter("c1") == 0
+    store1.increment_counter("c1")
+    store1.increment_counter("c1")
+    store1.increment_counter("c1")
+    assert store1.get_counter("c1") == 3
+    store1.reset_counter("c1")
+    assert store1.get_counter("c1") == 0
+
+    with pytest.raises(ValueError, match="Counter c2 not found in store"):
+        store1.get_counter("c2")
+
+    store2 = JobStore(MemoryStore(), counter_store="test1")
+    store2.connect()
+    store2.reset_counter("c1")
