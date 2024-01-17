@@ -501,9 +501,16 @@ def test_counter_store():
     store1.reset_counter("c1")
     assert store1.get_counter("c1") == 0
 
-    with pytest.raises(ValueError, match="Counter c2 not found in store"):
+    with pytest.raises(ValueError, match="Counter with key c2 does not exist."):
         store1.get_counter("c2")
 
     store2 = JobStore(MemoryStore(), counter_store="test1")
     store2.connect()
     store2.reset_counter("c1")
+    assert store2.get_counter("c1") == 0
+    assert store2.counter_store.collection_name == "test1"
+
+    store3 = JobStore(MemoryStore(), counter_store=None)
+    store3.connect()
+    with pytest.raises(ValueError, match="No counter store has been set."):
+        store3.reset_counter("c1")

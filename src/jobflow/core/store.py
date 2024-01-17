@@ -901,5 +901,5 @@ def _get_counter_store_from_docs_store(docs_store: Store, coll_name: str):
             "To create a counter store, the docs store must be a MongoStore."
         )
     store_dict_ = docs_store.as_dict()
-    store_dict_["collection_name"] = store_dict_["collection_name"] + coll_name
+    store_dict_["collection_name"] = coll_name
     return docs_store.__class__.from_dict(store_dict_)

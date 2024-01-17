@@ -1,15 +1,19 @@
 """Settings for jobflow."""
+from __future__ import annotations
 
 import warnings
 from collections import defaultdict
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from maggma.core import Store
 from maggma.stores import MemoryStore
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from jobflow import JobStore
+
+if TYPE_CHECKING:
+    from maggma.stores import Store
 
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
 
@@ -114,7 +118,7 @@ class JobflowSettings(BaseSettings):
         "See the :obj:`JobflowSettings` docstring for more details on the "
         "accepted formats.",
     )
-    COUNTER_STORE: Store = Field(
+    COUNTER_STORE: Store | str | None = Field(
         None,
         description="Store to keep track of counters. "
         "Jobflow does not explicitly use this. However, some workflows may benefit "
