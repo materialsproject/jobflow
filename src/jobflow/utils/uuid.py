@@ -67,10 +67,6 @@ def _get_id_type(uuid: str) -> str:
     """
     try:
         version = UUID(uuid).version
-        if version not in [
-            1,
-        ]:
-            raise ValueError(f"UUID version {version} not supported.")
         res = {
             1: "uuid1",
         }[version]
