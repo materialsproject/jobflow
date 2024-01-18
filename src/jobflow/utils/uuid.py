@@ -48,8 +48,6 @@ def get_timestamp_from_uuid(uuid: str) -> float:
     funcs = {
         "uuid1": _get_uuid_time_v1,
     }
-    if id_type not in funcs:
-        raise ValueError(f"UUID type {id_type} not supported.")
     return funcs[id_type](uuid)
 
 
