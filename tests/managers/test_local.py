@@ -331,6 +331,9 @@ def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
     with pytest.raises(RuntimeError):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
 
+    with pytest.raises(ValueError, match="errored"):
+        run_locally(flow, store=memory_jobstore, raise_immediately=True)
+
 
 def test_ensure_success_with_replace(memory_jobstore, error_replace_flow, capsys):
     from jobflow import run_locally
