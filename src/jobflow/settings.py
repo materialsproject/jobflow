@@ -117,6 +117,11 @@ class JobflowSettings(BaseSettings):
         "%Y-%m-%d-%H-%M-%S-%f",
         description="Date stamp format used to create directories",
     )
+
+    UID_TYPE: str = Field(
+        "uuid4", description="Type of unique identifier to use to track jobs. "
+    )
+
     model_config = SettingsConfigDict(env_prefix="jobflow_")
 
     @model_validator(mode="before")
