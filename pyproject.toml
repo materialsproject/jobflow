@@ -33,6 +33,7 @@ dependencies = [
     "pydantic-settings>=2.0.3",
     "pydantic>=2.0.1",
     "pydash",
+    "python-ulid",
 ]
 
 [project.optional-dependencies]
@@ -62,6 +63,7 @@ strict = [
     "pydash==7.0.6",
     "pydot==2.0.0",
     "typing-extensions==4.9.0",
+    "python-ulid"==2.2.0,
 ]
 
 [project.urls]
