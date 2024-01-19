@@ -117,12 +117,6 @@ class JobflowSettings(BaseSettings):
         "%Y-%m-%d-%H-%M-%S-%f",
         description="Date stamp format used to create directories",
     )
-    RAISE_IMMEDIATELY: bool = Field(
-        default=False,
-        description="Whether to raise an error immediately when the job fails. "
-        "Usually we allow jobs to fail and check the status post mortem."
-        "Sometimes, debugging is easier if the error is raised immediately.",
-    )
     model_config = SettingsConfigDict(env_prefix="jobflow_")
 
     @model_validator(mode="before")
