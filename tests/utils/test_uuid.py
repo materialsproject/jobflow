@@ -1,6 +1,6 @@
 def test_suuid():
-    from jobflow.utils import suuid
+    from jobflow.utils import suid
 
-    uuid = suuid()
+    uuid = suid()
     assert isinstance(uuid, str)
     assert len(uuid) == 36

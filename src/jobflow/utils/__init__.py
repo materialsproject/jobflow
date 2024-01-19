@@ -7,4 +7,4 @@ from jobflow.utils.find import (
     update_in_dictionary,
 )
 from jobflow.utils.log import initialize_logger
-from jobflow.utils.uuid import suuid
+from jobflow.utils.uid import suid
