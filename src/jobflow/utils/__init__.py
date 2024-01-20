@@ -8,3 +8,4 @@ from jobflow.utils.find import (
 )
 from jobflow.utils.log import initialize_logger
 from jobflow.utils.uid import suid
+from jobflow.utils.uuid import suuid
