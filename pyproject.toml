@@ -33,10 +33,10 @@ dependencies = [
     "pydantic-settings>=2.0.3",
     "pydantic>=2.0.1",
     "pydash",
-    "python-ulid",
 ]
 
 [project.optional-dependencies]
+ulid = ["python-ulid"]
 docs = [
     "autodoc_pydantic==2.0.1",
     "furo==2023.9.10",
