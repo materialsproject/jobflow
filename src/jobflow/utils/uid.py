@@ -3,7 +3,23 @@ from __future__ import annotations
 
 from uuid import UUID
 
-import ulid
+try:  # pragma: no cover
+    from ulid import ULID
+except ImportError:  # pragma: no cover
+    err_msg = (
+        "The ulid package is not installed. "
+        "Install it with `pip install jobflow[ulid]` or `pip install python-ulid`."
+    )
+
+    class ULID:  # type: ignore
+        """Fake ULID class for raising import error."""
+
+        def __init__(self, *args, **kwargs):
+            raise ImportError(err_msg)
+
+        def from_str(self, *args, **kwargs):
+            """Raise import error."""
+            raise ImportError(err_msg)
 
 
 def suid(id_type: str | None = None) -> str:
@@ -33,7 +49,7 @@ def suid(id_type: str | None = None) -> str:
     funcs = {
         "uuid1": uuid.uuid1,
         "uuid4": uuid.uuid4,
-        "ulid": ulid.ULID,
+        "ulid": ULID,
     }
     if id_type not in funcs:
         raise ValueError(f"UUID type {id_type} not supported.")
@@ -61,7 +77,7 @@ def get_timestamp_from_uid(uid: str) -> float:
         )
     funcs = {
         "uuid1": lambda uuid: (UUID(uuid).time - 0x01B21DD213814000) / 1e7,
-        "ulid": lambda uuid: ulid.ULID.from_str(uuid).timestamp,
+        "ulid": lambda uuid: ULID.from_str(uuid).timestamp,
     }
     return funcs[id_type](uid)
 
@@ -90,7 +106,7 @@ def _get_id_type(uid: str) -> str:
         pass
 
     try:
-        ulid.ULID.from_str(uid)
+        ULID.from_str(uid)
         return "ulid"
     except ValueError:
         pass
