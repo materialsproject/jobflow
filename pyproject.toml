@@ -36,6 +36,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ulid = ["python-ulid"]
 docs = [
     "autodoc_pydantic==2.0.1",
     "furo==2023.9.10",
@@ -62,6 +63,7 @@ strict = [
     "pydash==7.0.6",
     "pydot==2.0.0",
     "typing-extensions==4.9.0",
+    "python-ulid==2.2.0",
 ]
 
 [project.urls]

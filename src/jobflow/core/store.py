@@ -786,7 +786,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
-    from jobflow.utils.uuid import suuid
+    from jobflow.utils.uid import suid
 
     class_name = ""
     module_name = ""
@@ -797,6 +797,6 @@ def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
     return {
         "@class": class_name,
         "@module": module_name,
-        "blob_uuid": suuid(),
+        "blob_uuid": suid(),
         "store": store_name,
     }
