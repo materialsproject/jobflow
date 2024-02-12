@@ -547,7 +547,7 @@ class JobStore(Store):
     @classmethod
     def from_file(cls: type[T], db_file: str | Path, **kwargs) -> T:
         """
-        Create an JobStore from a database file.
+        Create a JobStore from a database file.
 
         Two options are supported for the database file. The file should be in json or
         yaml format.
@@ -555,7 +555,7 @@ class JobStore(Store):
         The simplest format is a monty dumped version of the store, generated using:
 
         >>> from monty.serialization import dumpfn
-        >>> dumpfn("job_store.yaml", job_store)
+        >>> dumpfn(job_store, "job_store.yaml")
 
         Alternatively, the file can contain the keys docs_store, additional_stores and
         any other keyword arguments supported by the :obj:`JobStore` constructor. The
