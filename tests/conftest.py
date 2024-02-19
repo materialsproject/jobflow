@@ -26,7 +26,7 @@ def mongo_jobstore(database):
     return store
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def memory_jobstore():
     from maggma.stores import MemoryStore
 
@@ -38,7 +38,7 @@ def memory_jobstore():
     return store
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def memory_data_jobstore():
     from maggma.stores import MemoryStore
 
@@ -50,7 +50,7 @@ def memory_data_jobstore():
     return store
 
 
-@pytest.fixture
+@pytest.fixture()
 def clean_dir():
     import os
     import shutil
@@ -85,7 +85,7 @@ def lpad(database, debug_mode):
             lpad.db[coll].drop()
 
 
-@pytest.fixture
+@pytest.fixture()
 def no_pydot(monkeypatch):
     import builtins
 
@@ -93,13 +93,13 @@ def no_pydot(monkeypatch):
 
     def mocked_import(name, *args, **kwargs):
         if name == "pydot":
-            raise ImportError()
+            raise ImportError
         return import_orig(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", mocked_import)
 
 
-@pytest.fixture
+@pytest.fixture()
 def no_matplotlib(monkeypatch):
     import builtins
 
@@ -107,7 +107,7 @@ def no_matplotlib(monkeypatch):
 
     def mocked_import(name, *args, **kwargs):
         if name == "matplotlib":
-            raise ImportError()
+            raise ImportError
         return import_orig(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", mocked_import)

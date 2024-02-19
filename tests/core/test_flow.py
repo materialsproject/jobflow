@@ -55,8 +55,7 @@ def get_maker_flow(return_makers=False):
 
     if return_makers:
         return flow, (AddMaker, DivMaker)
-    else:
-        return flow
+    return flow
 
 
 def test_flow_of_jobs_init():
@@ -109,7 +108,9 @@ def test_flow_of_jobs_init():
 
     # # test all jobs included needed to generate outputs
     add_job = get_test_job()
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="jobs array does not contain all jobs needed for flow output"
+    ):
         Flow([], output=add_job.output)
 
     # test job given rather than outputs
@@ -125,12 +126,14 @@ def test_flow_of_jobs_init():
     # test job already belongs to another flow
     add_job = get_test_job()
     Flow([add_job])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="already belongs to another flow"):
         Flow([add_job])
 
     # test that two of the same job cannot be used in the same flow
     add_job = get_test_job()
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="jobs array contains multiple jobs/flows with the same uuid"
+    ):
         Flow([add_job, add_job])
 
 
@@ -139,24 +142,24 @@ def test_flow_of_flows_init():
 
     # test single flow
     add_job = get_test_job()
-    subflow = Flow([add_job])
-    flow = Flow([subflow], name="add")
+    sub_flow = Flow([add_job])
+    flow = Flow([sub_flow], name="add")
     assert flow.name == "add"
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
-    assert flow.all_uuids == (add_job.uuid, subflow.uuid)
-    assert flow.jobs[0].host == flow.uuid
+    assert flow.all_uuids == (add_job.uuid, sub_flow.uuid)
+    assert flow[0].host == flow.uuid
 
     # test single flow no list
     add_job = get_test_job()
-    subflow = Flow(add_job)
-    flow = Flow(subflow, name="add")
+    sub_flow = Flow(add_job)
+    flow = Flow(sub_flow, name="add")
     assert flow.name == "add"
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid,)
-    assert flow.jobs[0].host == flow.uuid
+    assert flow[0].host == flow.uuid
 
     # test multiple flows
     add_job1 = get_test_job()
@@ -173,13 +176,13 @@ def test_flow_of_flows_init():
         add_job2.uuid,
         subflow2.uuid,
     )
-    assert flow.jobs[0].host == flow.uuid
-    assert flow.jobs[1].host == flow.uuid
+    assert flow[0].host == flow.uuid
+    assert flow[1].host == flow.uuid
 
     # test single job and outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    flow = Flow([subflow], output=subflow.output)
+    sub_flow = Flow([add_job], output=add_job.output)
+    flow = Flow([sub_flow], output=sub_flow.output)
     assert flow.output == add_job.output
 
     # test multi job and list multi outputs
@@ -193,34 +196,34 @@ def test_flow_of_flows_init():
 
     # test all jobflow included needed to generate outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    with pytest.raises(ValueError):
-        Flow([], output=subflow.output)
+    sub_flow = Flow([add_job], output=add_job.output)
+    with pytest.raises(ValueError, match="jobs array does not contain all jobs"):
+        Flow([], output=sub_flow.output)
 
     # test flow given rather than outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
+    sub_flow = Flow([add_job], output=add_job.output)
     with pytest.warns(UserWarning):
-        Flow([subflow], output=subflow)
+        Flow([sub_flow], output=sub_flow)
 
     # test complex object containing job given rather than outputs
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
+    sub_flow = Flow([add_job], output=add_job.output)
     with pytest.warns(UserWarning):
-        Flow([subflow], output={1: [[{"a": subflow}]]})
+        Flow([sub_flow], output={1: [[{"a": sub_flow}]]})
 
     # test flow already belongs to another flow
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    Flow([subflow])
-    with pytest.raises(ValueError):
-        Flow([subflow])
+    sub_flow = Flow([add_job], output=add_job.output)
+    Flow([sub_flow])
+    with pytest.raises(ValueError, match="already belongs to another flow"):
+        Flow([sub_flow])
 
     # test that two of the same flow cannot be used in the same flow
     add_job = get_test_job()
-    subflow = Flow([add_job], output=add_job.output)
-    with pytest.raises(ValueError):
-        Flow([subflow, subflow])
+    sub_flow = Flow([add_job], output=add_job.output)
+    with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
+        Flow([sub_flow, sub_flow])
 
 
 def test_flow_job_mixed():
@@ -234,8 +237,8 @@ def test_flow_job_mixed():
     assert flow.host is None
     assert flow.output is None
     assert flow.job_uuids == (add_job.uuid, add_job2.uuid)
-    assert flow.jobs[0].host == flow.uuid
-    assert flow.jobs[1].host == flow.uuid
+    assert flow[0].host == flow.uuid
+    assert flow[1].host == flow.uuid
 
     # test with list multi outputs
     add_job = get_test_job()
@@ -249,7 +252,7 @@ def test_flow_job_mixed():
     add_job = get_test_job()
     add_job2 = get_test_job()
     subflow = Flow([add_job2], output=add_job2.output)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array does not contain all jobs"):
         Flow([add_job], output=[add_job.output, subflow.output])
 
 
@@ -453,7 +456,7 @@ def test_iterflow():
     add_job2 = get_test_job()
     add_job1.function_args = (2, add_job2.output)
     flow = Flow([add_job1, add_job2], order=JobOrder.LINEAR)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Job connectivity contains cycles"):
         list(flow.iterflow())
 
     # test with external reference
@@ -493,41 +496,42 @@ def test_serialization():
     encoded_flow = json.loads(MontyEncoder().encode(flow_host))
     decoded_flow = MontyDecoder().process_decoded(encoded_flow)
 
-    assert decoded_flow.jobs[0].host == host_uuid
+    assert decoded_flow[0].host == host_uuid
+    assert flow_host.jobs[0].hosts == decoded_flow.jobs[0].hosts
 
 
 def test_update_kwargs():
     # test no filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5})
-    assert flow.jobs[0].function_kwargs["b"] == 5
-    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert flow[0].function_kwargs["b"] == 5
+    assert flow[1].function_kwargs["b"] == 5
 
     # test name filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, name_filter="div")
-    assert "b" not in flow.jobs[0].function_kwargs
-    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert "b" not in flow[0].function_kwargs
+    assert flow[1].function_kwargs["b"] == 5
 
     # test function filter
     flow = get_test_flow()
     flow.update_kwargs({"b": 5}, function_filter=div)
-    assert "b" not in flow.jobs[0].function_kwargs
-    assert flow.jobs[1].function_kwargs["b"] == 5
+    assert "b" not in flow[0].function_kwargs
+    assert flow[1].function_kwargs["b"] == 5
 
     # test dict mod
     flow = get_test_flow()
     flow.update_kwargs({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
-    assert "b" not in flow.jobs[0].function_kwargs
-    assert flow.jobs[1].function_kwargs["b"] == 8
+    assert "b" not in flow[0].function_kwargs
+    assert flow[1].function_kwargs["b"] == 8
 
 
 def test_update_maker_kwargs():
     # test no filter
     flow = get_maker_flow()
     flow.update_maker_kwargs({"b": 10})
-    assert flow.jobs[0].maker.b == 10
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 10
+    assert flow[1].maker.b == 10
 
     # test bad kwarg
     flow = get_maker_flow()
@@ -537,27 +541,27 @@ def test_update_maker_kwargs():
     # test name filter
     flow = get_maker_flow()
     flow.update_maker_kwargs({"b": 10}, name_filter="div")
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 10
 
     # test class filter
     flow, (_, DivMaker) = get_maker_flow(return_makers=True)
     flow.update_maker_kwargs({"b": 10}, class_filter=DivMaker)
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 10
 
     # test class filter with instance
     flow, (_, DivMaker) = get_maker_flow(return_makers=True)
     div_maker = DivMaker()
     flow.update_maker_kwargs({"b": 10}, class_filter=div_maker)
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 10
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 10
 
     # test dict mod
     flow = get_maker_flow()
     flow.update_maker_kwargs({"_inc": {"b": 10}}, name_filter="div", dict_mod=True)
-    assert flow.jobs[0].maker.b == 3
-    assert flow.jobs[1].maker.b == 14
+    assert flow[0].maker.b == 3
+    assert flow[1].maker.b == 14
 
 
 def test_append_name():
@@ -567,13 +571,13 @@ def test_append_name():
     flow = get_test_flow()
     flow.append_name(" test")
     assert flow.name == "Flow test"
-    assert flow.jobs[0].name == "add test"
+    assert flow[0].name == "add test"
 
     # test prepend
     flow = get_test_flow()
     flow.append_name("test ", prepend=True)
     assert flow.name == "test Flow"
-    assert flow.jobs[0].name == "test add"
+    assert flow[0].name == "test add"
 
     # test empty Flow
     flow = Flow([], name="abc")
@@ -591,16 +595,16 @@ def test_get_flow():
     assert isinstance(job, jobflow.Job)
     flow = get_flow(job)
     assert isinstance(flow, jobflow.Flow)
-    assert flow.jobs[0] is job
+    assert flow[0] is job
 
     # test get_flow method with a list of jobs
     job1 = get_test_job()
     job2 = get_test_job()
     flow = get_flow([job1, job2])
     assert isinstance(flow, jobflow.Flow)
-    assert len(flow.jobs) == 2
-    assert flow.jobs[0] is job1
-    assert flow.jobs[1] is job2
+    assert len(flow) == 2
+    assert flow[0] is job1
+    assert flow[1] is job2
 
     # test get_flow method with a flow
     flw = get_test_flow()
@@ -612,7 +616,10 @@ def test_get_flow():
     # test all jobs included for graph to work
     job1 = Job(add, function_args=(1, 2))
     job2 = Job(add, function_args=(job1.output.value, 2))
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="The following jobs were not found in the jobs array and are needed to ",
+    ):
         get_flow(job2, allow_external_references=False)
 
     job1 = Job(add, function_args=(1, 2))
@@ -640,17 +647,17 @@ def test_add_hosts_uuids():
     # test appending specific uuid
     flow = Flow([get_test_job()])
     flow.add_hosts_uuids("abc")
-    assert flow.jobs[0].hosts == [flow.uuid, "abc"]
+    assert flow[0].hosts == [flow.uuid, "abc"]
 
     # test appending several uuid
     flow = Flow([get_test_job()])
     flow.add_hosts_uuids(["abc", "xyz"])
-    assert flow.jobs[0].hosts == [flow.uuid, "abc", "xyz"]
+    assert flow[0].hosts == [flow.uuid, "abc", "xyz"]
 
     # test prepending specific uuid
     flow = Flow([get_test_job()])
     flow.add_hosts_uuids("abc", prepend=True)
-    assert flow.jobs[0].hosts == ["abc", flow.uuid]
+    assert flow[0].hosts == ["abc", flow.uuid]
 
 
 def test_hosts():
@@ -677,21 +684,21 @@ def test_add_jobs():
     add_job2 = get_test_job()
     flow1 = Flow(add_job1)
     flow1.add_jobs(add_job2)
-    assert len(flow1.jobs) == 2
+    assert len(flow1) == 2
     assert add_job2.hosts == [flow1.uuid]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
         flow1.add_jobs(add_job2)
 
     add_job3 = get_test_job()
     Flow(add_job3)
 
     # job belongs to another Flow
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="already belongs to another flow"):
         flow1.add_jobs(add_job3)
 
     add_job4 = get_test_job()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="jobs array contains multiple jobs/flows"):
         flow1.add_jobs([add_job4, add_job4])
 
     # nested flows
@@ -706,13 +713,15 @@ def test_add_jobs():
     flow1 = Flow([get_test_flow()])
     flow2 = Flow([flow1])
     flow3 = Flow([flow2])
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="circular dependency: Flow .+ contains the current Flow"
+    ):
         flow1.add_jobs(flow3)
 
     # test passing single job to @jobs setter
     flow1.jobs = add_job1
-    assert len(flow1.jobs) == 1
-    assert flow1.jobs[0] is add_job1
+    assert len(flow1) == 1
+    assert flow1[0] is add_job1
 
 
 def test_remove_jobs():
@@ -724,12 +733,15 @@ def test_remove_jobs():
     flow1 = Flow([add_job1, add_job2])
 
     flow1.remove_jobs(0)
-    assert len(flow1.jobs) == 1
-    assert flow1.jobs[0].uuid is add_job2.uuid
+    assert len(flow1) == 1
+    assert flow1[0].uuid is add_job2.uuid
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Only indices between 0 and the number of"):
         flow1.remove_jobs(-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Only indices between 0 and the number of the jobs are accepted",
+    ):
         flow1.remove_jobs(10)
 
     # test removing two jobs
@@ -739,15 +751,17 @@ def test_remove_jobs():
     flow = Flow([add_job1, add_job2, add_job3])
 
     flow.remove_jobs([0, 2])
-    assert len(flow.jobs) == 1
-    assert flow.jobs[0].uuid is add_job2.uuid
+    assert len(flow) == 1
+    assert flow[0].uuid is add_job2.uuid
 
     # test removing job which is used in output
     add_job1 = get_test_job()
     add_job2 = get_test_job()
     flow2 = Flow([add_job1, add_job2], output=add_job2.output)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Removed Jobs/Flows are referenced in the output of the Flow"
+    ):
         flow2.remove_jobs(1)
 
     # test removing a flow
@@ -758,17 +772,19 @@ def test_remove_jobs():
     flow = Flow([flow_inner, add_job3])
 
     flow.remove_jobs(0)
-    assert len(flow.jobs) == 1
-    assert flow.jobs[0].uuid is add_job3.uuid
+    assert len(flow) == 1
+    assert flow[0].uuid is add_job3.uuid
 
     # test removing a flow which is used in output
     add_job1 = get_test_job()
     add_job2 = get_test_job()
     add_job3 = get_test_job()
     flow_inner = Flow([add_job1, add_job2])
-    flow = Flow([flow_inner, add_job3], output=flow_inner.jobs[0].output)
+    flow = Flow([flow_inner, add_job3], output=flow_inner[0].output)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Removed Jobs/Flows are referenced in the output of the Flow"
+    ):
         flow.remove_jobs(0)
 
     # test removing a job in a flow containing another flow
@@ -779,8 +795,8 @@ def test_remove_jobs():
     flow = Flow([flow_inner, add_job3])
 
     flow.remove_jobs(1)
-    assert len(flow.jobs) == 1
-    assert flow.jobs[0].uuid is flow_inner.uuid
+    assert len(flow) == 1
+    assert flow[0].uuid is flow_inner.uuid
 
 
 def test_set_output():
@@ -794,7 +810,9 @@ def test_set_output():
     flow.output = add_job1.output
     assert flow.output.uuid == add_job1.uuid
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="jobs array does not contain all jobs needed for flow output"
+    ):
         flow.output = [add_job3.output]
 
 
@@ -802,26 +820,26 @@ def test_update_metadata():
     # test no filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5})
-    assert flow.jobs[0].metadata["b"] == 5
-    assert flow.jobs[1].metadata["b"] == 5
+    assert flow[0].metadata["b"] == 5
+    assert flow[1].metadata["b"] == 5
 
     # test name filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5}, name_filter="div")
-    assert "b" not in flow.jobs[0].metadata
-    assert flow.jobs[1].metadata["b"] == 5
+    assert "b" not in flow[0].metadata
+    assert flow[1].metadata["b"] == 5
 
     # test function filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5}, function_filter=div)
-    assert "b" not in flow.jobs[0].metadata
-    assert flow.jobs[1].metadata["b"] == 5
+    assert "b" not in flow[0].metadata
+    assert flow[1].metadata["b"] == 5
 
     # test dict mod
     flow = get_test_flow()
     flow.update_metadata({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
-    assert "b" not in flow.jobs[0].metadata
-    assert flow.jobs[1].metadata["b"] == 8
+    assert "b" not in flow[0].metadata
+    assert flow[1].metadata["b"] == 8
 
 
 def test_update_config():
@@ -836,28 +854,28 @@ def test_update_config():
     # test no filter
     flow = get_test_flow()
     flow.update_config(new_config)
-    assert flow.jobs[0].config == new_config
-    assert flow.jobs[1].config == new_config
+    assert flow[0].config == new_config
+    assert flow[1].config == new_config
 
     # test name filter
     flow = get_test_flow()
     flow.update_config(new_config, name_filter="div")
-    assert flow.jobs[0].config != new_config
-    assert flow.jobs[1].config == new_config
+    assert flow[0].config != new_config
+    assert flow[1].config == new_config
 
     # test function filter
     flow = get_test_flow()
     flow.update_config(new_config, function_filter=div)
-    assert flow.jobs[0].config != new_config
-    assert flow.jobs[1].config == new_config
+    assert flow[0].config != new_config
+    assert flow[1].config == new_config
 
     # test attributes
     flow = get_test_flow()
     flow.update_config(new_config, function_filter=div, attributes=["manager_config"])
-    assert flow.jobs[0].config.manager_config == {}
-    assert flow.jobs[0].config.resolve_references
-    assert flow.jobs[1].config.manager_config == {"a": "b"}
-    assert flow.jobs[1].config.resolve_references
+    assert flow[0].config.manager_config == {}
+    assert flow[0].config.resolve_references
+    assert flow[1].config.manager_config == {"a": "b"}
+    assert flow[1].config.resolve_references
 
 
 def test_flow_magic_methods():
@@ -883,7 +901,7 @@ def test_flow_magic_methods():
 
     # test __iter__
     for job in flow2:
-        assert job in [job4, job3]
+        assert job in {job4, job3}
 
     # test __contains__
     assert job1 in flow1
@@ -901,7 +919,7 @@ def test_flow_magic_methods():
     assert job5 not in flow4
 
     # test __eq__ and __hash__
-    assert flow1 == flow1
+    assert flow1 == flow1  # noqa: PLR0124
     assert flow1 != flow2
     assert hash(flow1) != hash(flow2)
 

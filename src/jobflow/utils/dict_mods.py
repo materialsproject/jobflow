@@ -21,9 +21,6 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
 
-__all__ = ["DictMods", "apply_mod"]
-
-
 class DictMods:
     """
     Class to define mongo-like modifications on a dict.

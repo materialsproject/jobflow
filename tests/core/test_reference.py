@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Union
 
 import pytest
 
@@ -11,7 +11,9 @@ def test_access():
     assert ref.attributes == ()
 
     # test bad init
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="Unrecognised attribute type 'x' for attribute '1'"
+    ):
         OutputReference("123", (("x", 1),))
 
     new_ref = ref.a
@@ -161,10 +163,10 @@ def test_schema():
     class MediumSchema(BaseModel):
         s: str
         nested: InnerSchema
-        nested_opt: Optional[InnerSchema]
-        nested_u: Union[InnerSchema, dict]
-        nested_l: List[InnerSchema]
-        nested_d: Dict[str, InnerSchema]
+        nested_opt: InnerSchema = None
+        nested_u: Union[InnerSchema, dict]  # noqa: FA100
+        nested_l: list[InnerSchema]
+        nested_d: dict[str, InnerSchema]
 
     class MySchema(BaseModel):
         number: int
@@ -184,25 +186,26 @@ def test_schema():
     assert new_ref.output_schema is None
 
     with pytest.raises(AttributeError):
-        assert ref.a.uuid == "123"
+        _ = ref.a.uuid
 
     with pytest.raises(AttributeError):
-        assert ref["a"].uuid == "123"
+        _ = ref["a"].uuid
 
     with pytest.raises(AttributeError):
-        assert ref[1].uuid == "123"
+        _ = ref[1].uuid
 
     # check valid nested schemas
     assert ref.nested.s.uuid == "123"
     with pytest.raises(AttributeError):
-        assert ref.nested.m.uuid == "123"
+        _ = ref.nested.m.uuid
+
     assert ref.nested.nested.n.uuid == "123"
     with pytest.raises(AttributeError):
-        assert ref.nested.nested.m.uuid == "123"
+        _ = ref.nested.nested.m.uuid
 
     assert ref.nested.nested_opt.n.uuid == "123"
     with pytest.raises(AttributeError):
-        assert ref.nested.nested_opt.m.uuid == "123"
+        _ = ref.nested.nested_opt.m.uuid
 
     # Union, List and Dict are currently not recognized by their inner type
     # but check that there is no problem with them
@@ -224,7 +227,7 @@ def test_resolve(memory_jobstore):
     assert ref.resolve(memory_jobstore, on_missing=OnMissing.NONE) is None
     assert ref.resolve(memory_jobstore, on_missing=OnMissing.PASS) == ref
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         ref.resolve(memory_jobstore, on_missing=OnMissing.ERROR)
 
     # resolve using store
@@ -308,7 +311,7 @@ def test_resolve_references(memory_jobstore):
     assert output[ref2] == ref2
 
     ref2 = OutputReference("12345")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         resolve_references([ref1, ref2], memory_jobstore, on_missing=OnMissing.ERROR)
 
     # resolve using store and empty cache
@@ -359,30 +362,64 @@ def test_find_and_get_references():
 
 
 def test_find_and_resolve_references(memory_jobstore):
+    from monty.json import MSONable
+
     from jobflow.core.reference import (
         OnMissing,
         OutputReference,
         find_and_resolve_references,
     )
 
+    global WithProp
+
+    class WithProp(MSONable):
+        def __init__(self, x):
+            self.x = x
+
+        @property
+        def plus(self):
+            return self.x + 1
+
     ref1 = OutputReference("123")
     ref2 = OutputReference("1234", (("i", "a"),))
+    ref_attr = OutputReference("123456", (("a", "x"),))
+    ref_prop = OutputReference("123456", (("a", "plus"),))
     memory_jobstore.update({"uuid": "123", "index": 1, "output": 101})
     memory_jobstore.update({"uuid": "1234", "index": 1, "output": {"a": "xyz", "b": 5}})
+    memory_jobstore.update({"uuid": "123456", "index": 1, "output": WithProp(1)})
 
     # test no reference
-    assert find_and_resolve_references(True, memory_jobstore) is True
+    assert find_and_resolve_references(arg=True, store=memory_jobstore) is True
     assert find_and_resolve_references("xyz", memory_jobstore) == "xyz"
+    assert (
+        find_and_resolve_references("xyz", memory_jobstore, deserialize=False) == "xyz"
+    )
     assert find_and_resolve_references([101], memory_jobstore) == [101]
+    assert find_and_resolve_references([101], memory_jobstore, deserialize=False) == [
+        101
+    ]
 
     # test single reference
     assert find_and_resolve_references(ref1, memory_jobstore) == 101
+    assert find_and_resolve_references(ref1, memory_jobstore, deserialize=False) == 101
+
+    # test single reference with object
+    assert find_and_resolve_references(ref_attr, memory_jobstore) == 1
+    assert find_and_resolve_references(ref_prop, memory_jobstore) == 2
+    assert (
+        find_and_resolve_references(ref_attr, memory_jobstore, deserialize=False) == 1
+    )
+    with pytest.raises(KeyError, match="plus"):
+        find_and_resolve_references(ref_prop, memory_jobstore, deserialize=False)
 
     # test list and tuple of references
     assert find_and_resolve_references([ref1], memory_jobstore) == [101]
     assert find_and_resolve_references([ref1, ref2], memory_jobstore) == [101, "xyz"]
+    assert find_and_resolve_references(
+        [ref1, ref2], memory_jobstore, deserialize=False
+    ) == [101, "xyz"]
 
-    # test dictionary dictionary values
+    # test dictionary values
     output = find_and_resolve_references({"a": ref1}, memory_jobstore)
     assert output == {"a": 101}
     output = find_and_resolve_references({"a": ref1, "b": ref2}, memory_jobstore)
@@ -425,9 +462,14 @@ def test_find_and_resolve_references(memory_jobstore):
     )
     assert output == [101, None]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         find_and_resolve_references(
             [ref1, ref3], memory_jobstore, on_missing=OnMissing.ERROR
+        )
+
+    with pytest.raises(ValueError, match="Could not resolve reference"):
+        find_and_resolve_references(
+            [ref1, ref3], memory_jobstore, on_missing=OnMissing.ERROR, deserialize=False
         )
 
 
@@ -461,7 +503,7 @@ def test_reference_in_output(memory_jobstore):
     memory_jobstore.update(task_data)
     assert ref1.resolve(memory_jobstore, on_missing=OnMissing.NONE) is None
     assert ref1.resolve(memory_jobstore, on_missing=OnMissing.PASS) == ref2
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not resolve reference"):
         ref1.resolve(memory_jobstore, on_missing=OnMissing.ERROR)
 
 
@@ -473,6 +515,6 @@ def test_not_iterable():
     with pytest.raises(TypeError):
         next(ref)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # noqa: PT012
         for _ in ref:
             pass

@@ -8,22 +8,22 @@ import logging
 import textwrap
 import warnings
 from copy import deepcopy
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from monty.json import MSONable
 
 import jobflow
 from jobflow.core.reference import find_and_get_references
-from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
+from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterator
+    from collections.abc import Iterator, Sequence
+    from typing import Any, Callable
 
     from networkx import DiGraph
 
     from jobflow import Job
 
-__all__ = ["JobOrder", "Flow", "get_flow"]
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,7 @@ class Flow(MSONable):
             jobs = [jobs]
 
         if uuid is None:
-            uuid = suuid()
+            uuid = suid()
 
         self.name = name
         self.order = order
@@ -169,7 +169,7 @@ class Flow(MSONable):
             raise TypeError(
                 f"Flow can only contain Job or Flow objects, not {type(value).__name__}"
             )
-        jobs = list(self.jobs)
+        jobs = list(self)
         jobs[idx] = value  # type: ignore[index, assignment]
         self.jobs = tuple(jobs)
 
@@ -191,10 +191,10 @@ class Flow(MSONable):
 
     def __sub__(self, other: Flow | Job) -> Flow:
         """Remove a job or subflow from the flow."""
-        if other not in self.jobs:
+        if other not in self:
             raise ValueError(f"{other!r} not found in flow")
         new_flow = deepcopy(self)
-        new_flow.jobs = tuple([job for job in new_flow.jobs if job != other])
+        new_flow.jobs = tuple([job for job in new_flow if job != other])
         return new_flow
 
     def __repr__(self, level: int = 0, prefix: str = "") -> str:
@@ -204,8 +204,8 @@ class Flow(MSONable):
         _prefix = f"{prefix}." if prefix else ""
         job_reprs = "\n".join(
             f"{indent}{_prefix}{i}. "
-            f"{j.__repr__(level + 1, f'{_prefix}{i}') if isinstance(j, Flow) else j}"
-            for i, j in enumerate(self.jobs, 1)
+            f"{jb.__repr__(level + 1, f'{_prefix}{i}') if isinstance(jb, Flow) else jb}"
+            for i, jb in enumerate(self, 1)
         )
         return f"Flow({name=}, {uuid=})\n{job_reprs}"
 
@@ -277,7 +277,8 @@ class Flow(MSONable):
                     f"Flow '{self.name}' contains a Flow or Job as an output. "
                     f"Usually the Flow output should be the output of a Job or "
                     f"another Flow (e.g. job.output). If this message is "
-                    f"unexpected then double check the outputs of your Flow."
+                    f"unexpected then double check the outputs of your Flow.",
+                    stacklevel=2,
                 )
 
             # check if the jobs array contains all jobs needed for the references
@@ -301,7 +302,7 @@ class Flow(MSONable):
             The uuids of all Jobs in the Flow (including nested Flows).
         """
         uuids: list[str] = []
-        for job in self.jobs:
+        for job in self:
             if isinstance(job, Flow):
                 uuids.extend(job.job_uuids)
             else:
@@ -319,7 +320,7 @@ class Flow(MSONable):
             The uuids of all Jobs and Flows in the Flow (including nested Flows).
         """
         uuids: list[str] = []
-        for job in self.jobs:
+        for job in self:
             if isinstance(job, Flow):
                 uuids.extend(job.all_uuids)
             uuids.append(job.uuid)
@@ -339,7 +340,7 @@ class Flow(MSONable):
 
         import networkx as nx
 
-        graph = nx.compose_all([job.graph for job in self.jobs])
+        graph = nx.compose_all([job.graph for job in self])
 
         for node in graph:
             node_props = graph.nodes[node]
@@ -349,7 +350,7 @@ class Flow(MSONable):
         if self.order == JobOrder.LINEAR:
             # add fake edges between jobs to force linear order
             edges = []
-            for job_a, job_b in nx.utils.pairwise(self.jobs):
+            for job_a, job_b in nx.utils.pairwise(self):
                 if isinstance(job_a, Flow):
                     leaves = [v for v, d in job_a.graph.out_degree() if d == 0]
                 else:
@@ -477,7 +478,7 @@ class Flow(MSONable):
         >>> flow.update_kwargs({"number": 10}, name_filter="add")
         >>> flow.update_kwargs({"number": 10}, function_filter=add)
         """
-        for job in self.jobs:
+        for job in self:
             job.update_kwargs(
                 update,
                 name_filter=name_filter,
@@ -576,7 +577,7 @@ class Flow(MSONable):
         ...     {"number": 10}, class_filter=AddMaker, nested=False
         ... )
         """
-        for job in self.jobs:
+        for job in self:
             job.update_maker_kwargs(
                 update,
                 name_filter=name_filter,
@@ -601,7 +602,7 @@ class Flow(MSONable):
         else:
             self.name += append_str
 
-        for job in self.jobs:
+        for job in self:
             job.append_name(append_str, prepend=prepend)
 
     def update_metadata(
@@ -650,7 +651,7 @@ class Flow(MSONable):
 
         >>> flow.update_metadata({"tag": "addition_job"})
         """
-        for job in self.jobs:
+        for job in self:
             job.update_metadata(
                 update,
                 name_filter=name_filter,
@@ -720,7 +721,7 @@ class Flow(MSONable):
 
         >>> flow.update_config({"manager_config": {"_fworker": "myfworker"}})
         """
-        for job in self.jobs:
+        for job in self:
             job.update_config(
                 config,
                 name_filter=name_filter,
@@ -759,8 +760,8 @@ class Flow(MSONable):
                 self.hosts.extend(hosts_uuids)
         else:
             hosts_uuids = [self.uuid]
-        for j in self.jobs:
-            j.add_hosts_uuids(hosts_uuids, prepend=prepend)
+        for job in self:
+            job.add_hosts_uuids(hosts_uuids, prepend=prepend)
 
     def add_jobs(self, jobs: Job | Flow | Sequence[Flow | Job]) -> None:
         """
@@ -797,7 +798,8 @@ class Flow(MSONable):
                     f"current Flow ({self.uuid})"
                 )
             job_ids.add(job.uuid)
-            job.add_hosts_uuids(hosts)
+            if job.host != self.uuid:
+                job.add_hosts_uuids(hosts)
         self._jobs += tuple(jobs)
 
     def remove_jobs(self, indices: int | list[int]):
@@ -813,12 +815,12 @@ class Flow(MSONable):
         """
         if not isinstance(indices, (list, tuple)):
             indices = [indices]
-        if any(i < 0 or i >= len(self.jobs) for i in indices):
+        if any(idx < 0 or idx >= len(self) for idx in indices):
             raise ValueError(
                 "Only indices between 0 and the number of the jobs are accepted"
             )
 
-        new_jobs = tuple(j for i, j in enumerate(self.jobs) if i not in indices)
+        new_jobs = tuple(job for idx, job in enumerate(self) if idx not in indices)
         uuids: set = set()
         for job in new_jobs:
             if isinstance(job, Flow):

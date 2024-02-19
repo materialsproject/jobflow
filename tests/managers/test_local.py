@@ -29,7 +29,7 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     from jobflow import run_locally
 
     flow = simple_flow()
-    uuid = flow.jobs[0].uuid
+    uuid = flow[0].uuid
 
     # run without log
     run_locally(flow, store=memory_jobstore, log=False)
@@ -62,13 +62,22 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     folders = list(Path(".").glob("job_*/"))
     assert len(folders) == 1
 
+    # run with folders and root_dir
+    assert Path(root_dir := "test").exists() is False
+    responses = run_locally(
+        flow, store=memory_jobstore, create_folders=True, root_dir=root_dir
+    )
+    assert responses[uuid][1].output == "12345_end"
+    folders = list(Path(root_dir).glob("job_*/"))
+    assert len(folders) == 1
+
 
 def test_connected_flow(memory_jobstore, clean_dir, connected_flow):
     from jobflow import run_locally
 
     flow = connected_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -90,10 +99,10 @@ def test_nested_flow(memory_jobstore, clean_dir, nested_flow):
     from jobflow import run_locally
 
     flow = nested_flow()
-    uuid1 = flow.jobs[0].jobs[0].uuid
-    uuid2 = flow.jobs[0].jobs[1].uuid
-    uuid3 = flow.jobs[1].jobs[0].uuid
-    uuid4 = flow.jobs[1].jobs[1].uuid
+    uuid1 = flow[0][0].uuid
+    uuid2 = flow[0][1].uuid
+    uuid3 = flow[1][0].uuid
+    uuid4 = flow[1][1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -121,7 +130,7 @@ def test_addition_flow(memory_jobstore, clean_dir, addition_flow):
     from jobflow import run_locally
 
     flow = addition_flow()
-    uuid1 = flow.jobs[0].uuid
+    uuid1 = flow[0].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -145,12 +154,12 @@ def test_detour_flow(memory_jobstore, clean_dir, detour_flow):
     from jobflow import run_locally
 
     flow = detour_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
-    uuid2 = next(u for u in responses if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in responses if u not in {uuid1, uuid3})
 
     # check responses has been filled
     assert len(responses) == 3
@@ -176,8 +185,8 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow):
     from jobflow import run_locally
 
     flow = replace_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -207,8 +216,8 @@ def test_replace_flow_nested(memory_jobstore, clean_dir, replace_flow_nested):
     from jobflow import run_locally
 
     flow = replace_flow_nested()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -238,7 +247,7 @@ def test_stop_jobflow_flow(memory_jobstore, clean_dir, stop_jobflow_flow):
     from jobflow import run_locally
 
     flow = stop_jobflow_flow()
-    uuid1 = flow.jobs[0].uuid
+    uuid1 = flow[0].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -280,9 +289,9 @@ def test_stop_children_flow(memory_jobstore, clean_dir, stop_children_flow):
     from jobflow import run_locally
 
     flow = stop_children_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
-    uuid3 = flow.jobs[2].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
+    uuid3 = flow[2].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
@@ -322,6 +331,62 @@ def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
     with pytest.raises(RuntimeError):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
 
+    with pytest.raises(ValueError, match="errored"):
+        run_locally(flow, store=memory_jobstore, raise_immediately=True)
+
+
+def test_ensure_success_with_replace(memory_jobstore, error_replace_flow, capsys):
+    from jobflow import run_locally
+
+    flow = error_replace_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled with the replaced
+    # job's output
+    assert len(responses) == 1
+    assert flow.job_uuids[0] in responses
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+
+def test_ensure_success_with_detour(error_detour_flow, memory_jobstore, capsys):
+    from jobflow import run_locally
+
+    flow = error_detour_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled with the detour output
+    assert len(responses) == 2
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+
+def test_ensure_success_with_addition(error_addition_flow, memory_jobstore, capsys):
+    from jobflow import run_locally
+
+    flow = error_addition_flow()
+
+    responses = run_locally(flow, store=memory_jobstore)
+
+    # check responses has been filled with the addition output
+    assert len(responses) == 2
+
+    captured = capsys.readouterr()
+    assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
 
 def test_stored_data_flow(memory_jobstore, clean_dir, stored_data_flow, capsys):
     from jobflow import run_locally
@@ -340,12 +405,12 @@ def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
     from jobflow import run_locally
 
     flow = detour_stop_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
-    uuid2 = next(u for u in responses if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in responses if u not in {uuid1, uuid3})
 
     # check responses has been filled
     assert len(responses) == 2

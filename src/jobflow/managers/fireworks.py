@@ -5,13 +5,14 @@ from __future__ import annotations
 import typing
 
 from fireworks import FiretaskBase, Firework, FWAction, Workflow, explicit_serialize
+from fireworks.utilities.fw_serializers import recursive_serialize, serialize_fw
+from monty.json import jsanitize
 
 if typing.TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
     import jobflow
-
-__all__ = ["flow_to_workflow", "job_to_firework", "JobFiretask"]
+    from jobflow.core.job import Job
 
 
 def flow_to_workflow(
@@ -148,7 +149,6 @@ class JobFiretask(FiretaskBase):
     def run_task(self, fw_spec):
         """Run the job and handle any dynamic firework submissions."""
         from jobflow import SETTINGS, initialize_logger
-        from jobflow.core.job import Job
 
         job: Job = self.get("job")
         store = self.get("store")
@@ -192,11 +192,23 @@ class JobFiretask(FiretaskBase):
             else:
                 detours = [detour_wf]
 
-        fwa = FWAction(
+        return FWAction(
             stored_data=response.stored_data,
             detours=detours,
             additions=additions,
             defuse_workflow=response.stop_jobflow,
             defuse_children=response.stop_children,
         )
-        return fwa
+
+    @serialize_fw
+    @recursive_serialize
+    def to_dict(self) -> dict:
+        """
+        Serialize version of the FireTask.
+
+        Overrides the original method to explicitly jsanitize the Job
+        to handle cases not properly handled by fireworks, like a Callable.
+        """
+        d = dict(self)
+        d["job"] = jsanitize(d["job"].as_dict())
+        return d

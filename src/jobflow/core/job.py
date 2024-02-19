@@ -10,10 +10,11 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.utils.uuid import suuid
+from jobflow.utils.uid import suid
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Hashable, Sequence
+    from collections.abc import Hashable, Sequence
+    from typing import Any, Callable
 
     from networkx import DiGraph
     from pydantic import BaseModel
@@ -21,8 +22,6 @@ if typing.TYPE_CHECKING:
     import jobflow
 
 logger = logging.getLogger(__name__)
-
-__all__ = ["job", "Job", "Response", "JobConfig", "store_inputs"]
 
 
 @dataclass
@@ -322,7 +321,7 @@ class Job(MSONable):
 
         function_args = () if function_args is None else function_args
         function_kwargs = {} if function_kwargs is None else function_kwargs
-        uuid = suuid() if uuid is None else uuid
+        uuid = suid() if uuid is None else uuid
         metadata = {} if metadata is None else metadata
         config = JobConfig() if config is None else config
 
@@ -360,7 +359,8 @@ class Job(MSONable):
                 f"Job '{self.name}' contains an Flow or Job as an input. "
                 f"Usually inputs should be the output of a Job or an Flow (e.g. "
                 f"job.output). If this message is unexpected then double check the "
-                f"inputs to your Job."
+                f"inputs to your Job.",
+                stacklevel=2,
             )
 
     def __repr__(self):
@@ -554,12 +554,12 @@ class Job(MSONable):
         --------
         Response, .OutputReference
         """
-        import builtins
         import types
         from datetime import datetime
 
         from jobflow import CURRENT_JOB
         from jobflow.core.flow import get_flow
+        from jobflow.core.schemas import JobStoreDocument
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -577,7 +577,7 @@ class Job(MSONable):
         # if function is bound method we need to do some magic to bind the unwrapped
         # function to the class/instance
         bound = getattr(self.function, "__self__", None)
-        if bound is not None and bound is not builtins:
+        if bound is not None and not isinstance(bound, types.ModuleType):
             function = types.MethodType(function, bound)
 
         response = function(*self.function_args, **self.function_kwargs)
@@ -633,15 +633,15 @@ class Job(MSONable):
             ) from err
 
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
-        data = {
-            "uuid": self.uuid,
-            "index": self.index,
-            "output": output,
-            "completed_at": datetime.now().isoformat(),
-            "metadata": self.metadata,
-            "hosts": self.hosts,
-            "name": self.name,
-        }
+        data: JobStoreDocument = JobStoreDocument(
+            uuid=self.uuid,
+            index=self.index,
+            output=output,
+            completed_at=datetime.now().isoformat(),
+            metadata=self.metadata,
+            hosts=self.hosts,
+            name=self.name,
+        )
         store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()

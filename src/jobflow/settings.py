@@ -5,13 +5,12 @@ from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
-from pydantic import BaseSettings, Field, root_validator
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from jobflow import JobStore
 
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
-
-__all__ = ["JobflowSettings"]
 
 
 def _default_additional_store():
@@ -108,7 +107,7 @@ class JobflowSettings(BaseSettings):
     JOB_STORE: JobStore = Field(
         default_factory=lambda: JobStore(
             MemoryStore(),
-            additional_stores=defaultdict(lambda: _default_additional_store()),
+            additional_stores=defaultdict(_default_additional_store),
         ),
         description="Default JobStore to use when running locally or using FireWorks. "
         "See the :obj:`JobflowSettings` docstring for more details on the "
@@ -119,12 +118,14 @@ class JobflowSettings(BaseSettings):
         description="Date stamp format used to create directories",
     )
 
-    class Config:
-        """Pydantic config settings."""
+    UID_TYPE: str = Field(
+        "uuid4", description="Type of unique identifier to use to track jobs. "
+    )
 
-        env_prefix = "jobflow_"
+    model_config = SettingsConfigDict(env_prefix="jobflow_")
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def load_default_settings(cls, values):
         """
         Load settings from file or environment variables.
@@ -141,7 +142,8 @@ class JobflowSettings(BaseSettings):
         if Path(config_file_path).exists():
             if Path(config_file_path).stat().st_size == 0:
                 warnings.warn(
-                    f"An empty JobFlow config file was located at {config_file_path}"
+                    f"An empty JobFlow config file was located at {config_file_path}",
+                    stacklevel=2,
                 )
             else:
                 try:

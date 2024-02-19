@@ -2,8 +2,6 @@
 
 from enum import Enum
 
-__all__ = ["ValueEnum"]
-
 
 class ValueEnum(Enum):
     """Enum that serializes to string as the value and can be compared against a str."""
@@ -14,10 +12,9 @@ class ValueEnum(Enum):
 
     def __eq__(self, other):
         """Compare to another enum for equality."""
-        if type(self) == type(other) and self.value == other.value:
+        if type(self) is type(other) and self.value == other.value:
             return True
-        else:
-            return str(self.value) == str(other)
+        return str(self.value) == str(other)
 
     def __hash__(self):
         """Get a hash of the enum."""

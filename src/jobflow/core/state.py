@@ -15,11 +15,7 @@ import typing
 from monty.design_patterns import singleton
 
 if typing.TYPE_CHECKING:
-    pass
-
     import jobflow
-
-__all__ = ["CURRENT_JOB"]
 
 
 @singleton

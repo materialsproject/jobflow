@@ -11,17 +11,19 @@ from jobflow.core.reference import OnMissing
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterator
     from enum import Enum
     from pathlib import Path
-    from typing import Any, Dict, Iterator, List, Optional, Type, Union
+    from typing import Any, Optional, Union
 
     from maggma.core import Sort
 
-    obj_type = Union[str, Enum, Type[MSONable], List[Union[Enum, str, Type[MSONable]]]]
-    save_type = Optional[Dict[str, obj_type]]
-    load_type = Union[bool, Dict[str, Union[bool, obj_type]]]
+    from jobflow.core.schemas import JobStoreDocument
 
-__all__ = ["JobStore"]
+    obj_type = Union[str, Enum, type[MSONable], list[Union[Enum, str, type[MSONable]]]]
+    save_type = Optional[dict[str, obj_type]]
+    load_type = Union[bool, dict[str, Union[bool, obj_type]]]
+
 
 T = typing.TypeVar("T", bound="JobStore")
 
@@ -249,12 +251,11 @@ class JobStore(Store):
         docs = self.query(
             criteria=criteria, properties=properties, load=load, sort=sort, limit=1
         )
-        d = next(docs, None)
-        return d
+        return next(docs, None)
 
     def update(
         self,
-        docs: list[dict] | dict,
+        docs: list[dict] | dict | JobStoreDocument | list[JobStoreDocument],
         key: list | str = None,
         save: bool | save_type = None,
     ):
@@ -264,7 +265,7 @@ class JobStore(Store):
         Parameters
         ----------
         docs
-            The document or list of documents to update.
+            The Pydantic document or list of Pydantic documents to update.
         key
             Field name(s) to determine uniqueness for a document, can be a list of
             multiple fields, a single field, or None if the Store's key field is to
@@ -281,7 +282,7 @@ class JobStore(Store):
 
         from jobflow.utils.find import find_key, update_in_dictionary
 
-        if save is None or save is True:
+        if save in (None, True):
             save = self.save
 
         save_keys = _prepare_save(save)
@@ -495,7 +496,7 @@ class JobStore(Store):
         #       this could be fixed but will require more complicated logic just to
         #       catch a very unlikely event.
 
-        if isinstance(which, int) or which in ("last", "first"):
+        if isinstance(which, int) or which in {"last", "first"}:
             sort = -1 if which == "last" else 1
 
             criteria: dict[str, Any] = {"uuid": uuid}
@@ -521,33 +522,32 @@ class JobStore(Store):
             return find_and_resolve_references(
                 result["output"], self, cache=cache, on_missing=on_missing
             )
-        else:
-            results = list(
-                self.query(
-                    criteria={"uuid": uuid},
-                    properties=["output"],
-                    sort={"index": 1},
-                    load=load,
-                )
+        results = list(
+            self.query(
+                criteria={"uuid": uuid},
+                properties=["output"],
+                sort={"index": 1},
+                load=load,
             )
+        )
 
-            if len(results) == 0:
-                raise ValueError(f"UUID: {uuid} has no outputs.")
+        if len(results) == 0:
+            raise ValueError(f"UUID: {uuid} has no outputs.")
 
-            results = [r["output"] for r in results]
+        results = [r["output"] for r in results]
 
-            refs = find_and_get_references(results)
-            if any(ref.uuid == uuid for ref in refs):
-                raise RuntimeError("Reference cycle detected - aborting.")
+        refs = find_and_get_references(results)
+        if any(ref.uuid == uuid for ref in refs):
+            raise RuntimeError("Reference cycle detected - aborting.")
 
-            return find_and_resolve_references(
-                results, self, cache=cache, on_missing=on_missing
-            )
+        return find_and_resolve_references(
+            results, self, cache=cache, on_missing=on_missing
+        )
 
     @classmethod
     def from_file(cls: type[T], db_file: str | Path, **kwargs) -> T:
         """
-        Create an JobStore from a database file.
+        Create a JobStore from a database file.
 
         Two options are supported for the database file. The file should be in json or
         yaml format.
@@ -555,7 +555,7 @@ class JobStore(Store):
         The simplest format is a monty dumped version of the store, generated using:
 
         >>> from monty.serialization import dumpfn
-        >>> dumpfn("job_store.yaml", job_store)
+        >>> dumpfn(job_store, "job_store.yaml")
 
         Alternatively, the file can contain the keys docs_store, additional_stores and
         any other keyword arguments supported by the :obj:`JobStore` constructor. The
@@ -661,6 +661,10 @@ class JobStore(Store):
 
         all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
 
+        # add ssh tunnel support
+        tunnel = maggma.stores.ssh_tunnel.SSHTunnel
+        all_stores[tunnel.__name__] = tunnel
+
         docs_store_info = spec["docs_store"]
         docs_store = _construct_store(docs_store_info, all_stores)
 
@@ -760,7 +764,7 @@ def _filter_blobs(
 
     new_blobs = []
     new_locations = []
-    for _store_name, store_load in load.items():
+    for store_load in load.values():
         for blob, location in zip(blob_infos, locations):
             if store_load is True:
                 new_blobs.append(blob)
@@ -782,7 +786,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
-    from jobflow.utils.uuid import suuid
+    from jobflow.utils.uid import suid
 
     class_name = ""
     module_name = ""
@@ -793,6 +797,6 @@ def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
     return {
         "@class": class_name,
         "@module": module_name,
-        "blob_uuid": suuid(),
+        "blob_uuid": suid(),
         "store": store_name,
     }

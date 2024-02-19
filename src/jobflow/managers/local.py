@@ -6,11 +6,9 @@ import logging
 import typing
 
 if typing.TYPE_CHECKING:
-    pass
+    from pathlib import Path
 
     import jobflow
-
-__all__ = ["run_locally"]
 
 logger = logging.getLogger(__name__)
 
@@ -20,33 +18,43 @@ def run_locally(
     log: bool = True,
     store: jobflow.JobStore = None,
     create_folders: bool = False,
+    root_dir: str | Path | None = None,
     ensure_success: bool = False,
     allow_external_references: bool = False,
+    raise_immediately: bool = False,
 ) -> dict[str, dict[int, jobflow.Response]]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
 
     Parameters
     ----------
-    flow
+    flow : Flow | Job | list[Job]
         A job or flow.
-    log
+    log : bool
         Whether to print log messages.
-    store
+    store : JobStore
         A job store. If a job store is not specified then
         :obj:`JobflowSettings.JOB_STORE` will be used. By default this is a maggma
         ``MemoryStore`` but can be customised by setting the jobflow configuration file.
-    create_folders
+    create_folders : bool
         Whether to run each job in a new folder.
-    ensure_success
+    root_dir : str | Path | None
+        The root directory to run the jobs in or where to create new subfolders if
+            ``create_folders`` is True. If None then the current working
+            directory will be used.
+    ensure_success : bool
         Raise an error if the flow was not executed successfully.
-    allow_external_references
+    allow_external_references : bool
         If False all the references to other outputs should be from other Jobs
         of the Flow.
+    raise_immediately : bool
+        If True, raise an exception immediately if a job fails. If False, continue
+        running the flow and only raise an exception at the end if the flow did not
+        finish running successfully.
 
     Returns
     -------
-    Dict[str, Dict[int, Response]]
+    dict[str, dict[int, Response]]
         The responses of the jobs, as a dict of ``{uuid: {index: response}}``.
     """
     from collections import defaultdict
@@ -63,6 +71,9 @@ def run_locally(
     if store is None:
         store = SETTINGS.JOB_STORE
 
+    root_dir = Path.cwd() if root_dir is None else Path(root_dir).resolve()
+    root_dir.mkdir(exist_ok=True)
+
     store.connect()
 
     if log:
@@ -75,13 +86,11 @@ def run_locally(
     responses: dict[str, dict[int, jobflow.Response]] = defaultdict(dict)
     stop_jobflow = False
 
-    root_dir = Path.cwd()
-
     def _run_job(job: jobflow.Job, parents):
         nonlocal stop_jobflow
 
         if stop_jobflow:
-            return False
+            return None, True
 
         if len(set(parents).intersection(stopped_parents)) > 0:
             # stop children has been called for one of the jobs' parents
@@ -89,23 +98,28 @@ def run_locally(
                 f"{job.name} is a child of a job with stop_children=True, skipping..."
             )
             stopped_parents.add(job.uuid)
-            return
+            return None, False
 
         if (
             len(set(parents).intersection(errored)) > 0
             and job.config.on_missing_references == OnMissing.ERROR
         ):
             errored.add(job.uuid)
-            return
+            return None, False
 
-        try:
+        if raise_immediately:
             response = job.run(store=store)
-        except Exception:
-            import traceback
+        else:
+            try:
+                response = job.run(store=store)
+            except Exception:
+                import traceback
 
-            logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
-            errored.add(job.uuid)
-            return
+                logger.info(
+                    f"{job.name} failed with exception:\n{traceback.format_exc()}"
+                )
+                errored.add(job.uuid)
+                return None, False
 
         responses[job.uuid][job.index] = response
 
@@ -117,21 +131,24 @@ def run_locally(
 
         if response.stop_jobflow:
             stop_jobflow = True
-            return False
+            return None, True
 
+        diversion_responses = []
         if response.replace is not None:
             # first run any restarts
-            _run(response.replace)
+            diversion_responses.append(_run(response.replace))
 
         if response.detour is not None:
             # next any detours
-            _run(response.detour)
+            diversion_responses.append(_run(response.detour))
 
         if response.addition is not None:
             # finally any additions
-            _run(response.addition)
+            diversion_responses.append(_run(response.addition))
 
-        return response
+        if not all(diversion_responses):
+            return None, False
+        return response, False
 
     def _get_job_dir():
         if create_folders:
@@ -139,19 +156,20 @@ def run_locally(
             job_dir = root_dir / f"job_{time_now}-{randint(10000, 99999)}"
             job_dir.mkdir()
             return job_dir
-        else:
-            return root_dir
+        return root_dir
 
     def _run(root_flow):
-        job: jobflow.Job
+        encountered_bad_response = False
         for job, parents in root_flow.iterflow():
             job_dir = _get_job_dir()
             with cd(job_dir):
-                response = _run_job(job, parents)
-            if response is False:
+                response, jobflow_stopped = _run_job(job, parents)
+
+            encountered_bad_response = encountered_bad_response or response is None
+            if jobflow_stopped:
                 return False
 
-        return response is not None
+        return not encountered_bad_response
 
     logger.info("Started executing jobs locally")
     finished_successfully = _run(flow)

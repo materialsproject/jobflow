@@ -58,14 +58,14 @@ def test_flow_to_workflow(
 
     # test on missing causes allow fizzled parents
     flow = connected_flow()
-    flow.jobs[0].config.on_missing_references = OnMissing.NONE
+    flow[0].config.on_missing_references = OnMissing.NONE
     wf = flow_to_workflow(flow, memory_jobstore)
 
     assert wf.fws[0].spec["_allow_fizzled_parents"] is True
 
     # test manager config
     flow = connected_flow()
-    flow.jobs[0].config.manager_config = {"metadata": 5}
+    flow[0].config.manager_config = {"metadata": 5}
     wf = flow_to_workflow(flow, memory_jobstore)
     assert wf.fws[0].spec["metadata"] == 5
 
@@ -92,7 +92,7 @@ def test_job_to_firework(
     assert type(fw) == Firework
     assert fw.name == "func"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Both or neither of"):
         job_to_firework(job2, memory_jobstore, parents=[job.uuid])
 
 
@@ -102,7 +102,7 @@ def test_simple_flow(lpad, mongo_jobstore, fw_dir, simple_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = simple_flow()
-    uuid = flow.jobs[0].uuid
+    uuid = flow[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -133,7 +133,7 @@ def test_simple_flow_no_store(lpad, fw_dir, simple_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = simple_flow()
-    uuid = flow.jobs[0].uuid
+    uuid = flow[0].uuid
 
     wf = flow_to_workflow(flow)
     fw_ids = lpad.add_wf(wf)
@@ -165,8 +165,8 @@ def test_simple_flow_metadata(
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = simple_flow()
-    uuid = flow.jobs[0].uuid
-    flow.jobs[0].metadata = {"tags": ["my_flow"]}
+    uuid = flow[0].uuid
+    flow[0].metadata = {"tags": ["my_flow"]}
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -189,8 +189,8 @@ def test_simple_flow_metadata(
 
     # test override
     flow = simple_flow()
-    flow.jobs[0].config.manager_config = {"_add_launchpad_and_fw_id": False}
-    uuid = flow.jobs[0].uuid
+    flow[0].config.manager_config = {"_add_launchpad_and_fw_id": False}
+    uuid = flow[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     lpad.add_wf(wf)
@@ -204,7 +204,7 @@ def test_simple_flow_metadata(
     # Test flow with metadata added after conversion to workflow
     # (for example: if an atomate powerup is used to add metadata)
     flow = simple_flow()
-    uuid = flow.jobs[0].uuid
+    uuid = flow[0].uuid
     wf = flow_to_workflow(flow, mongo_jobstore)
     wf.metadata = ["my_flow"]
     for idx_fw in range(len(wf.fws)):
@@ -221,10 +221,10 @@ def test_simple_flow_metadata(
 
     # Test flow with existing tags
     flow = connected_flow()
-    flow.jobs[0].metadata["tags"] = "some tag"
-    uuid0 = flow.jobs[0].uuid
-    flow.jobs[1].metadata["tags"] = ["tag, you're it"]
-    uuid1 = flow.jobs[1].uuid
+    flow[0].metadata["tags"] = "some tag"
+    uuid0 = flow[0].uuid
+    flow[1].metadata["tags"] = ["tag, you're it"]
+    uuid1 = flow[1].uuid
     wf = flow_to_workflow(flow, mongo_jobstore)
     wf.metadata = ["my_flow"]
     for idx_fw in range(len(wf.fws)):
@@ -248,8 +248,8 @@ def test_connected_flow(lpad, mongo_jobstore, fw_dir, connected_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = connected_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -277,10 +277,10 @@ def test_nested_flow(lpad, mongo_jobstore, fw_dir, nested_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = nested_flow()
-    uuid1 = flow.jobs[0].jobs[0].uuid
-    uuid2 = flow.jobs[0].jobs[1].uuid
-    uuid3 = flow.jobs[1].jobs[0].uuid
-    uuid4 = flow.jobs[1].jobs[1].uuid
+    uuid1 = flow[0][0].uuid
+    uuid2 = flow[0][1].uuid
+    uuid3 = flow[1][0].uuid
+    uuid4 = flow[1][1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -312,7 +312,7 @@ def test_addition_flow(lpad, mongo_jobstore, fw_dir, addition_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = addition_flow()
-    uuid1 = flow.jobs[0].uuid
+    uuid1 = flow[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -342,8 +342,8 @@ def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = detour_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -356,7 +356,7 @@ def test_detour_flow(lpad, mongo_jobstore, fw_dir, detour_flow, capsys):
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in uuids if u not in {uuid1, uuid3})
     assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
     # check store has the activity output
@@ -378,8 +378,8 @@ def test_replace_flow(lpad, mongo_jobstore, fw_dir, replace_flow, capsys):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = replace_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -412,8 +412,8 @@ def test_stop_jobflow_flow(lpad, mongo_jobstore, fw_dir, stop_jobflow_flow, caps
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stop_jobflow_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -469,9 +469,9 @@ def test_stop_children_flow(lpad, mongo_jobstore, fw_dir, stop_children_flow, ca
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stop_children_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid2 = flow.jobs[1].uuid
-    uuid3 = flow.jobs[2].uuid
+    uuid1 = flow[0].uuid
+    uuid2 = flow[1].uuid
+    uuid3 = flow[2].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -503,7 +503,7 @@ def test_error_flow(lpad, mongo_jobstore, fw_dir, error_flow):
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = error_flow()
-    uuid = flow.jobs[0].uuid
+    uuid = flow[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -527,7 +527,7 @@ def test_stored_data_flow(lpad, mongo_jobstore, fw_dir, stored_data_flow, capsys
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = stored_data_flow()
-    _fw_id = flow.jobs[0].uuid
+    _fw_id = flow[0].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -551,8 +551,8 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = detour_stop_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -565,7 +565,7 @@ def test_detour_stop_flow(lpad, mongo_jobstore, fw_dir, detour_stop_flow, capsys
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in uuids if u not in {uuid1, uuid3})
 
     # Sort by firework id explicitly instead of assuming they are sorted
     states_dict = dict(zip(list(wf.id_fw.keys()), list(wf.fw_states.values())))
@@ -590,8 +590,8 @@ def test_replace_and_detour_flow(
     from jobflow.managers.fireworks import flow_to_workflow
 
     flow = replace_and_detour_flow()
-    uuid1 = flow.jobs[0].uuid
-    uuid3 = flow.jobs[1].uuid
+    uuid1 = flow[0].uuid
+    uuid3 = flow[1].uuid
 
     wf = flow_to_workflow(flow, mongo_jobstore)
     fw_ids = lpad.add_wf(wf)
@@ -604,7 +604,7 @@ def test_replace_and_detour_flow(
     wf = lpad.get_wf_by_fw_id(fw_id)
 
     uuids = [fw.tasks[0]["job"].uuid for fw in wf.fws]
-    uuid2 = next(u for u in uuids if u != uuid1 and u != uuid3)
+    uuid2 = next(u for u in uuids if u not in {uuid1, uuid3})
 
     assert all(s == "COMPLETED" for s in wf.fw_states.values())
 
@@ -658,5 +658,37 @@ def test_external_reference(lpad, mongo_jobstore, fw_dir, simple_job, capsys):
 
     # check response
     result2 = mongo_jobstore.query_one({"uuid": uuid2})
-    print(result2)
     assert result2["output"] == "12345_end_end"
+
+
+def test_maker_flow(lpad, mongo_jobstore, fw_dir, maker_with_callable, capsys):
+    from fireworks.core.rocket_launcher import rapidfire
+
+    from jobflow.core.flow import Flow
+    from jobflow.managers.fireworks import flow_to_workflow
+
+    j = maker_with_callable(f=sum).make(a=1, b=2)
+
+    flow = Flow([j])
+    uuid = flow[0].uuid
+
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = next(iter(fw_ids.values()))
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
+
+    # check store has the activity output
+    result = mongo_jobstore.query_one({"uuid": uuid})
+    assert result["output"] == 3
+
+    # check logs printed
+    captured = capsys.readouterr()
+    assert "INFO Starting job - TestCallableMaker" in captured.out
+    assert "INFO Finished job - TestCallableMaker" in captured.out

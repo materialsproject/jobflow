@@ -8,18 +8,14 @@ import networkx as nx
 from monty.dev import requires
 
 try:
-    import matplotlib
+    import matplotlib as mpl
 except ImportError:
-    matplotlib = None
+    mpl = None
 
 import typing
 
 if typing.TYPE_CHECKING:
-    pass
-
     import jobflow
-
-__all__ = ["itergraph", "draw_graph", "to_pydot", "to_mermaid"]
 
 
 def itergraph(graph: nx.DiGraph):
@@ -50,13 +46,15 @@ def itergraph(graph: nx.DiGraph):
     subgraphs = [graph.subgraph(c) for c in nx.weakly_connected_components(graph)]
 
     if len(subgraphs) > 1:
-        warnings.warn("Some jobs are not connected, their ordering may be random")
+        warnings.warn(
+            "Some jobs are not connected, their ordering may be random", stacklevel=2
+        )
 
     for subgraph in subgraphs:
         yield from nx.topological_sort(subgraph)
 
 
-@requires(matplotlib, "matplotlib must be installed to plot flow graphs.")
+@requires(mpl, "matplotlib must be installed to plot flow graphs.")
 def draw_graph(
     graph: nx.DiGraph,
     layout_function: typing.Callable = None,
@@ -155,20 +153,20 @@ def to_pydot(flow: jobflow.Flow):
     nx_graph = flow.graph
     pydot_graph = pydot.Dot(f'"{flow.name}"', graph_type="digraph")
 
-    for n, nodedata in nx_graph.nodes(data=True):
-        str_nodedata = {k: str(v) for k, v in nodedata.items()}
-        p = pydot.Node(str(n), **str_nodedata)
+    for n, node_data in nx_graph.nodes(data=True):
+        str_node_data = {k: str(v) for k, v in node_data.items()}
+        p = pydot.Node(str(n), **str_node_data)
         pydot_graph.add_node(p)
 
-    for u, v, edgedata in nx_graph.edges(data=True):
-        str_edgedata = {k: str(v) for k, v in edgedata.items()}
-        edge = pydot.Edge(str(u), str(v), label=str_edgedata["properties"])
+    for u, v, edge_data in nx_graph.edges(data=True):
+        str_edge_data = {k: str(v) for k, v in edge_data.items()}
+        edge = pydot.Edge(str(u), str(v), label=str_edge_data["properties"])
         pydot_graph.add_edge(edge)
 
     def add_cluster(nested_flow, outer_graph):
         cluster = pydot.Cluster(nested_flow.uuid)
         cluster.set_label(nested_flow.name)
-        for job in nested_flow.jobs:
+        for job in nested_flow:
             if isinstance(job, Flow):
                 add_cluster(job, cluster)
             else:
@@ -236,7 +234,7 @@ def to_mermaid(flow: jobflow.Flow | jobflow.Job, show_flow_boxes: bool = False) 
     def add_subgraph(nested_flow, indent_level=1):
         prefix = "    " * indent_level
 
-        for job in nested_flow.jobs:
+        for job in nested_flow:
             if isinstance(job, Flow):
                 if show_flow_boxes:
                     lines.append(f"{prefix}subgraph {job.uuid} [{job.name}]")

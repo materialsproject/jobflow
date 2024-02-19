@@ -1,0 +1,29 @@
+name: Check Links
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check_links:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pytest-check-links nbconvert
+
+      - name: Run link check
+        run: |
+          pytest --check-links **/**/*.md **/**/*.ipynb --check-links-ignore "https://www.gauss-centre.eu"

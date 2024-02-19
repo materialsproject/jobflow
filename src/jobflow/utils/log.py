@@ -2,8 +2,6 @@
 
 import logging
 
-__all__ = ["initialize_logger"]
-
 
 def initialize_logger(level: int = logging.INFO) -> logging.Logger:
     """Initialize the default logger.

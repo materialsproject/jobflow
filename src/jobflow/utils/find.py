@@ -5,16 +5,10 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Hashable
+    from collections.abc import Hashable
+    from typing import Any
 
     from monty.json import MSONable
-
-__all__ = [
-    "find_key",
-    "find_key_value",
-    "update_in_dictionary",
-    "contains_flow_or_job",
-]
 
 
 def find_key(
@@ -78,10 +72,8 @@ def find_key(
             if (
                 inspect.isclass(key)
                 and issubclass(key, MSONable)
-                and "@module" in obj
-                and obj["@module"] == key.__module__
-                and "@class" in obj
-                and obj["@class"] == key.__name__
+                and obj.get("@module") == key.__module__
+                and obj.get("@class") == key.__name__
             ):
                 found_items.add(path)
                 found = True
@@ -209,7 +201,7 @@ def contains_flow_or_job(obj: Any) -> bool:
         # if the argument is an flow or job then stop there
         return True
 
-    elif isinstance(obj, (float, int, str, bool)):
+    if isinstance(obj, (float, int, str, bool)):
         # argument is a primitive, we won't find an flow or job here
         return False
 
@@ -241,7 +233,7 @@ def get_root_locations(locations):
         >>> _get_root_locations([["a", "b"], ["a"], ["c", "d"]])
         [["a"], ["c", "d"]]
     """
-    sorted_locs = sorted(locations, key=lambda x: len(x))
+    sorted_locs = sorted(locations, key=len)
     root_locations = []
     for loc in sorted_locs:
         if any(loc[: len(rloc)] == rloc for rloc in root_locations):
