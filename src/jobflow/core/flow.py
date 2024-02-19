@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import ast
-import inspect
 import logging
-import textwrap
 import warnings
 from copy import deepcopy
 from typing import TYPE_CHECKING
@@ -13,6 +10,7 @@ from typing import TYPE_CHECKING
 from monty.json import MSONable
 
 import jobflow
+from jobflow.core.job import Steps
 from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
@@ -879,156 +877,20 @@ def get_flow(
     return flow
 
 
-class MyTransformer(ast.NodeTransformer):
-    """Transformer returning local variables of a function together with its output."""
-
-    def my_visit(self, node):
-        for i, child in enumerate(node.body):
-            if isinstance(child, ast.Return):
-                # Create the node to assign a locals_ variable containing the local
-                # variables within the function, i.e. "locals_ = locals()".
-                # Note that this does not add the node or expression to
-                # the ast tree yet.
-                new_node = ast.Assign(
-                    targets=[ast.Name(id="locals_", ctx=ast.Store())],
-                    value=ast.Call(
-                        func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]
-                    ),
-                )
-                # Insert the "locals_ = locals()" Assign node to the ast tree.
-                node.body.insert(i, new_node)
-                # Default fix indentation and line numbers
-                ast.fix_missing_locations(new_node)
-                # Modify the return value so that it returns the local variables and the
-                # return value as a 2-tuple
-                child.value = ast.Tuple(
-                    elts=[ast.Name(id="locals_"), child.value], ctx=ast.Store()
-                )
-                break
-            elif hasattr(child, "body"):
-                self.my_visit(child)
-
-    def visit_FunctionDef(self, node):
-        self.my_visit(node)
-        for dec in node.decorator_list:
-            if (isinstance(dec, ast.Name) and dec.id == "flow") or (
-                isinstance(dec, ast.Call) and dec.func.id == "flow"
-            ):
-                node.decorator_list.remove(dec)
-        return node
-
-
 def flow(method=None):
-    """
-    Wrap a function to produce a :obj:`Flow`.
-
-    Implementation note:
-    We first change dynamically the function/method so that it returns the variables
-    local to the function. This is done using the above ast.NodeTransformer.
-    The function/method is changed so that it returns a 2-tuple consisting of the local
-    variables and the initial return value.
-    Example:
-    def mymethod(a):
-        return a
-    will be changed to:
-    def mymethod(a):
-        locals_ = locals()
-        return (locals_, a)
-    Then we use the locals in the wrapper and extract the list of jobs and flows
-    defined in the function/method.
-
-    Examples
-    --------
-        #1 with "simple" functions
-
-        from jobflow import job, flow
-
-        @job
-        def multiply(n, mult=1):
-            return mult*n
-
-
-        @job
-        def add(a, b):
-            return a+b
-
-
-        @flow
-        def add_multiply(a, b, mult=1):
-            j1 = add(a, b)
-            j2 = multiply(j1.output, mult=mult)
-            return j2.output
-
-        #2 with a Maker
-
-        from dataclasses import dataclass, field
-        from jobflow import job, Maker
-
-        @dataclass
-        class MultiplyMaker(Maker):
-            name: str = 'multiply'
-            multiple: int = 1
-
-            @job
-            def make(self, number):
-                return number * self.multiple
-
-        @dataclass
-        class AddMaker(Maker):
-            name: str = 'add'
-
-            @job
-            def make(self, a, b):
-                return a + b
-
-        @dataclass
-        class AddMultiply(Maker):
-            name: str = 'double_multiply'
-            multiply_maker_1: MultiplyMaker = field(
-                default_factory=lambda: MultiplyMaker(name='multiply_1', multiple=1)
-            )
-            multiple_maker_2: MultiplyMaker = field(
-                default_factory=lambda: MultiplyMaker(name='multiply_2', multiple=1)
-            )
-
-            @flow
-            def make(self, a, b):
-                j1 = self.multiply_maker_1.make(a)
-                j2 = self.multiple_maker_2.make(b)
-                add_job = AddMaker().make(j1.output, j2.output)
-                return add_job.output
-    """
-    # Get the source code of the method
-    print(inspect.getfile(method))
-    print(inspect.getsourcelines(method))
-    source = inspect.getsource(method)
-
-    # Needed for methods
-    source = textwrap.dedent(source)
-
-    # Use the ast module to parse the source code
-    tree = ast.parse(source)
-
-    # Apply the transformer to the AST
-    transformer = MyTransformer()
-    new_tree = transformer.visit(tree)
-
-    # Generate the modified source code
-    modified_source = ast.unparse(new_tree)
-
-    # Execute the code and update the example_method function
-    exec(modified_source)
-    print(locals())
-    new_meth = locals()[method.__name__]
-    print(new_meth)
+    """Wrap a function to produce a :obj:`Flow`."""
+    steps = Steps()
+    istart = len(steps)
 
     def wrapper(*args, **kwargs):
-        print(args, kwargs)
-        method_locals, method_return = new_meth(*args, **kwargs)
-        steps = []
-        for _name, value in method_locals.items():
-            if isinstance(value, (Job, Flow)):
-                steps.append(value)
-        return Flow(steps, output=method_return)
+        method_out = method(*args, **kwargs)
+        # Here deal with when it is already a Flow
+        if isinstance(method_out, Flow):
+            f = method_out
+        else:
+            flow_steps = steps.steps[istart:]
+            f = Flow(flow_steps, output=method_out)
+        steps.add(f)
+        return f
 
     return wrapper
