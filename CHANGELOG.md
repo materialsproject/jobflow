@@ -1,5 +1,18 @@
 # Change log
 
+## v0.1.17
+
+### New Features 🎉
+* Allow different UID types by @jmmshn in https://github.com/materialsproject/jobflow/pull/529
+
+### Enhancements 🛠
+
+* Optional Flag to help Debugging by @jmmshn in https://github.com/materialsproject/jobflow/pull/527
+* Add JOSS paper to README and docs by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/522
+* Remove debug print statements in tests + bump GH action versions by @janosh in https://github.com/materialsproject/jobflow/pull/523
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.16...v0.1.17
+
 ## v0.1.16
 
 ### Bug Fixes 🐛

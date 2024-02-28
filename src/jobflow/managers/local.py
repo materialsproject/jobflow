@@ -21,6 +21,7 @@ def run_locally(
     root_dir: str | Path | None = None,
     ensure_success: bool = False,
     allow_external_references: bool = False,
+    raise_immediately: bool = False,
 ) -> dict[str, dict[int, jobflow.Response]]:
     """
     Run a :obj:`Job` or :obj:`Flow` locally.
@@ -46,6 +47,10 @@ def run_locally(
     allow_external_references : bool
         If False all the references to other outputs should be from other Jobs
         of the Flow.
+    raise_immediately : bool
+        If True, raise an exception immediately if a job fails. If False, continue
+        running the flow and only raise an exception at the end if the flow did not
+        finish running successfully.
 
     Returns
     -------
@@ -102,14 +107,19 @@ def run_locally(
             errored.add(job.uuid)
             return None, False
 
-        try:
+        if raise_immediately:
             response = job.run(store=store)
-        except Exception:
-            import traceback
+        else:
+            try:
+                response = job.run(store=store)
+            except Exception:
+                import traceback
 
-            logger.info(f"{job.name} failed with exception:\n{traceback.format_exc()}")
-            errored.add(job.uuid)
-            return None, False
+                logger.info(
+                    f"{job.name} failed with exception:\n{traceback.format_exc()}"
+                )
+                errored.add(job.uuid)
+                return None, False
 
         responses[job.uuid][job.index] = response
 

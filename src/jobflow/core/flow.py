@@ -11,7 +11,7 @@ from monty.json import MSONable
 
 import jobflow
 from jobflow.core.reference import find_and_get_references
-from jobflow.utils import ValueEnum, contains_flow_or_job, suuid
+from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -135,7 +135,7 @@ class Flow(MSONable):
             jobs = [jobs]
 
         if uuid is None:
-            uuid = suuid()
+            uuid = suid()
 
         self.name = name
         self.order = order

@@ -399,3 +399,25 @@ def replace_and_detour_flow(replace_and_detour_job, simple_job):
         return Flow([replace, simple], simple.output, order=JobOrder.LINEAR)
 
     return _gen
+
+
+@pytest.fixture(scope="session")
+def maker_with_callable():
+    from dataclasses import dataclass
+    from typing import Callable
+
+    from jobflow.core.job import job
+    from jobflow.core.maker import Maker
+
+    global TestCallableMaker
+
+    @dataclass
+    class TestCallableMaker(Maker):
+        f: Callable
+        name: str = "TestCallableMaker"
+
+        @job
+        def make(self, a, b):
+            return self.f([a, b])
+
+    return TestCallableMaker

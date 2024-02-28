@@ -659,3 +659,36 @@ def test_external_reference(lpad, mongo_jobstore, fw_dir, simple_job, capsys):
     # check response
     result2 = mongo_jobstore.query_one({"uuid": uuid2})
     assert result2["output"] == "12345_end_end"
+
+
+def test_maker_flow(lpad, mongo_jobstore, fw_dir, maker_with_callable, capsys):
+    from fireworks.core.rocket_launcher import rapidfire
+
+    from jobflow.core.flow import Flow
+    from jobflow.managers.fireworks import flow_to_workflow
+
+    j = maker_with_callable(f=sum).make(a=1, b=2)
+
+    flow = Flow([j])
+    uuid = flow[0].uuid
+
+    wf = flow_to_workflow(flow, mongo_jobstore)
+    fw_ids = lpad.add_wf(wf)
+
+    # run the workflow
+    rapidfire(lpad)
+
+    # check workflow completed
+    fw_id = next(iter(fw_ids.values()))
+    wf = lpad.get_wf_by_fw_id(fw_id)
+
+    assert all(s == "COMPLETED" for s in wf.fw_states.values())
+
+    # check store has the activity output
+    result = mongo_jobstore.query_one({"uuid": uuid})
+    assert result["output"] == 3
+
+    # check logs printed
+    captured = capsys.readouterr()
+    assert "INFO Starting job - TestCallableMaker" in captured.out
+    assert "INFO Finished job - TestCallableMaker" in captured.out

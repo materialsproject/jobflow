@@ -547,7 +547,7 @@ class JobStore(Store):
     @classmethod
     def from_file(cls: type[T], db_file: str | Path, **kwargs) -> T:
         """
-        Create an JobStore from a database file.
+        Create a JobStore from a database file.
 
         Two options are supported for the database file. The file should be in json or
         yaml format.
@@ -555,7 +555,7 @@ class JobStore(Store):
         The simplest format is a monty dumped version of the store, generated using:
 
         >>> from monty.serialization import dumpfn
-        >>> dumpfn("job_store.yaml", job_store)
+        >>> dumpfn(job_store, "job_store.yaml")
 
         Alternatively, the file can contain the keys docs_store, additional_stores and
         any other keyword arguments supported by the :obj:`JobStore` constructor. The
@@ -786,7 +786,7 @@ def _filter_blobs(
 
 
 def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
-    from jobflow.utils.uuid import suuid
+    from jobflow.utils.uid import suid
 
     class_name = ""
     module_name = ""
@@ -797,6 +797,6 @@ def _get_blob_info(obj: Any, store_name: str) -> dict[str, str]:
     return {
         "@class": class_name,
         "@module": module_name,
-        "blob_uuid": suuid(),
+        "blob_uuid": suid(),
         "store": store_name,
     }
