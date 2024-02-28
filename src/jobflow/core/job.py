@@ -65,7 +65,7 @@ class JobConfig(MSONable):
     response_manager_config: dict = field(default_factory=dict)
 
 
-def job(method: Callable = None, **job_kwargs):
+def job(method: Callable = None, **job_kwargs) -> Callable[..., Job]:
     """
     Wrap a function to produce a :obj:`Job`.
 
