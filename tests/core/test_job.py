@@ -123,6 +123,13 @@ def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
     with pytest.raises(RuntimeError):
         test_job.run(memory_jobstore)
 
+    # test on standard library functions
+    import time
+
+    test_job = Job(time.sleep, function_args=(0.001,))
+    response = test_job.run(memory_jobstore)
+    assert isinstance(response, Response)
+
 
 def test_replace_response(memory_jobstore):
     from jobflow import Flow, Job, Response
@@ -365,7 +372,6 @@ def test_job_config(memory_jobstore):
     test_job = Job(addition_job, config=pass_config)
     response = test_job.run(memory_jobstore)
     assert len(response.addition) == 1
-    print(response.addition)
     assert response.addition[0].config.manager_config == manager_config
     assert response.addition[0].hosts == [response.addition.uuid]
 

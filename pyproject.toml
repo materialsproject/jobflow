@@ -39,28 +39,28 @@ dependencies = [
 docs = [
     "autodoc_pydantic==2.0.1",
     "furo==2023.9.10",
-    "ipython==8.18.1",
+    "ipython==8.20.0",
     "myst_parser==2.0.0",
     "nbsphinx==0.9.3",
     "sphinx-copybutton==0.5.2",
     "sphinx==7.2.6",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["moto==4.2.11", "pytest-cov==4.1.0", "pytest==7.4.3"]
+tests = ["moto==4.2.13", "pytest-cov==4.1.0", "pytest==7.4.4"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.59.0",
+    "maggma==0.60.2",
     "matplotlib==3.8.2",
     "monty==2023.11.3",
-    "moto==4.2.11",
+    "moto==4.2.13",
     "networkx==3.2.1",
     "pydantic-settings==2.1.0",
-    "pydantic==2.5.2",
+    "pydantic==2.5.3",
     "pydash==7.0.6",
-    "pydot==1.4.2",
+    "pydot==2.0.0",
     "typing-extensions==4.9.0",
 ]
 
@@ -153,11 +153,16 @@ select = [
 ]
 ignore = [
     "B028",
+    "COM812",
+    "DTZ005",
+    "FBT001",
+    "FBT002",
     "PLR0911", # too-many-return-statements
     "PLR0912", # too-many-branches
     "PLR0913", # too-many-arguments
     "PLR0915", # too-many-statements
     "PLW0603",
+    "PTH",
     "RUF013",
 ]
 pydocstyle.convention = "numpy"
@@ -169,4 +174,4 @@ isort.known-first-party = ["jobflow"]
 # D: pydocstyle
 # PLR2004: magic-value-comparison
 # PT004: pytest-missing-fixture-name-underscore
-"**/tests/*" = ["D", "PLR2004", "PT004"]
+"**/tests/*" = ["ANN", "ARG001", "D", "PLR2004", "PT004", "S101"]
