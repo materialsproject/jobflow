@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from monty.json import MSONable, jsanitize
 
 from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.utils.uuid import suuid
+from jobflow.utils.uid import suid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
@@ -321,7 +321,7 @@ class Job(MSONable):
 
         function_args = () if function_args is None else function_args
         function_kwargs = {} if function_kwargs is None else function_kwargs
-        uuid = suuid() if uuid is None else uuid
+        uuid = suid() if uuid is None else uuid
         metadata = {} if metadata is None else metadata
         config = JobConfig() if config is None else config
 
