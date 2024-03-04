@@ -205,7 +205,7 @@ def contains_flow_or_job(obj: Any) -> bool:
         # argument is a primitive, we won't find an flow or job here
         return False
 
-    obj = jsanitize(obj, strict=True, allow_bson=True)
+    obj = jsanitize(obj, strict=True, allow_bson=True, enum_values=True)
 
     # recursively find any reference classes
     locations = find_key_value(obj, "@class", "Flow")
