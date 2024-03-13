@@ -40,26 +40,26 @@ ulid = ["python-ulid"]
 docs = [
     "autodoc_pydantic==2.0.1",
     "furo==2024.1.29",
-    "ipython==8.22.1",
+    "ipython==8.22.2",
     "myst_parser==2.0.0",
     "nbsphinx==0.9.3",
     "sphinx-copybutton==0.5.2",
     "sphinx==7.2.6",
 ]
 dev = ["pre-commit>=2.12.1"]
-tests = ["moto==4.2.13", "pytest-cov==4.1.0", "pytest==8.0.2"]
+tests = ["moto==4.2.13", "pytest-cov==4.1.0", "pytest==8.1.1"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.1",
-    "maggma==0.63.3",
+    "maggma==0.63.4",
     "matplotlib==3.8.3",
     "monty==2024.2.26",
     "moto==4.2.13",
     "networkx==3.2.1",
     "pydantic-settings==2.2.1",
-    "pydantic==2.6.2",
+    "pydantic==2.6.3",
     "pydash==7.0.7",
     "pydot==2.0.0",
     "typing-extensions==4.10.0",
