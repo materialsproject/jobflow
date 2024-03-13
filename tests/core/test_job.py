@@ -940,15 +940,22 @@ def test_output_schema(memory_jobstore):
 
 
 def test_store_inputs(memory_jobstore):
-    from jobflow.core.job import Job, OutputReference, store_inputs
+    from jobflow.core.job import (
+        Job,
+        OutputReference,
+        store_inputs,
+        JobConfig,
+        OnMissing,
+    )
 
-    test_job = store_inputs(1)
+    configs = JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE)
+    test_job = Job(store_inputs, (1,), config=configs)
     test_job.run(memory_jobstore)
     output = memory_jobstore.query_one({"uuid": test_job.uuid}, ["output"])["output"]
     assert output == 1
 
     ref = OutputReference("abcd")
-    test_job = store_inputs(ref)
+    test_job = Job(store_inputs, (ref,), config=configs)
     test_job.run(memory_jobstore)
     output = memory_jobstore.query_one({"uuid": test_job.uuid}, ["output"])["output"]
     assert OutputReference.from_dict(output) == ref

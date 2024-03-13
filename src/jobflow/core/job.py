@@ -65,7 +65,7 @@ class JobConfig(MSONable):
     response_manager_config: dict = field(default_factory=dict)
 
 
-def job(method: Callable = None, **job_kwargs):
+def job(method: Callable = None, **job_kwargs) -> Callable[..., Job]:
     """
     Wrap a function to produce a :obj:`Job`.
 
@@ -1266,7 +1266,6 @@ def apply_schema(output: Any, schema: type[BaseModel] | None):
     return schema(**output)
 
 
-@job(config=JobConfig(resolve_references=False, on_missing_references=OnMissing.NONE))
 def store_inputs(inputs: Any) -> Any:
     """
     Job to store inputs.
@@ -1316,7 +1315,12 @@ def prepare_replace(
         # add a job with same UUID as the current job to store the outputs of the
         # flow; this job will inherit the metadata and output schema of the current
         # job
-        store_output_job = store_inputs(replace.output)
+        new_config = JobConfig(
+            resolve_references=False, on_missing_references=OnMissing.NONE
+        )
+        store_output_job = Job(
+            store_inputs, function_args=(replace.output,), config=new_config
+        )
         store_output_job.set_uuid(current_job.uuid)
         store_output_job.index = current_job.index + 1
         store_output_job.metadata = current_job.metadata
@@ -1347,6 +1351,7 @@ def pass_manager_config(
 ):
     """
     Pass the manager config on to any jobs in the jobs array.
+    Merge with already specified manager config.
 
     Parameters
     ----------
@@ -1354,11 +1359,7 @@ def pass_manager_config(
         A job, flow, or list of jobs/flows.
     manager_config
         A manager config to pass on.
-    metadata
-        Metadata to pass on.
     """
-    from copy import deepcopy
-
     all_jobs: list[Job] = []
 
     def get_jobs(arg):
@@ -1378,4 +1379,4 @@ def pass_manager_config(
 
     # update manager config
     for ajob in all_jobs:
-        ajob.config.manager_config = deepcopy(manager_config)
+        ajob.config.manager_config = manager_config | ajob.config.manager_config
