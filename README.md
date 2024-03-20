@@ -1,4 +1,8 @@
-# jobflow
+<div align="center">
+
+# ![Jobflow](docs/_static/img/jobflow_logo.svg)
+
+</div>
 
 [![tests](https://img.shields.io/github/actions/workflow/status/materialsproject/jobflow/testing.yml?branch=main&label=tests)](https://github.com/materialsproject/jobflow/actions?query=workflow%3Atesting)
 [![code coverage](https://img.shields.io/codecov/c/gh/materialsproject/jobflow/main)](https://codecov.io/gh/materialsproject/jobflow/)
