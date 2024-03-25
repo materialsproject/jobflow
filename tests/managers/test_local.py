@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 
@@ -10,7 +12,11 @@ def test_simple_job(memory_jobstore, clean_dir, simple_job):
     responses = run_locally(job, store=memory_jobstore)
 
     # check responses has been filled
-    assert responses[uuid][1].output == "12345_end"
+    response1 = responses[uuid][1]
+    assert response1.output == "12345_end"
+    # check job_dir
+    assert isinstance(response1.job_dir, Path)
+    assert response1.job_dir.exists()
 
     # check store has the activity output
     result = memory_jobstore.query_one({"uuid": uuid})
@@ -63,7 +69,8 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     assert len(folders) == 1
 
     # run with folders and root_dir
-    assert Path(root_dir := "test").exists() is False
+    root_dir = "test"
+    assert Path(root_dir).exists() is False
     responses = run_locally(
         flow, store=memory_jobstore, create_folders=True, root_dir=root_dir
     )
@@ -416,7 +423,9 @@ def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
     assert len(responses) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].detour is not None
+    assert responses[uuid1][1].job_dir is None
     assert responses[uuid2][1].output == "1234"
+    assert responses[uuid2][1].job_dir is None
 
     # check store has the activity output
     result1 = memory_jobstore.query_one({"uuid": uuid1})
