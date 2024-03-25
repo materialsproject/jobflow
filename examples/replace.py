@@ -1,6 +1,5 @@
 """A demonstration of how to use dynamic workflows with replace."""
 
-
 from jobflow import Flow, job, run_locally
 
 

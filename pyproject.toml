@@ -121,7 +121,6 @@ exclude_lines = [
 
 [tool.ruff]
 target-version = "py39"
-ignore-init-module-imports = true
 
 [tool.ruff.lint]
 select = [
@@ -161,6 +160,7 @@ ignore = [
     "DTZ005",
     "FBT001",
     "FBT002",
+    "ISC001",
     "PLR0911", # too-many-return-statements
     "PLR0912", # too-many-branches
     "PLR0913", # too-many-arguments
@@ -171,6 +171,7 @@ ignore = [
 ]
 pydocstyle.convention = "numpy"
 isort.known-first-party = ["jobflow"]
+ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 # F401: unused import

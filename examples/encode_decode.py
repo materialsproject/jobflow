@@ -1,4 +1,5 @@
 """A simple example to show message passing between jobs."""
+
 from jobflow import Flow, job, run_locally
 
 
