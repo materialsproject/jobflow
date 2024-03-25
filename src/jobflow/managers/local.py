@@ -165,6 +165,8 @@ def run_locally(
             with cd(job_dir):
                 response, jobflow_stopped = _run_job(job, parents)
 
+            if response is not None:
+                response.job_dir = job_dir
             encountered_bad_response = encountered_bad_response or response is None
             if jobflow_stopped:
                 return False
