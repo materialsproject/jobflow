@@ -1,4 +1,5 @@
 """Tools for generating UUIDs."""
+
 from monty.dev import deprecated
 
 

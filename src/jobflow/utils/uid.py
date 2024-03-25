@@ -1,4 +1,5 @@
 """Tools for generating UUIDs."""
+
 from __future__ import annotations
 
 from uuid import UUID
