@@ -142,6 +142,9 @@ html_theme_options = {
         "font-size--small--3": "87.5%",
         "font-size--small--4": "87.5%",
     },
+    "light_logo": "img/jobflow_logo.svg",
+    "dark_logo": "img/jobflow_logo.svg",
+    "sidebar_hide_name": True,
 }
 html_title = "jobflow"
 
