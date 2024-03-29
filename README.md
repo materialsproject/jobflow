@@ -1,10 +1,14 @@
-# jobflow
+<div align="center">
+
+# ![Jobflow](docs/_static/img/jobflow_logo.svg)
 
 [![tests](https://img.shields.io/github/actions/workflow/status/materialsproject/jobflow/testing.yml?branch=main&label=tests)](https://github.com/materialsproject/jobflow/actions?query=workflow%3Atesting)
 [![code coverage](https://img.shields.io/codecov/c/gh/materialsproject/jobflow/main)](https://codecov.io/gh/materialsproject/jobflow/)
 [![pypi version](https://img.shields.io/pypi/v/jobflow?color=blue)](https://pypi.org/project/jobflow/)
 ![supported python versions](https://img.shields.io/pypi/pyversions/jobflow)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.05995/status.svg)](https://doi.org/10.21105/joss.05995)
+
+</div>
 
 [Documentation](https://materialsproject.github.io/jobflow/) | [PyPI](https://pypi.org/project/jobflow/) | [GitHub](https://github.com/materialsproject/jobflow) | [Paper](https://doi.org/10.21105/joss.05995)
 
