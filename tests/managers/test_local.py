@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import pytest
 
 
@@ -10,7 +13,11 @@ def test_simple_job(memory_jobstore, clean_dir, simple_job):
     responses = run_locally(job, store=memory_jobstore)
 
     # check responses has been filled
-    assert responses[uuid][1].output == "12345_end"
+    response1 = responses[uuid][1]
+    assert response1.output == "12345_end"
+    # check job_dir
+    assert isinstance(response1.job_dir, Path)
+    assert os.path.isdir(response1.job_dir)
 
     # check store has the activity output
     result = memory_jobstore.query_one({"uuid": uuid})
@@ -63,7 +70,8 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     assert len(folders) == 1
 
     # run with folders and root_dir
-    assert Path(root_dir := "test").exists() is False
+    root_dir = "test"
+    assert Path(root_dir).exists() is False
     responses = run_locally(
         flow, store=memory_jobstore, create_folders=True, root_dir=root_dir
     )
@@ -159,12 +167,14 @@ def test_detour_flow(memory_jobstore, clean_dir, detour_flow):
 
     # run with log
     responses = run_locally(flow, store=memory_jobstore)
-    uuid2 = next(u for u in responses if u not in {uuid1, uuid3})
+    uuid2 = next(uuid for uuid in responses if uuid not in {uuid1, uuid3})
 
     # check responses has been filled
     assert len(responses) == 3
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].detour is not None
+    assert isinstance(responses[uuid1][1].job_dir, Path)
+    assert os.path.isdir(responses[uuid1][1].job_dir)
     assert responses[uuid2][1].output == "11_end"
     assert responses[uuid3][1].output == "12345_end"
 
@@ -196,6 +206,8 @@ def test_replace_flow(memory_jobstore, clean_dir, replace_flow):
     assert len(responses[uuid1]) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].replace is not None
+    assert isinstance(responses[uuid1][1].job_dir, Path)
+    assert os.path.isdir(responses[uuid1][1].job_dir)
     assert responses[uuid1][2].output == "11_end"
     assert responses[uuid2][1].output == "12345_end"
 
@@ -416,7 +428,10 @@ def test_detour_stop_flow(memory_jobstore, clean_dir, detour_stop_flow):
     assert len(responses) == 2
     assert responses[uuid1][1].output == 11
     assert responses[uuid1][1].detour is not None
+    assert responses[uuid1][1].job_dir is None
     assert responses[uuid2][1].output == "1234"
+    # TODO maybe find way to set artificial job_dir and test is not None
+    assert responses[uuid2][1].job_dir is None
 
     # check store has the activity output
     result1 = memory_jobstore.query_one({"uuid": uuid1})
@@ -444,3 +459,5 @@ def test_external_reference(memory_jobstore, clean_dir, simple_job):
     uuid2 = job2.uuid
     responses = run_locally(job2, store=memory_jobstore, allow_external_references=True)
     assert responses[uuid2][1].output == "12345_end_end"
+    assert isinstance(responses[uuid2][1].job_dir, Path)
+    assert os.path.isdir(responses[uuid2][1].job_dir)

@@ -1,4 +1,5 @@
 """A dynamic workflow that calculates the Fibonacci sequence."""
+
 from jobflow import Response, job, run_locally
 
 

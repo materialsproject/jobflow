@@ -17,6 +17,7 @@ if typing.TYPE_CHECKING:
     from typing import Any, Optional, Union
 
     from maggma.core import Sort
+    from typing_extensions import Self
 
     from jobflow.core.schemas import JobStoreDocument
 
@@ -545,7 +546,7 @@ class JobStore(Store):
         )
 
     @classmethod
-    def from_file(cls: type[T], db_file: str | Path, **kwargs) -> T:
+    def from_file(cls, db_file: str | Path, **kwargs) -> Self:
         """
         Create a JobStore from a database file.
 
@@ -605,7 +606,7 @@ class JobStore(Store):
         return cls.from_dict_spec(store_info, **kwargs)
 
     @classmethod
-    def from_dict_spec(cls: type[T], spec: dict, **kwargs) -> T:
+    def from_dict_spec(cls, spec: dict, **kwargs) -> Self:
         """
         Create an JobStore from a dict specification.
 
