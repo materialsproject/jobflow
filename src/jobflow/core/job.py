@@ -1231,8 +1231,8 @@ class Response(typing.Generic[T]):
 
         if isinstance(job_returns, (list, tuple)):
             # check that a Response object is not given as one of many outputs
-            for r in job_returns:
-                if isinstance(r, Response):
+            for resp in job_returns:
+                if isinstance(resp, Response):
                     raise ValueError(
                         "Response cannot be returned in combination with other outputs."
                     )

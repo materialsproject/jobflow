@@ -58,7 +58,7 @@ def run_locally(
         The responses of the jobs, as a dict of ``{uuid: {index: response}}``.
     """
     from collections import defaultdict
-    from datetime import datetime
+    from datetime import UTC, datetime
     from pathlib import Path
     from random import randint
 
@@ -152,7 +152,7 @@ def run_locally(
 
     def _get_job_dir():
         if create_folders:
-            time_now = datetime.utcnow().strftime(SETTINGS.DIRECTORY_FORMAT)
+            time_now = datetime.now(tz=UTC).strftime(SETTINGS.DIRECTORY_FORMAT)
             job_dir = root_dir / f"job_{time_now}-{randint(10000, 99999)}"
             job_dir.mkdir()
             return job_dir
