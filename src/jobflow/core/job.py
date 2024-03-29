@@ -1186,14 +1186,14 @@ class Response(typing.Generic[T]):
     stored_data: dict[Hashable, Any] = None
     stop_children: bool = False
     stop_jobflow: bool = False
-    job_dir: Path = None
+    job_dir: str | Path = None
 
     @classmethod
     def from_job_returns(
         cls,
         job_returns: Any | None,
         output_schema: type[BaseModel] = None,
-        job_dir: Path = None,
+        job_dir: str | Path = None,
     ) -> Self:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
