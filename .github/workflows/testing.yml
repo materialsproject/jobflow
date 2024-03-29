@@ -51,8 +51,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install .[strict,tests]
+          pip install uv
+          uv pip install .[strict,tests] --system
 
       - name: Test
         run: pytest --cov=jobflow --cov-report=xml
@@ -80,8 +80,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install .[strict,docs]
+          pip install uv
+          uv pip install .[strict,docs] --system
 
       - name: Build
         run: sphinx-build docs docs_build
