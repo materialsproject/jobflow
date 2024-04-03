@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def run_locally(
     flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
     log: bool = True,
-    store: jobflow.JobStore = None,
+    store: jobflow.JobStore | None = None,
     create_folders: bool = False,
     root_dir: str | Path | None = None,
     ensure_success: bool = False,

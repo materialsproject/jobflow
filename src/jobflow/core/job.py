@@ -6,7 +6,7 @@ import logging
 import typing
 import warnings
 from dataclasses import dataclass, field
-from typing import cast
+from typing import cast, overload
 
 from monty.json import MSONable, jsanitize
 from typing_extensions import Self
@@ -66,6 +66,16 @@ class JobConfig(MSONable):
     expose_store: bool = False
     pass_manager_config: bool = True
     response_manager_config: dict = field(default_factory=dict)
+
+
+@overload
+def job(method: Callable = None) -> Callable[..., Job]:
+    pass
+
+
+@overload
+def job(method: Callable = None, **job_kwargs) -> Callable[..., Callable[..., Job]]:
+    pass
 
 
 def job(method: Callable = None, **job_kwargs):
