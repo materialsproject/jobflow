@@ -6,14 +6,17 @@ import logging
 import typing
 import warnings
 from dataclasses import dataclass, field
+from typing import cast
 
 from monty.json import MSONable, jsanitize
+from typing_extensions import Self
 
 from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uid import suid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
+    from pathlib import Path
     from typing import Any, Callable
 
     from networkx import DiGraph
@@ -526,7 +529,7 @@ class Job(MSONable):
         self.uuid = uuid
         self.output = self.output.set_uuid(uuid)
 
-    def run(self, store: jobflow.JobStore) -> Response:
+    def run(self, store: jobflow.JobStore, job_dir: Path = None) -> Response:
         """
         Run the job.
 
@@ -581,7 +584,9 @@ class Job(MSONable):
             function = types.MethodType(function, bound)
 
         response = function(*self.function_args, **self.function_kwargs)
-        response = Response.from_job_returns(response, self.output_schema)
+        response = Response.from_job_returns(
+            response, self.output_schema, job_dir=job_dir
+        )
 
         if response.replace is not None:
             response.replace = prepare_replace(response.replace, self)
@@ -1170,6 +1175,8 @@ class Response(typing.Generic[T]):
         Stop any children of the current flow.
     stop_jobflow
         Stop executing all remaining jobs.
+    job_dir
+        The directory where the job was run.
     """
 
     output: T = None
@@ -1179,13 +1186,15 @@ class Response(typing.Generic[T]):
     stored_data: dict[Hashable, Any] = None
     stop_children: bool = False
     stop_jobflow: bool = False
+    job_dir: str | Path = None
 
     @classmethod
     def from_job_returns(
         cls,
         job_returns: Any | None,
         output_schema: type[BaseModel] = None,
-    ) -> Response:
+        job_dir: str | Path = None,
+    ) -> Self:
         """
         Generate a :obj:`Response` from the outputs of a :obj:`Job`.
 
@@ -1199,6 +1208,8 @@ class Response(typing.Generic[T]):
         output_schema
             A pydantic model associated with the job. Used to enforce a schema for the
             outputs.
+        job_dir
+            The directory where the job was run.
 
         Raises
         ------
@@ -1215,17 +1226,18 @@ class Response(typing.Generic[T]):
                 # only apply output schema if there is no replace.
                 job_returns.output = apply_schema(job_returns.output, output_schema)
 
-            return job_returns
+            job_returns.job_dir = job_dir
+            return cast(Self, job_returns)
 
         if isinstance(job_returns, (list, tuple)):
             # check that a Response object is not given as one of many outputs
-            for r in job_returns:
-                if isinstance(r, Response):
+            for resp in job_returns:
+                if isinstance(resp, Response):
                     raise ValueError(
                         "Response cannot be returned in combination with other outputs."
                     )
 
-        return cls(output=apply_schema(job_returns, output_schema))
+        return cls(output=apply_schema(job_returns, output_schema), job_dir=job_dir)
 
 
 def apply_schema(output: Any, schema: type[BaseModel] | None):
