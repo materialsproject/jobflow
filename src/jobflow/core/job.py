@@ -78,7 +78,9 @@ def job(method: Callable = None, **job_kwargs) -> Callable[..., Callable[..., Jo
     pass
 
 
-def job(method: Callable = None, **job_kwargs):
+def job(
+    method: Callable = None, **job_kwargs
+) -> Callable[..., Job] | Callable[..., Callable[..., Job]]:
     """
     Wrap a function to produce a :obj:`Job`.
 
