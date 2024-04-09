@@ -50,6 +50,6 @@ class JobStoreDocument(BaseModel):
         None,
         description="The name of the job.",
     )
-    files: list[FileData] = Field(
+    files: list[FileData] | None = Field(
         None, description="List of files stored as output of the Job in a FileStore."
     )
