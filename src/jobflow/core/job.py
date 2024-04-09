@@ -6,17 +6,17 @@ import logging
 import typing
 import warnings
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import cast, overload
 
 from monty.json import MSONable, jsanitize
 from typing_extensions import Self
 
 from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.utils.uid import suid
+from jobflow.utils.uid import suid, uid_to_path
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
-    from pathlib import Path
     from typing import Any, Callable
 
     from networkx import DiGraph
@@ -572,7 +572,7 @@ class Job(MSONable):
 
         from jobflow import CURRENT_JOB
         from jobflow.core.flow import get_flow
-        from jobflow.core.schemas import JobStoreDocument
+        from jobflow.core.schemas import FileData, JobStoreDocument
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -647,6 +647,29 @@ class Job(MSONable):
                 "could not be serialized."
             ) from err
 
+        files = None
+        if response.output_files:
+            files = []
+            # TODO, should this also handle io.IOBase?
+            for store_name, file_paths in response.output_files.items():
+                file_paths_list = file_paths
+                if not isinstance(file_paths_list, (list, tuple)):
+                    file_paths_list = [file_paths]
+
+                for fp in file_paths_list:
+                    file_path = Path(fp)
+                    dest_path = Path(uid_to_path(uid=self.uuid, index=None)) / file_path
+                    reference = store.put_file(
+                        file=str(file_path), store_name=store_name, dest=str(dest_path)
+                    )
+                    fd = FileData(
+                        name=file_path.name,
+                        reference=reference,
+                        store=store_name,
+                        path=str(file_path),
+                    )
+                    files.append(fd)
+
         save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
         data: JobStoreDocument = JobStoreDocument(
             uuid=self.uuid,
@@ -656,6 +679,7 @@ class Job(MSONable):
             metadata=self.metadata,
             hosts=self.hosts,
             name=self.name,
+            files=files,
         )
         store.update(data, key=["uuid", "index"], save=save)
 
@@ -1187,6 +1211,8 @@ class Response(typing.Generic[T]):
         Stop executing all remaining jobs.
     job_dir
         The directory where the job was run.
+    output_files
+        A Dictionary with the files that need to be store in a file store.
     """
 
     output: T = None
@@ -1197,6 +1223,7 @@ class Response(typing.Generic[T]):
     stop_children: bool = False
     stop_jobflow: bool = False
     job_dir: str | Path = None
+    output_files: dict[str, Any] = None
 
     @classmethod
     def from_job_returns(
