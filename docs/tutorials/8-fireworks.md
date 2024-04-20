@@ -110,7 +110,7 @@ As described above, convert the flow to a workflow via {obj}`flow_to_workflow` a
 
 Finally, use the `-c` ("config") command-line option when launching your fireworks to specify the FireWorks configuration directory you wish to use.
 
-To launch all fireworks tied to `fw_config1`, run `qlaunch rapidfire -c $FW_CONFIG1 --nlaunches <N>`. To launch all fireworks tied to `fw_config2`, run `qlaunch rapidfire -c $FW_CONFIG2 --nlaunches <N>`. As always, the jobs won't actually run until any prior jobs they depend on are completed.
+To launch all fireworks tied to `fw_config1`, run `qlaunch -c $FW_CONFIG1 rapidfire --nlaunches <N>`. To launch all fireworks tied to `fw_config2`, run `qlaunch -c $FW_CONFIG2 rapidfire --nlaunches <N>`. As always, the jobs won't actually run until any prior jobs they depend on are completed.
 
 ## Learn More
 
