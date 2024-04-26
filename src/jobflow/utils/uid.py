@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover
         "Install it with `pip install jobflow[ulid]` or `pip install python-ulid`."
     )
 
-    class ULID:  # type: ignore
+    class ULID:  # type: ignore[no-redef]
         """Fake ULID class for raising import error."""
 
         def __init__(self, *args, **kwargs):

@@ -82,7 +82,7 @@ class OutputReference(MSONable):
     OutputReference(1234, ['key'], [0], .value)
     """
 
-    __slots__ = ("uuid", "attributes", "output_schema")
+    __slots__ = ("attributes", "output_schema", "uuid")
 
     def __init__(
         self,
