@@ -269,9 +269,7 @@ def recursive_call(
             return False
         if name_filter is not None and name_filter not in nested_obj.name:
             return False
-        if class_filter is not None and not isinstance(nested_obj, class_filter):
-            return False
-        return True
+        return class_filter is None or isinstance(nested_obj, class_filter)
 
     d = obj.as_dict()
 

@@ -1151,8 +1151,8 @@ class Job(MSONable):
         prepend
             Insert the UUIDs at the beginning of the list rather than extending it.
         """
-        if not isinstance(hosts_uuids, (list, tuple)):
-            hosts_uuids = [hosts_uuids]  # type: ignore
+        if isinstance(hosts_uuids, str):
+            hosts_uuids = [hosts_uuids]
         if prepend:
             self.hosts[0:0] = hosts_uuids
         else:
