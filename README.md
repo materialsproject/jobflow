@@ -14,7 +14,8 @@
 
 Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
-arbitrary computing resources using the [FireWorks][fireworks] workflow manager.
+arbitrary computing resources using the [jobflow-remote][jfr] or [FireWorks][fireworks]
+workflow managers.
 
 Some features that distinguish jobflow are dynamic workflows, easy compositing and
 connecting of workflows, and the ability to store workflow outputs across multiple
@@ -33,7 +34,7 @@ Some of its features include:
   way to build complex workflows.
 - Integration with multiple databases (MongoDB, S3, GridFS, and more) through the
   [Maggma][maggma] package.
-- Support for the [FireWorks][fireworks] workflow management system, allowing workflow
+- Support for the [jobflow-remote][jfr] and [FireWorks][fireworks] workflow management systems, allowing workflow
   execution on multicore machines or through a queue, on a single machine or multiple
   machines.
 - Support for dynamic workflows — workflows that modify themselves or create new ones
@@ -127,6 +128,7 @@ Jobflow was designed by Alex Ganose, Anubhav Jain, Gian-Marco Rignanese, David W
 
 [maggma]: https://materialsproject.github.io/maggma/
 [fireworks]: https://materialsproject.github.io/fireworks/
+[jfr]: https://matgenix.github.io/jobflow-remote
 [help-forum]: https://matsci.org/c/fireworks
 [issues]: https://github.com/materialsproject/jobflow/issues
 [changelog]: https://materialsproject.github.io/jobflow/changelog.html
