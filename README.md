@@ -14,7 +14,7 @@
 
 Jobflow is a free, open-source library for writing and executing workflows. Complex
 workflows can be defined using simple python functions and executed locally or on
-arbitrary computing resources using the [jobflow-remote][jfr] or [FireWorks][fireworks] 
+arbitrary computing resources using the [jobflow-remote][jfr] or [FireWorks][fireworks]
 workflow managers.
 
 Some features that distinguish jobflow are dynamic workflows, easy compositing and
