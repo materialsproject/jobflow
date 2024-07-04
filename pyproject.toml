@@ -26,13 +26,13 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "PyYAML",
+    "PyYAML>=6.0.1",
     "maggma>=0.57.0",
     "monty>=2023.9.25",
-    "networkx",
+    "networkx>=3.2.1",
     "pydantic-settings>=2.0.3",
     "pydantic>=2.0.1",
-    "pydash",
+    "pydash>=8.0.1",
 ]
 
 [project.optional-dependencies]
@@ -64,21 +64,6 @@ strict = [
     "pydot==2.0.0",
     "python-ulid==2.7.0",
     "typing-extensions==4.12.2",
-]
-non-strict = [
-    "FireWorks>=2.0.3",
-    "PyYAML>=6.0.1",
-    "maggma>=0.69.0",
-    "matplotlib>=3.9.0",
-    "monty>=2024.5.24",
-    "moto>=4.2.13",
-    "networkx>=3.2.1",
-    "pydantic-settings>=2.3.4",
-    "pydantic>=2.8.0",
-    "pydash>=8.0.1",
-    "pydot>=2.0.0",
-    "python-ulid>=2.7.0",
-    "typing-extensions>=4.12.2",
 ]
 
 [project.urls]

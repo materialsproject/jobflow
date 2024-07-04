@@ -36,10 +36,10 @@ jobs:
     strategy:
       matrix:
         version:
-          - { python: "3.9", resolution: highest, extras: strict }
-          - { python: "3.10", resolution: lowest-direct, extras: strict }
-          - { python: "3.11", resolution: highest, extras: non-strict }
-          - { python: "3.12", resolution: lowest-direct, extras: non-strict }
+          - { python: "3.9", resolution: highest, extras: "tests,strict" }
+          - { python: "3.10", resolution: lowest-direct, extras: "tests,strict" }
+          - { python: "3.11", resolution: highest, extras: tests }
+          - { python: "3.12", resolution: lowest-direct, extras: tests }
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install uv
-          uv pip install '.[tests,${{ matrix.version.extras }}]' --system --resolution=${{ matrix.version.resolution }}
+          uv pip install '.[${{ matrix.version.extras }}]' --system --resolution=${{ matrix.version.resolution }}
 
       - name: Test
         run: pytest --cov=jobflow --cov-report=xml
