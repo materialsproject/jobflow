@@ -32,6 +32,8 @@ def test_basic(memory_store):
 
 
 def test_additional(memory_store):
+    pytest.importorskip("moto")
+
     from copy import deepcopy
 
     import boto3

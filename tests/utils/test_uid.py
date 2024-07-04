@@ -2,6 +2,8 @@ import pytest
 
 
 def test_uid():
+    pytest.importorskip("ulid")
+
     from uuid import UUID
 
     from ulid import ULID

@@ -71,6 +71,8 @@ def add(a, b):
 
 
 def test_to_pydot():
+    pytest.importorskip("pydot")
+
     from jobflow import Flow, Job
     from jobflow.utils.graph import to_pydot
 
