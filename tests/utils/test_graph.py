@@ -45,8 +45,7 @@ def test_draw_graph():
     assert draw_graph(graph, layout_function=planar_layout)
 
 
-@pytest.mark.usefixtures("no_pydot")
-def test_draw_graph_no_pydot():
+def test_draw_graph_no_pydot(no_pydot):
     pytest.importorskip("matplotlib")
 
     from networkx import DiGraph
@@ -57,8 +56,7 @@ def test_draw_graph_no_pydot():
     assert draw_graph(graph)
 
 
-@pytest.mark.usefixtures("no_matplotlib")
-def test_draw_graph_no_matplotlib():
+def test_draw_graph_no_matplotlib(no_matplotlib):
     from networkx import DiGraph
 
     import jobflow.utils.graph
