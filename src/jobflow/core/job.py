@@ -366,7 +366,6 @@ class Job(MSONable):
             else:
                 self.name = getattr(function, "__qualname__", function.__name__)
 
-
         self.output = OutputReference(self.uuid, output_schema=self.output_schema)
 
         # check to see if job or flow is included in the job args
@@ -915,6 +914,7 @@ class Job(MSONable):
 
         if dynamic:
             self.name_updates.append({"append_str": append_str, "prepend": prepend})
+
     def update_metadata(
         self,
         update: dict[str, Any],

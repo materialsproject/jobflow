@@ -601,7 +601,6 @@ class Flow(MSONable):
         for job in self:
             job.append_name(append_str, prepend=prepend, dynamic=dynamic)
 
-
     def update_metadata(
         self,
         update: dict[str, Any],
