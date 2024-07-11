@@ -582,7 +582,7 @@ class Flow(MSONable):
                 dict_mod=dict_mod,
             )
 
-    def append_name(self, append_str: str, prepend: bool = False):
+    def append_name(self, append_str: str, prepend: bool = False, dynamic: bool = True):
         """
         Append a string to the name of the flow and all jobs contained in it.
 
@@ -599,7 +599,8 @@ class Flow(MSONable):
             self.name += append_str
 
         for job in self:
-            job.append_name(append_str, prepend=prepend)
+            job.append_name(append_str, prepend=prepend, dynamic=dynamic)
+
 
     def update_metadata(
         self,
