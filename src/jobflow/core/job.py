@@ -328,6 +328,7 @@ class Job(MSONable):
         hosts: list[str] = None,
         metadata_updates: list[dict[str, Any]] = None,
         config_updates: list[dict[str, Any]] = None,
+        name_updates: list[dict[str, Any]] = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -352,6 +353,7 @@ class Job(MSONable):
         self.config = config
         self.hosts = hosts or []
         self.metadata_updates = metadata_updates or []
+        self.name_updates = name_updates or []
         self.config_updates = config_updates or []
         self._kwargs = kwargs
 
@@ -621,6 +623,8 @@ class Job(MSONable):
                     new_jobs.update_metadata(**metadata_update, dynamic=True)
                 for config_update in self.config_updates:
                     new_jobs.update_config(**config_update, dynamic=True)
+                for name_update in self.name_updates:
+                    new_jobs.append_name(**name_update, dynamic=True)
 
         if self.config.response_manager_config:
             passed_config = self.config.response_manager_config
@@ -889,7 +893,7 @@ class Job(MSONable):
                         dict_mod=dict_mod,
                     )
 
-    def append_name(self, append_str: str, prepend: bool = False):
+    def append_name(self, append_str: str, prepend: bool = False, dynamic: bool = True):
         """
         Append a string to the name of the job.
 
@@ -899,11 +903,17 @@ class Job(MSONable):
             A string to append.
         prepend
             Prepend the name rather than appending it.
+        dynamic
+            The updates will be propagated to Jobs/Flows dynamically generated at
+            runtime.
         """
         if prepend:
             self.name = append_str + self.name
         else:
             self.name += append_str
+
+        if dynamic:
+            self.name_updates.append({"append_str": append_str, "prepend": prepend})
 
     def update_metadata(
         self,
