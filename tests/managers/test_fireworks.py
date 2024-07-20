@@ -15,7 +15,7 @@ def test_flow_to_workflow(
     flow = simple_job()
     wf = flow_to_workflow(flow, memory_jobstore)
 
-    assert type(wf) == Workflow
+    assert type(wf) is Workflow
     assert wf.name == "Flow"
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
@@ -24,7 +24,7 @@ def test_flow_to_workflow(
     flow = simple_job()
     wf = flow_to_workflow(flow, name="custom_name")
 
-    assert type(wf) == Workflow
+    assert type(wf) is Workflow
     assert wf.name == "custom_name"
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
@@ -33,7 +33,7 @@ def test_flow_to_workflow(
     flow = simple_flow()
     wf = flow_to_workflow(flow, memory_jobstore)
 
-    assert type(wf) == Workflow
+    assert type(wf) is Workflow
     assert wf.name == "Flow"
     assert len(wf.fws) == 1
     assert wf.fws[0].name == "func"
@@ -42,7 +42,7 @@ def test_flow_to_workflow(
     flow = connected_flow()
     wf = flow_to_workflow(flow, memory_jobstore)
 
-    assert type(wf) == Workflow
+    assert type(wf) is Workflow
     assert wf.name == "Connected Flow"
     assert len(wf.fws) == 2
     assert wf.fws[0].name == "func"
@@ -83,7 +83,7 @@ def test_job_to_firework(
     job = simple_job()
     fw = job_to_firework(job, memory_jobstore)
 
-    assert type(fw) == Firework
+    assert type(fw) is Firework
     assert fw.name == "func"
 
     job2 = simple_job()
@@ -91,7 +91,7 @@ def test_job_to_firework(
         job2, memory_jobstore, parents=[job.uuid], parent_mapping={job.uuid: 1}
     )
 
-    assert type(fw) == Firework
+    assert type(fw) is Firework
     assert fw.name == "func"
 
     with pytest.raises(ValueError, match="Both or neither of"):
