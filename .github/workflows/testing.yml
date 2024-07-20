@@ -37,7 +37,7 @@ jobs:
       matrix:
         version:
           - { python: "3.9", resolution: highest, extras: "tests,strict" }
-          - { python: "3.10", resolution: lowest-direct, extras: "tests,strict" }
+          - { python: "3.10", resolution: lowest-direct, extras: "tests" }
           - { python: "3.11", resolution: highest, extras: tests }
           # python 3.12 CI failing due to maggma incompatible, see
           # https://github.com/materialsproject/jobflow/pull/640#issuecomment-2209055692
