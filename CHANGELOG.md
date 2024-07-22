@@ -1,5 +1,32 @@
 # Change log
 
+## v0.1.18
+
+### Bug Fixes 🐛
+* FIX: Properly jsanitize fireworks Task by @gpetretto in https://github.com/materialsproject/jobflow/pull/544
+* fix @job annotation (again) by @FabiPi3 in https://github.com/materialsproject/jobflow/pull/579
+
+### Enhancements 🛠
+* Add `job_dir` attribute to `Response` class to record where a job ran by @janosh in https://github.com/materialsproject/jobflow/pull/570
+* Add type hint for @job and fix for run_locally by @FabiPi3 in https://github.com/materialsproject/jobflow/pull/578
+* Add dynamic option to append_name by @JaGeo in https://github.com/materialsproject/jobflow/pull/644
+
+### Documentation 📖
+* Fix `JobStore.from_file` docstring by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/543
+* Added logo by @davidwaroquiers in https://github.com/materialsproject/jobflow/pull/569
+* fix firework command bug in doc by @chiang-yuan in https://github.com/materialsproject/jobflow/pull/589
+* Add JFR to readme. by @utf in https://github.com/materialsproject/jobflow/pull/595
+
+### House-Keeping 🧹
+* Migrate from `pip` to `uv` for CI dependency install by @janosh in https://github.com/materialsproject/jobflow/pull/574
+* Bump `ruff` and fix errors by @janosh in https://github.com/materialsproject/jobflow/pull/593
+
+### New Contributors
+* @FabiPi3 made their first contribution in https://github.com/materialsproject/jobflow/pull/578
+* @chiang-yuan made their first contribution in https://github.com/materialsproject/jobflow/pull/589
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.17...v0.1.18
+
 ## v0.1.17
 
 ### New Features 🎉
