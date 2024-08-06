@@ -33,6 +33,8 @@ def test_itergraph():
 
 
 def test_draw_graph():
+    pytest.importorskip("matplotlib")
+
     from networkx import DiGraph, planar_layout
 
     from jobflow.utils.graph import draw_graph
@@ -43,8 +45,9 @@ def test_draw_graph():
     assert draw_graph(graph, layout_function=planar_layout)
 
 
-@pytest.mark.usefixtures("no_pydot")
-def test_draw_graph_no_pydot():
+def test_draw_graph_no_pydot(no_pydot):
+    pytest.importorskip("matplotlib")
+
     from networkx import DiGraph
 
     from jobflow.utils.graph import draw_graph
@@ -53,8 +56,7 @@ def test_draw_graph_no_pydot():
     assert draw_graph(graph)
 
 
-@pytest.mark.usefixtures("no_matplotlib")
-def test_draw_graph_no_matplotlib():
+def test_draw_graph_no_matplotlib(no_matplotlib):
     from networkx import DiGraph
 
     import jobflow.utils.graph
@@ -71,6 +73,8 @@ def add(a, b):
 
 
 def test_to_pydot():
+    pytest.importorskip("pydot")
+
     from jobflow import Flow, Job
     from jobflow.utils.graph import to_pydot
 
