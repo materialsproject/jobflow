@@ -297,12 +297,12 @@ class Job(MSONable):
     --------
     Builtin functions such as :obj:`print` can be specified.
 
-    >>> print_task = Job(function=print, args=("I am a job", ))
+    >>> print_task = Job(function=print, function_args=("I am a job", ))
 
     Or other functions of the Python standard library.
 
     >>> import os
-    >>> Job(function=os.path.join, args=("folder", "filename.txt"))
+    >>> Job(function=os.path.join, function_args=("folder", "filename.txt"))
 
     To use custom functions, the functions should be importable (i.e. not
     defined in another function). For example, if the following function is defined
@@ -310,7 +310,7 @@ class Job(MSONable):
 
     >>> def add(a, b):
     ...     return a + b
-    >>> add_job = Job(function=add, args=(1, 2))
+    >>> add_job = Job(function=add, function_args=(1, 2))
 
     More details are given in the :obj:`job` decorator docstring.
 
