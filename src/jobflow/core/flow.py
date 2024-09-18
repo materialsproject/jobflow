@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import warnings
 from copy import deepcopy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from monty.json import MSONable
 
@@ -128,6 +128,8 @@ class Flow(MSONable):
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
         hosts: list[str] = None,
+        metadata: dict[str, Any] = None,
+        metadata_updates: list[dict[str, Any]] = None,
     ):
         from jobflow.core.job import Job
 
@@ -141,6 +143,8 @@ class Flow(MSONable):
         self.order = order
         self.uuid = uuid
         self.hosts = hosts or []
+        self.metadata = metadata or {}
+        self.metadata_updates = metadata_updates or []
 
         self._jobs: tuple[Flow | Job, ...] = ()
         self.add_jobs(jobs)
@@ -608,9 +612,10 @@ class Flow(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
+        target: Literal["flow", "jobs", "both"] = "both",
     ):
         """
-        Update the metadata of all Jobs in the Flow.
+        Update the metadata of the Flow and/or its Jobs.
 
         Note that updates will be applied to jobs in nested Flow.
 
@@ -630,6 +635,11 @@ class Flow(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
+        target
+            Specifies where to apply the metadata update. Options are:
+            - "flow": Update only the Flow's metadata
+            - "jobs": Update only the metadata of Jobs within the Flow
+            - "both": Update both the Flow's metadata and the Jobs' metadata (default)
 
         Examples
         --------
@@ -647,14 +657,33 @@ class Flow(MSONable):
 
         >>> flow.update_metadata({"tag": "addition_job"})
         """
-        for job in self:
-            job.update_metadata(
-                update,
-                name_filter=name_filter,
-                function_filter=function_filter,
-                dict_mod=dict_mod,
-                dynamic=dynamic,
-            )
+        from jobflow.utils.dict_mods import apply_mod
+
+        if target in ["flow", "both"] and name_filter in (None, self.name):
+            if dict_mod:
+                apply_mod(update, self.metadata)
+            else:
+                self.metadata.update(update)
+
+        if target in ["jobs", "both"]:
+            for job in self:
+                job.update_metadata(
+                    update,
+                    name_filter=name_filter,
+                    function_filter=function_filter,
+                    dict_mod=dict_mod,
+                    dynamic=dynamic,
+                )
+
+        if dynamic and target in ["jobs", "both"]:
+            dict_input = {
+                "update": update,
+                "name_filter": name_filter,
+                "function_filter": function_filter,
+                "dict_mod": dict_mod,
+                "target": target,
+            }
+            self.metadata_updates.append(dict_input)
 
     def update_config(
         self,
