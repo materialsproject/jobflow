@@ -69,17 +69,22 @@ class JobConfig(MSONable):
 
 
 @overload
-def job(method: Callable = None) -> Callable[..., Job]:
+def job(method: Callable | None = None) -> Callable[..., Job]:
     pass
 
 
 @overload
-def job(method: Callable = None, **job_kwargs) -> Callable[..., Callable[..., Job]]:
+def job(method: Callable, **job_kwargs) -> Callable[..., Job]:
+    pass
+
+
+@overload
+def job(method: None = None, **job_kwargs) -> Callable[..., Callable[..., Job]]:
     pass
 
 
 def job(
-    method: Callable = None, **job_kwargs
+    method: Callable | None = None, **job_kwargs
 ) -> Callable[..., Job] | Callable[..., Callable[..., Job]]:
     """
     Wrap a function to produce a :obj:`Job`.
