@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import contextlib
+import os.path
 import typing
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
@@ -13,6 +16,7 @@ from pydantic.v1.utils import lenient_issubclass
 from jobflow.utils.enum import ValueEnum
 
 if typing.TYPE_CHECKING:
+    import io
     from collections.abc import Sequence
 
     import jobflow
@@ -305,6 +309,231 @@ class OutputReference(MSONable):
         }
 
 
+class FileReferenceType(ValueEnum):
+    """The types of references for the OutputFileReference."""
+
+    NAME = "name"
+    PATH = "path"
+    REFERENCE = "reference"
+
+
+class OutputFileReference(MSONable):
+    """A reference to the output files of a :obj:`Job`."""
+
+    def __init__(
+        self,
+        uuid: str,
+        identifier: str,
+        reference_type: FileReferenceType = FileReferenceType.NAME,
+    ):
+        self.uuid = uuid
+        self.identifier = identifier
+        self.reference_type = reference_type
+
+    def resolve(
+        self,
+        store: jobflow.JobStore,
+        dest: str | io.IOBase | FileDestination | None,
+        cache: dict[str, Any] = None,
+        on_missing: OnMissing = OnMissing.ERROR,
+    ) -> str | io.IOBase:
+        """
+        Resolve the file reference by fetching the required file.
+
+        This function will query the job store for the reference value and
+        use the references to fetch the file.
+
+        Parameters
+        ----------
+        store
+            A job store.
+        dest:
+            The definition of where the file should be copied.
+        cache
+            A dictionary cache to use for local caching of reference values.
+        on_missing
+            What to do if the output reference is missing in the database and cache.
+            See :obj:`OnMissing` for the available options.
+
+        Raises
+        ------
+        ValueError
+            If the reference cannot be found and ``on_missing`` is set to
+            ``OnMissing.ERROR`` (default).
+
+        Returns
+        -------
+        Any
+            The path to where the file was stored or an io.IOBase, if this
+            was given as dest.
+        """
+        if cache is None:
+            cache = {}
+
+        files = None
+        if self.uuid not in cache:
+            # get the latest index for the output
+            result = store.query_one({"uuid": self.uuid}, ["files"], sort={"index": -1})
+            print(result)
+            if result:
+                cache[self.uuid] = result["files"]
+                files = result["files"]
+        else:
+            files = cache[self.uuid]
+
+        if on_missing == OnMissing.ERROR and not files:
+            raise ValueError(
+                f"Could not resolve file reference - {self.uuid} not in store"
+            )
+        if on_missing == OnMissing.NONE and self.uuid not in cache:
+            return None
+        if on_missing == OnMissing.PASS and self.uuid not in cache:
+            return self
+
+        data_to_retrieve = None
+        for file_data in files:
+            # TODO this could be a fnmatch and one could use a wildcard to
+            # fetch multiple files.
+            if file_data[self.reference_type] == self.identifier:
+                if data_to_retrieve is not None:
+                    raise ValueError(
+                        f"More than one file with {self.reference_type}="
+                        f"{self.identifier} is present in reference {self.uuid}"
+                    )
+                data_to_retrieve = file_data
+
+        if data_to_retrieve is None:
+            raise ValueError(
+                f"No file with {self.reference_type}={self.identifier} is "
+                f"present in reference {self.uuid}"
+            )
+
+        if dest is None:
+            dest = data_to_retrieve["path"]
+
+        if isinstance(dest, FileDestination):
+            if dest.is_folder:
+                folder = dest.path or "."
+                dest = os.path.join(folder, data_to_retrieve["name"])
+            else:
+                dest = dest.path or data_to_retrieve["path"]
+
+        if isinstance(dest, str):
+            Path(dest).parent.mkdir(parents=True, exist_ok=True)
+
+        store.get_file(
+            dest=dest,
+            reference=data_to_retrieve["reference"],
+            store_name=data_to_retrieve["store"],
+        )
+
+        return dest
+
+    def set_uuid(self, uuid: str, inplace=True) -> OutputFileReference:
+        """
+        Set the UUID of the reference.
+
+        Parameters
+        ----------
+        uuid
+            A new UUID.
+        inplace
+            Whether to update the current reference object or return a completely new
+            object.
+
+        Returns
+        -------
+        OutputFileReference
+            An outputfiles reference with the specified uuid.
+        """
+        if inplace:
+            self.uuid = uuid
+            return self
+        from copy import deepcopy
+
+        new_reference = deepcopy(self)
+        new_reference.uuid = uuid
+        return new_reference
+
+    def __repr__(self) -> str:
+        """Get a string representation of the reference and attributes."""
+        return (
+            f"OutputFileReference({self.uuid!s}, "
+            f"{self.reference_type!s}, {self.identifier})"
+        )
+
+
+class _BaseGenerator:
+    """A generic generator for the OutputFileReference."""
+
+    def __init__(self, uuid: str, reference_type: FileReferenceType):
+        self.uuid = uuid
+        self.reference_type = reference_type
+
+    def __getitem__(self, item) -> OutputFileReference:
+        """Index the reference."""
+        if not isinstance(item, str):
+            raise ValueError("Only strings can be used as references")
+
+        return OutputFileReference(
+            self.uuid, identifier=item, reference_type=self.reference_type
+        )
+
+    def __getattr__(self, item) -> OutputFileReference:
+        """Attribute access of the reference."""
+        if item in {"kwargs", "args"} or (
+            isinstance(item, str) and item.startswith("__")
+        ):
+            # This is necessary to trick monty/pydantic.
+            raise AttributeError
+
+        return OutputFileReference(
+            self.uuid, identifier=item, reference_type=self.reference_type
+        )
+
+
+class FileReferenceGenerator(_BaseGenerator):
+    """The generator for the OutputFileReference for a Job."""
+
+    def __init__(self, uuid: str):
+        super().__init__(uuid, FileReferenceType.NAME)
+        self.name = _BaseGenerator(uuid, FileReferenceType.NAME)
+        self.path = _BaseGenerator(uuid, FileReferenceType.PATH)
+        self.reference = _BaseGenerator(uuid, FileReferenceType.REFERENCE)
+
+    def __getattr__(self, item):
+        """Attribute access of the reference."""
+        if item in {"name", "path", "reference"}:
+            return getattr(self, item)
+
+        return super().__getattr__(item)
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Check if two objects are equal.
+
+        Parameters
+        ----------
+        other
+            Another job.
+
+        Returns
+        -------
+        bool
+            Whether the objects are equal.
+        """
+        return isinstance(other, FileReferenceGenerator)
+
+
+@dataclass
+class FileDestination(MSONable):
+    """Additional information for transfer of files."""
+
+    path: str | None = None
+    is_folder: bool = False
+    modifiable: bool = True
+
+
 def resolve_references(
     references: Sequence[OutputReference],
     store: jobflow.JobStore,
@@ -485,6 +714,77 @@ def find_and_resolve_references(
 
     # deserialize dict array
     return MontyDecoder().process_decoded(encoded_arg)
+
+
+def find_and_resolve_file_references(
+    arg: Any,
+    store: jobflow.JobStore,
+    cache: dict[str, Any] = None,
+    on_missing: OnMissing = OnMissing.ERROR,
+    file_destinations: dict[str, FileDestination] | None = None,
+) -> Any:
+    """
+    Return the input but with all file references replaced with their resolved values.
+
+    This function works only on single elements containing OutputFileReference, list
+    or dictionaries where the OutputFileReference is in the first level.
+
+    Parameters
+    ----------
+    arg
+        The input argument containing output references.
+    store
+        A job store.
+    cache
+        A dictionary cache to use for local caching of reference values.
+    on_missing
+        What to do if the output reference is missing in the database and cache.
+        See :obj:`OnMissing` for the available options.
+
+    Returns
+    -------
+    Any
+        The input argument but with all file references replaced with their resolved
+        values. If a reference cannot be found, its replacement value will depend on the
+        value of ``on_missing``.
+    """
+    if isinstance(arg, (list, tuple)):
+        arg = list(arg)
+        iterator: Any = enumerate(arg)
+    elif isinstance(arg, dict):
+        iterator = arg.items()
+    else:
+        raise ValueError(f"Unsupported type for arg: {type(arg)}")
+
+    if cache is None:
+        cache = {}
+
+    if file_destinations is None:
+        file_destinations = {}
+
+    for ref, value in iterator:
+        if isinstance(value, dict) and value.get("@class") == "OutputFileReference":
+            # if value is a serialized reference, deserialize it
+            file_reference = OutputFileReference.from_dict(value)
+        else:
+            file_reference = value
+        if not isinstance(file_reference, OutputFileReference):
+            continue
+
+        if isinstance(ref, str):
+            file_destination = file_destinations.get(ref, FileDestination())
+        elif file_destinations:
+            raise ValueError(
+                "If arg is not a dictionary file_destinations cannot be given"
+            )
+        else:
+            file_destination = FileDestination()
+
+        arg[ref] = file_reference.resolve(
+            store=store, dest=file_destination, cache=cache, on_missing=on_missing
+        )
+
+    return arg
 
 
 def validate_schema_access(
