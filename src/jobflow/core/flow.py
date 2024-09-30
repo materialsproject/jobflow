@@ -659,13 +659,13 @@ class Flow(MSONable):
         """
         from jobflow.utils.dict_mods import apply_mod
 
-        if target in ["flow", "both"] and name_filter in (None, self.name):
+        if target in ("flow", "both") and name_filter in (None, self.name):
             if dict_mod:
                 apply_mod(update, self.metadata)
             else:
                 self.metadata.update(update)
 
-        if target in ["jobs", "both"]:
+        if target in ("jobs", "both"):
             for job in self:
                 job.update_metadata(
                     update,
@@ -675,7 +675,7 @@ class Flow(MSONable):
                     dynamic=dynamic,
                 )
 
-        if dynamic and target in ["jobs", "both"]:
+        if dynamic and target in ("jobs", "both"):
             dict_input = {
                 "update": update,
                 "name_filter": name_filter,
