@@ -261,7 +261,7 @@ def recursive_call(
 
     if isinstance(class_filter, Maker):
         # Maker instance supplied rather than a Maker class
-        class_filter = class_filter.__class__
+        class_filter = class_filter.__class__  # type: ignore[assignment]
 
     def _filter(nested_obj: Maker):
         # Filter the Maker object

@@ -354,6 +354,8 @@ def test_graph():
 
 
 def test_draw_graph():
+    pytest.importorskip("matplotlib")
+
     from jobflow import Flow, JobOrder
 
     # test unconnected graph
@@ -383,8 +385,9 @@ def test_draw_graph():
     assert flow.draw_graph()
 
 
-@pytest.mark.usefixtures("no_pydot")
-def test_draw_graph_nopydot():
+def test_draw_graph_nopydot(no_pydot):
+    pytest.importorskip("matplotlib")
+
     from jobflow import Flow, JobOrder
 
     # test unconnected graph
