@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import warnings
 from copy import deepcopy
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from monty.json import MSONable
 
@@ -612,7 +612,6 @@ class Flow(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
-        target: Literal["flow", "jobs", "both"] = "both",
     ):
         """
         Update the metadata of the Flow and/or its Jobs.
@@ -635,11 +634,6 @@ class Flow(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
-        target
-            Specifies where to apply the metadata update. Options are:
-            - "flow": Update only the Flow's metadata
-            - "jobs": Update only the metadata of Jobs within the Flow
-            - "both": Update both the Flow's metadata and the Jobs' metadata (default)
 
         Examples
         --------
@@ -659,29 +653,26 @@ class Flow(MSONable):
         """
         from jobflow.utils.dict_mods import apply_mod
 
-        if target in ("flow", "both") and name_filter in (None, self.name):
-            if dict_mod:
-                apply_mod(update, self.metadata)
-            else:
-                self.metadata.update(update)
+        if dict_mod:
+            apply_mod(update, self.metadata)
+        else:
+            self.metadata.update(update)
 
-        if target in ("jobs", "both"):
-            for job in self:
-                job.update_metadata(
-                    update,
-                    name_filter=name_filter,
-                    function_filter=function_filter,
-                    dict_mod=dict_mod,
-                    dynamic=dynamic,
-                )
+        for job_or_flow in self:
+            job_or_flow.update_metadata(
+                update,
+                name_filter=name_filter,
+                function_filter=function_filter,
+                dict_mod=dict_mod,
+                dynamic=dynamic,
+            )
 
-        if dynamic and target in ("jobs", "both"):
+        if dynamic:
             dict_input = {
                 "update": update,
                 "name_filter": name_filter,
                 "function_filter": function_filter,
                 "dict_mod": dict_mod,
-                "target": target,
             }
             self.metadata_updates.append(dict_input)
 
