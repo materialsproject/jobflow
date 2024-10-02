@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from jobflow.core.store import JobStore
 
 
-@pytest.fixture()
+@pytest.fixture
 def memory_store():
     from maggma.stores import MemoryStore
 

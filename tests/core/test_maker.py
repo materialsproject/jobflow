@@ -116,8 +116,7 @@ def test_update_kwargs():
     from jobflow.core.maker import Maker
 
     # this is needed to get monty to deserialize them correctly
-    global AddMaker
-    global DetourMaker
+    global AddMaker, DetourMaker
 
     @dataclass
     class AddMaker(Maker):
@@ -183,8 +182,7 @@ def test_update_kwargs():
     maker = maker.update_kwargs({"c": 10}, class_filter=AddMaker, nested=False)
     assert maker.add_maker.c == 5
 
-    global NotAMaker
-    global FakeDetourMaker
+    global NotAMaker, FakeDetourMaker
 
     @dataclass
     class NotAMaker(MSONable):
@@ -217,8 +215,7 @@ def test_recursive_call():
     from jobflow.core.maker import Maker, recursive_call
 
     # this is needed to get monty to deserialize them correctly
-    global AddMaker
-    global DetourMaker
+    global AddMaker, DetourMaker
 
     @dataclass
     class AddMaker(Maker):

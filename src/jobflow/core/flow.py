@@ -190,7 +190,7 @@ class Flow(MSONable):
         if other not in self:
             raise ValueError(f"{other!r} not found in flow")
         new_flow = deepcopy(self)
-        new_flow.jobs = tuple([job for job in new_flow if job != other])
+        new_flow.jobs = tuple(job for job in new_flow if job != other)
         return new_flow
 
     def __repr__(self, level: int = 0, prefix: str = "") -> str:
