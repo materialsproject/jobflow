@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_data():
     from jobflow.core.schemas import JobStoreDocument
 
