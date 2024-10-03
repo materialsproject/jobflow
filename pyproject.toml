@@ -53,13 +53,13 @@ fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.0.3",
     "PyYAML==6.0.2",
-    "maggma==0.69.4",
+    "maggma==0.69.3",
     "matplotlib==3.9.2",
     "monty==2024.7.30",
     "moto==4.2.13",
     "networkx==3.2.1",
     "pydantic-settings==2.5.2",
-    "pydantic==2.9.2",
+    "pydantic==2.9.1",
     "pydash==8.0.3",
     "pydot==2.0.0",
     "python-ulid==2.7.0",
@@ -121,6 +121,7 @@ exclude_lines = [
 
 [tool.ruff]
 target-version = "py39"
+output-format = "concise"
 
 [tool.ruff.lint]
 select = [
@@ -171,7 +172,6 @@ ignore = [
 ]
 pydocstyle.convention = "numpy"
 isort.known-first-party = ["jobflow"]
-ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 # F401: unused import
@@ -180,3 +180,4 @@ ignore-init-module-imports = true
 # PLR2004: magic-value-comparison
 # PT004: pytest-missing-fixture-name-underscore
 "**/tests/*" = ["ANN", "ARG001", "D", "PLR2004", "PT004", "S101"]
+"docs/tutorials/*" = ["D", "PLR2004"]
