@@ -343,7 +343,6 @@ class Job(MSONable):
         function_args = () if function_args is None else function_args
         function_kwargs = {} if function_kwargs is None else function_kwargs
         uuid = suid() if uuid is None else uuid
-        metadata = {} if metadata is None else metadata
         config = JobConfig() if config is None else config
 
         # make a deep copy of the function (means makers do not share the same instance)
@@ -354,7 +353,7 @@ class Job(MSONable):
         self.uuid = uuid
         self.index = index
         self.name = name
-        self.metadata = metadata
+        self.metadata = metadata or {}
         self.config = config
         self.hosts = hosts or []
         self.metadata_updates = metadata_updates or []

@@ -128,6 +128,8 @@ class Flow(MSONable):
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
         hosts: list[str] = None,
+        metadata: dict[str, Any] = None,
+        metadata_updates: list[dict[str, Any]] = None,
     ):
         from jobflow.core.job import Job
 
@@ -141,6 +143,8 @@ class Flow(MSONable):
         self.order = order
         self.uuid = uuid
         self.hosts = hosts or []
+        self.metadata = metadata or {}
+        self.metadata_updates = metadata_updates or []
 
         self._jobs: tuple[Flow | Job, ...] = ()
         self.add_jobs(jobs)
@@ -610,7 +614,7 @@ class Flow(MSONable):
         dynamic: bool = True,
     ):
         """
-        Update the metadata of all Jobs in the Flow.
+        Update the metadata of the Flow and/or its Jobs.
 
         Note that updates will be applied to jobs in nested Flow.
 
@@ -647,14 +651,30 @@ class Flow(MSONable):
 
         >>> flow.update_metadata({"tag": "addition_job"})
         """
-        for job in self:
-            job.update_metadata(
+        from jobflow.utils.dict_mods import apply_mod
+
+        if dict_mod:
+            apply_mod(update, self.metadata)
+        else:
+            self.metadata.update(update)
+
+        for job_or_flow in self:
+            job_or_flow.update_metadata(
                 update,
                 name_filter=name_filter,
                 function_filter=function_filter,
                 dict_mod=dict_mod,
                 dynamic=dynamic,
             )
+
+        if dynamic:
+            dict_input = {
+                "update": update,
+                "name_filter": name_filter,
+                "function_filter": function_filter,
+                "dict_mod": dict_mod,
+            }
+            self.metadata_updates.append(dict_input)
 
     def update_config(
         self,
