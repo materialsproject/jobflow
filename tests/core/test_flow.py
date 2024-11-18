@@ -1083,39 +1083,6 @@ def test_flow_update_metadata_dynamic(memory_jobstore):
     assert outer_flow[0].metadata["nested_dynamic"] == "nested_value"
 
 
-@pytest.mark.skip(reason="figure out how we want to implement excludin Flows/Jobs")
-def test_flow_update_metadata_nested_flows():
-    from jobflow import Flow, Job
-
-    inner_job = Job(lambda x: x, name="inner_job")
-    inner_flow = Flow([inner_job], name="inner_flow")
-    outer_flow = Flow([inner_flow], name="outer_flow")
-
-    # Update metadata on all levels
-    outer_flow.update_metadata({"level": "outer"})
-
-    assert outer_flow.metadata["level"] == "outer"
-    assert inner_flow.metadata["level"] == "outer"
-    assert inner_job.metadata["level"] == "outer"
-
-    # Test update_metadata where no flow or job matches
-    outer_flow.update_metadata({"inner_only": "value"}, name_filter="inner_flow")
-    # should not apply to outer since name_filter does not match
-    assert "inner_only" not in outer_flow.metadata
-    # should apply to inner flow either since target is flow (i.e. self for the
-    # outer flow)
-    assert "inner_only" not in inner_flow.metadata
-    # should not apply to inner job for both above reasons
-    assert "inner_only" not in inner_job.metadata
-
-    # Update metadata only on inner flow (same as above but with target="both")
-    outer_flow.update_metadata({"inner_only": "value"}, name_filter="inner_flow")
-    assert "inner_only" not in outer_flow.metadata
-    # SHOULD now apply to inner flow
-    assert inner_flow.metadata["inner_only"] == "value"
-    assert "inner_only" not in inner_job.metadata
-
-
 def test_flow_metadata_serialization():
     import json
 
