@@ -817,6 +817,8 @@ def test_set_output():
 
 
 def test_update_metadata():
+    from jobflow import Flow, Job
+
     # test no filter
     flow = get_test_flow()
     flow.update_metadata({"b": 5})
@@ -840,6 +842,77 @@ def test_update_metadata():
     flow.update_metadata({"_inc": {"b": 5}}, function_filter=div, dict_mod=True)
     assert "b" not in flow[0].metadata
     assert flow[1].metadata["b"] == 8
+
+    # test callback filter
+    flow = get_test_flow()
+    # Only update jobs with metadata containing "b"
+    flow.update_metadata(
+        {"c": 10}, callback_filter=lambda x: isinstance(x, Job) and "b" in x.metadata
+    )
+    assert "c" not in flow[0].metadata
+    assert flow[1].metadata["c"] == 10
+    assert "c" not in flow.metadata  # Flow itself shouldn't be updated
+
+    # Test callback filter on Flow only
+    flow = get_test_flow()
+    flow.update_metadata(
+        {"d": 15}, callback_filter=lambda x: isinstance(x, Flow) and x.name == "Flow"
+    )
+    assert flow.metadata["d"] == 15
+    assert "d" not in flow[0].metadata
+    assert "d" not in flow[1].metadata
+
+    # Test callback filter with multiple conditions and nested structure
+    from dataclasses import dataclass
+
+    from jobflow import Maker, job
+
+    @dataclass
+    class TestMaker(Maker):
+        name: str = "test_maker"
+
+        @job
+        def make(self):
+            return Job(lambda: None, name="inner_job")
+
+    maker = TestMaker()
+    inner_flow = Flow([maker.make()], name="inner")
+    outer_flow = Flow([inner_flow], name="outer")
+
+    # Update only flows named "inner" and their jobs
+    outer_flow.update_metadata(
+        {"e": 20},
+        callback_filter=lambda x: (isinstance(x, Flow) and x.name == "inner")
+        or (isinstance(x, Job) and x.name == "inner_job"),
+    )
+    assert "e" not in outer_flow.metadata
+    assert inner_flow.metadata["e"] == 20
+
+    # Test callback filter with dynamic updates
+    flow = get_test_flow()
+    flow.update_metadata(
+        {"f": 25},
+        callback_filter=lambda x: isinstance(x, Job) and x.name.startswith("div"),
+        dynamic=True,
+    )
+    assert "f" not in flow.metadata
+    assert "f" not in flow[0].metadata
+    assert flow[1].metadata["f"] == 25
+    assert any(
+        update.get("callback_filter") is not None for update in flow[1].metadata_updates
+    )
+
+    # Test callback filter with maker type checking
+    flow = get_maker_flow()
+    flow.update_metadata(
+        {"g": 30},
+        callback_filter=lambda x: (
+            isinstance(x, Job) and x.maker is not None and x.maker.name == "div"
+        ),
+    )
+    assert "g" not in flow.metadata
+    assert "g" not in flow[0].metadata
+    assert flow[1].metadata["g"] == 30
 
 
 def test_flow_metadata_initialization():
