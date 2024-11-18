@@ -612,6 +612,7 @@ class Flow(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
+        callback_filter: Callable[[Flow | Job], bool] = lambda _: True,
     ):
         """
         Update the metadata of the Flow and/or its Jobs.
@@ -634,6 +635,10 @@ class Flow(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
+        callback_filter
+            A function that takes a Flow or Job instance and returns True if updates
+            should be applied to that instance. Allows for custom filtering logic.
+            Applies recursively to nested Flows and Jobs so best be specific.
 
         Examples
         --------
@@ -650,13 +655,16 @@ class Flow(MSONable):
         The ``metadata`` of both jobs could be updated as follows:
 
         >>> flow.update_metadata({"tag": "addition_job"})
+
+        Or using a callback filter to only update flows containing a specific maker:
+
+        >>> flow.update_metadata(
+        ...     {"material_id": 42},
+        ...     callback_filter=lambda flow: SomeMaker in map(type, flow)
+        ...     and flow.name == "flow name"
+        ... )
         """
         from jobflow.utils.dict_mods import apply_mod
-
-        if dict_mod:
-            apply_mod(update, self.metadata)
-        else:
-            self.metadata.update(update)
 
         for job_or_flow in self:
             job_or_flow.update_metadata(
@@ -665,7 +673,16 @@ class Flow(MSONable):
                 function_filter=function_filter,
                 dict_mod=dict_mod,
                 dynamic=dynamic,
+                callback_filter=callback_filter,
             )
+
+        if callback_filter(self) is False:
+            return
+
+        if dict_mod:
+            apply_mod(update, self.metadata)
+        else:
+            self.metadata.update(update)
 
         if dynamic:
             dict_input = {
@@ -673,6 +690,7 @@ class Flow(MSONable):
                 "name_filter": name_filter,
                 "function_filter": function_filter,
                 "dict_mod": dict_mod,
+                "callback_filter": callback_filter,
             }
             self.metadata_updates.append(dict_input)
 
