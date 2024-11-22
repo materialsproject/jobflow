@@ -49,7 +49,7 @@ def run_locally(
         Raise an error if the flow was not executed successfully.
     allow_external_references : bool
         If False all the references to other outputs should be from other Jobs
-        of the Flow.
+        of the same Flow.
     raise_immediately : bool
         If True, raise an exception immediately if a job fails. If False, continue
         running the flow and only raise an exception at the end if the flow did not

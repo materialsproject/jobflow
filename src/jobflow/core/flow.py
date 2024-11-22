@@ -67,6 +67,11 @@ class Flow(MSONable):
         automatically when a flow is included in the jobs array of another flow.
         The object identified by one UUID of the list should be contained in objects
         identified by its subsequent elements.
+    metadata
+        A dictionary of information that will get stored in the Flow collection.
+    metadata_updates
+        A list of updates for the metadata that will be applied to any dynamically
+        generated sub Flow/Job.
 
     Raises
     ------
@@ -128,6 +133,8 @@ class Flow(MSONable):
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
         hosts: list[str] = None,
+        metadata: dict[str, Any] = None,
+        metadata_updates: list[dict[str, Any]] = None,
     ):
         from jobflow.core.job import Job
 
@@ -141,6 +148,8 @@ class Flow(MSONable):
         self.order = order
         self.uuid = uuid
         self.hosts = hosts or []
+        self.metadata = metadata or {}
+        self.metadata_updates = metadata_updates or []
 
         self._jobs: tuple[Flow | Job, ...] = ()
         self.add_jobs(jobs)
@@ -608,9 +617,10 @@ class Flow(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
+        callback_filter: Callable[[Flow | Job], bool] = lambda _: True,
     ):
         """
-        Update the metadata of all Jobs in the Flow.
+        Update the metadata of the Flow and/or its Jobs.
 
         Note that updates will be applied to jobs in nested Flow.
 
@@ -630,6 +640,10 @@ class Flow(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
+        callback_filter
+            A function that takes a Flow or Job instance and returns True if updates
+            should be applied to that instance. Allows for custom filtering logic.
+            Applies recursively to nested Flows and Jobs so best be specific.
 
         Examples
         --------
@@ -646,15 +660,44 @@ class Flow(MSONable):
         The ``metadata`` of both jobs could be updated as follows:
 
         >>> flow.update_metadata({"tag": "addition_job"})
+
+        Or using a callback filter to only update flows containing a specific maker:
+
+        >>> flow.update_metadata(
+        ...     {"material_id": 42},
+        ...     callback_filter=lambda flow: SomeMaker in map(type, flow)
+        ...     and flow.name == "flow name"
+        ... )
         """
-        for job in self:
-            job.update_metadata(
+        from jobflow.utils.dict_mods import apply_mod
+
+        for job_or_flow in self:
+            job_or_flow.update_metadata(
                 update,
                 name_filter=name_filter,
                 function_filter=function_filter,
                 dict_mod=dict_mod,
                 dynamic=dynamic,
+                callback_filter=callback_filter,
             )
+
+        if callback_filter(self) is False:
+            return
+
+        if dict_mod:
+            apply_mod(update, self.metadata)
+        else:
+            self.metadata.update(update)
+
+        if dynamic:
+            dict_input = {
+                "update": update,
+                "name_filter": name_filter,
+                "function_filter": function_filter,
+                "dict_mod": dict_mod,
+                "callback_filter": callback_filter,
+            }
+            self.metadata_updates.append(dict_input)
 
     def update_config(
         self,
