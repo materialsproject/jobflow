@@ -67,6 +67,11 @@ class Flow(MSONable):
         automatically when a flow is included in the jobs array of another flow.
         The object identified by one UUID of the list should be contained in objects
         identified by its subsequent elements.
+    metadata
+        A dictionary of information that will get stored in the Flow collection.
+    metadata_updates
+        A list of updates for the metadata that will be applied to any dynamically
+        generated sub Flow/Job.
 
     Raises
     ------
