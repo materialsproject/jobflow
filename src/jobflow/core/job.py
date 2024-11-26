@@ -2,21 +2,27 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 import typing
 import warnings
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import cast, overload
 
 from monty.json import MSONable, jsanitize
 from typing_extensions import Self
 
-from jobflow.core.reference import OnMissing, OutputReference
-from jobflow.utils.uid import suid
+from jobflow.core.reference import (
+    FileDestination,
+    FileReferenceGenerator,
+    OnMissing,
+    OutputReference,
+)
+from jobflow.utils.uid import suid, uid_to_path
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
-    from pathlib import Path
     from typing import Any, Callable
 
     from networkx import DiGraph
@@ -361,8 +367,18 @@ class Job(MSONable):
         self.config_updates = config_updates or []
         self._kwargs = kwargs
 
-        if sum(v is True for v in kwargs.values()) > 1:
+        if sum(v is True for v in self.additional_stores.values()) > 1:
             raise ValueError("Cannot select True for multiple additional stores.")
+
+        file_destinations = self.file_destinations
+        if file_destinations:
+            func_args = inspect.getfullargspec(self.function).args
+            for file_destination in file_destinations:
+                if file_destination not in func_args:
+                    raise ValueError(
+                        f"FileDestination {file_destination} in Job should have a "
+                        f"corresponding argument in the function {self.function}"
+                    )
 
         if self.name is None:
             if self.maker is not None:
@@ -371,6 +387,7 @@ class Job(MSONable):
                 self.name = getattr(function, "__qualname__", function.__name__)
 
         self.output = OutputReference(self.uuid, output_schema=self.output_schema)
+        self.output_files = FileReferenceGenerator(self.uuid)
 
         # check to see if job or flow is included in the job args
         # this is a possible situation but likely a mistake
@@ -535,6 +552,24 @@ class Job(MSONable):
         """
         return self.hosts[0] if self.hosts else None
 
+    @property
+    def additional_stores(self) -> dict[str, Any]:
+        """Dictionary of additional_stores defined for the Job."""
+        d = {}
+        for k, v in self._kwargs.items():
+            if not isinstance(v, FileDestination):
+                d[k] = v
+        return d
+
+    @property
+    def file_destinations(self) -> dict[str, FileDestination]:
+        """Dictionary of FileDestination defined for the Job."""
+        d = {}
+        for k, v in self._kwargs.items():
+            if isinstance(v, FileDestination):
+                d[k] = v
+        return d
+
     def set_uuid(self, uuid: str) -> None:
         """
         Set the UUID of the job.
@@ -575,12 +610,11 @@ class Job(MSONable):
         --------
         Response, .OutputReference
         """
-        import types
         from datetime import datetime
 
         from jobflow import CURRENT_JOB
         from jobflow.core.flow import get_flow
-        from jobflow.core.schemas import JobStoreDocument
+        from jobflow.core.schemas import FileData, JobStoreDocument
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
@@ -592,14 +626,7 @@ class Job(MSONable):
         if self.config.resolve_references:
             self.resolve_args(store=store)
 
-        # if Job was created using the job decorator, then access the original function
-        function = getattr(self.function, "original", self.function)
-
-        # if function is bound method we need to do some magic to bind the unwrapped
-        # function to the class/instance
-        bound = getattr(self.function, "__self__", None)
-        if bound is not None and not isinstance(bound, types.ModuleType):
-            function = types.MethodType(function, bound)
+        function = self.get_callable_function()
 
         response = function(*self.function_args, **self.function_kwargs)
         response = Response.from_job_returns(
@@ -657,7 +684,32 @@ class Job(MSONable):
                 "could not be serialized."
             ) from err
 
-        save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
+        files = None
+        if response.output_files:
+            files = []
+            # TODO, should this also handle io.IOBase?
+            for store_name, file_paths in response.output_files.items():
+                file_paths_list = file_paths
+                if not isinstance(file_paths_list, (list, tuple)):
+                    file_paths_list = [file_paths]
+
+                for fp in file_paths_list:
+                    file_path = Path(fp)
+                    dest_path = Path(uid_to_path(uid=self.uuid, index=None)) / file_path
+                    reference = store.put_file(
+                        file=str(file_path), store_name=store_name, dest=str(dest_path)
+                    )
+                    fd = FileData(
+                        name=file_path.name,
+                        reference=reference,
+                        store=store_name,
+                        path=str(file_path),
+                    )
+                    files.append(fd)
+
+        save = {
+            k: "output" if v is True else v for k, v in self.additional_stores.items()
+        }
         data: JobStoreDocument = JobStoreDocument(
             uuid=self.uuid,
             index=self.index,
@@ -666,12 +718,35 @@ class Job(MSONable):
             metadata=self.metadata,
             hosts=self.hosts,
             name=self.name,
+            files=files,
         )
         store.update(data, key=["uuid", "index"], save=save)
 
         CURRENT_JOB.reset()
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
+
+    def get_callable_function(self) -> Callable:
+        """
+        Extract the function that should be called.
+
+        Unwrap the function in case of a decorator and return it as
+        a bound method if needed.
+
+        Returns
+        -------
+        The function that can be called by the job with the defined arguments.
+        """
+        import types
+
+        # if Job was created using the job decorator, then access the original function
+        function = getattr(self.function, "original", self.function)
+        # if function is bound method we need to do some magic to bind the unwrapped
+        # function to the class/instance
+        bound = getattr(self.function, "__self__", None)
+        if bound is not None and not isinstance(bound, types.ModuleType):
+            function = types.MethodType(function, bound)
+        return function
 
     def resolve_args(
         self,
@@ -697,7 +772,10 @@ class Job(MSONable):
         """
         from copy import deepcopy
 
-        from jobflow.core.reference import find_and_resolve_references
+        from jobflow.core.reference import (
+            find_and_resolve_file_references,
+            find_and_resolve_references,
+        )
 
         cache: dict[str, Any] = {}
         resolved_args = find_and_resolve_references(
@@ -712,6 +790,36 @@ class Job(MSONable):
             cache=cache,
             on_missing=self.config.on_missing_references,
         )
+
+        cache_files: dict[str, Any] = {}
+        file_destinations = self.file_destinations
+        if file_destinations:
+            # matching the correct order of the args may be challenging,
+            # so switch everything to kwargs
+            function = self.get_callable_function()
+
+            sig = inspect.signature(function)
+            bound_args = sig.bind(*resolved_args, **resolved_kwargs)
+            resolved_args = []
+            resolved_kwargs = dict(bound_args.arguments)
+        elif resolved_args:
+            # file_destinations is not passed for args because it will not be
+            # resolved correctly. In case it is present
+            resolved_args = find_and_resolve_file_references(
+                resolved_args,
+                store,
+                cache=cache_files,
+                on_missing=self.config.on_missing_references,
+            )
+        if resolved_kwargs:
+            resolved_kwargs = find_and_resolve_file_references(
+                resolved_kwargs,
+                store,
+                cache=cache_files,
+                on_missing=self.config.on_missing_references,
+                file_destinations=file_destinations,
+            )
+
         resolved_args = tuple(resolved_args)
 
         if inplace:
@@ -1215,6 +1323,8 @@ class Response(typing.Generic[T]):
         Stop executing all remaining jobs.
     job_dir
         The directory where the job was run.
+    output_files
+        A Dictionary with the files that need to be store in a file store.
     """
 
     output: T = None
@@ -1225,6 +1335,7 @@ class Response(typing.Generic[T]):
     stop_children: bool = False
     stop_jobflow: bool = False
     job_dir: str | Path = None
+    output_files: dict[str, Any] = None
 
     @classmethod
     def from_job_returns(
