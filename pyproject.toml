@@ -59,7 +59,7 @@ strict = [
     "moto==4.2.13",
     "networkx==3.2.1",
     "pydantic-settings==2.6.1",
-    "pydantic==2.10.1",
+    "pydantic==2.10.2",
     "pydash==8.0.4",
     "pydot==2.0.0",
     "python-ulid==3.0.0",
