@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def run_locally(
     flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
-    log: bool = True,
+    log: bool | str = True,
     store: jobflow.JobStore | None = None,
     create_folders: bool = False,
     root_dir: str | Path | None = None,
@@ -30,8 +30,11 @@ def run_locally(
     ----------
     flow : Flow | Job | list[Job]
         A job or flow.
-    log : bool
-        Whether to print log messages.
+    log : bool | str
+        Controls logging. Defaults to True. Can be:
+        - False: disable logging
+        - True: use default logging format (read from ~/.jobflow.yaml)
+        - str: custom logging format string (e.g. "%(message)s" for more concise output)
     store : JobStore
         A job store. If a job store is not specified then
         :obj:`JobflowSettings.JOB_STORE` will be used. By default this is a maggma
@@ -46,7 +49,7 @@ def run_locally(
         Raise an error if the flow was not executed successfully.
     allow_external_references : bool
         If False all the references to other outputs should be from other Jobs
-        of the Flow.
+        of the same Flow.
     raise_immediately : bool
         If True, raise an exception immediately if a job fails. If False, continue
         running the flow and only raise an exception at the end if the flow did not
@@ -77,7 +80,7 @@ def run_locally(
     store.connect()
 
     if log:
-        initialize_logger()
+        initialize_logger(fmt=log if isinstance(log, str) else "")
 
     flow = get_flow(flow, allow_external_references=allow_external_references)
 

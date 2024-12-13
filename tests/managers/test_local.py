@@ -44,7 +44,15 @@ def test_simple_flow(memory_jobstore, clean_dir, simple_flow, capsys):
     assert "INFO Started executing jobs locally" not in captured.out
     assert "INFO Finished executing jobs locally" not in captured.out
 
-    # run with log
+    # run with custom log format
+    custom_fmt = "%(name)s: %(levelname)s - %(message)s"
+    run_locally(flow, store=memory_jobstore, log=custom_fmt)
+    stdout, stderr = capsys.readouterr()
+    assert "jobflow.managers.local: INFO - Started executing jobs locally" in stdout
+    assert "jobflow.managers.local: INFO - Finished executing jobs locally" in stdout
+    assert stderr == ""
+
+    # run with log=True
     responses = run_locally(flow, store=memory_jobstore)
 
     # check responses has been filled

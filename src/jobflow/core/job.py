@@ -69,17 +69,22 @@ class JobConfig(MSONable):
 
 
 @overload
-def job(method: Callable = None) -> Callable[..., Job]:
+def job(method: Callable | None = None) -> Callable[..., Job]:
     pass
 
 
 @overload
-def job(method: Callable = None, **job_kwargs) -> Callable[..., Callable[..., Job]]:
+def job(method: Callable, **job_kwargs) -> Callable[..., Job]:
+    pass
+
+
+@overload
+def job(method: None = None, **job_kwargs) -> Callable[..., Callable[..., Job]]:
     pass
 
 
 def job(
-    method: Callable = None, **job_kwargs
+    method: Callable | None = None, **job_kwargs
 ) -> Callable[..., Job] | Callable[..., Callable[..., Job]]:
     """
     Wrap a function to produce a :obj:`Job`.
@@ -292,12 +297,12 @@ class Job(MSONable):
     --------
     Builtin functions such as :obj:`print` can be specified.
 
-    >>> print_task = Job(function=print, args=("I am a job", ))
+    >>> print_task = Job(function=print, function_args=("I am a job", ))
 
     Or other functions of the Python standard library.
 
     >>> import os
-    >>> Job(function=os.path.join, args=("folder", "filename.txt"))
+    >>> Job(function=os.path.join, function_args=("folder", "filename.txt"))
 
     To use custom functions, the functions should be importable (i.e. not
     defined in another function). For example, if the following function is defined
@@ -305,7 +310,7 @@ class Job(MSONable):
 
     >>> def add(a, b):
     ...     return a + b
-    >>> add_job = Job(function=add, args=(1, 2))
+    >>> add_job = Job(function=add, function_args=(1, 2))
 
     More details are given in the :obj:`job` decorator docstring.
 
@@ -328,6 +333,7 @@ class Job(MSONable):
         hosts: list[str] = None,
         metadata_updates: list[dict[str, Any]] = None,
         config_updates: list[dict[str, Any]] = None,
+        name_updates: list[dict[str, Any]] = None,
         **kwargs,
     ):
         from copy import deepcopy
@@ -337,7 +343,6 @@ class Job(MSONable):
         function_args = () if function_args is None else function_args
         function_kwargs = {} if function_kwargs is None else function_kwargs
         uuid = suid() if uuid is None else uuid
-        metadata = {} if metadata is None else metadata
         config = JobConfig() if config is None else config
 
         # make a deep copy of the function (means makers do not share the same instance)
@@ -348,10 +353,11 @@ class Job(MSONable):
         self.uuid = uuid
         self.index = index
         self.name = name
-        self.metadata = metadata
+        self.metadata = metadata or {}
         self.config = config
         self.hosts = hosts or []
         self.metadata_updates = metadata_updates or []
+        self.name_updates = name_updates or []
         self.config_updates = config_updates or []
         self._kwargs = kwargs
 
@@ -621,6 +627,8 @@ class Job(MSONable):
                     new_jobs.update_metadata(**metadata_update, dynamic=True)
                 for config_update in self.config_updates:
                     new_jobs.update_config(**config_update, dynamic=True)
+                for name_update in self.name_updates:
+                    new_jobs.append_name(**name_update, dynamic=True)
 
         if self.config.response_manager_config:
             passed_config = self.config.response_manager_config
@@ -889,7 +897,7 @@ class Job(MSONable):
                         dict_mod=dict_mod,
                     )
 
-    def append_name(self, append_str: str, prepend: bool = False):
+    def append_name(self, append_str: str, prepend: bool = False, dynamic: bool = True):
         """
         Append a string to the name of the job.
 
@@ -899,11 +907,17 @@ class Job(MSONable):
             A string to append.
         prepend
             Prepend the name rather than appending it.
+        dynamic
+            The updates will be propagated to Jobs/Flows dynamically generated at
+            runtime.
         """
         if prepend:
             self.name = append_str + self.name
         else:
             self.name += append_str
+
+        if dynamic:
+            self.name_updates.append({"append_str": append_str, "prepend": prepend})
 
     def update_metadata(
         self,
@@ -912,6 +926,7 @@ class Job(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
+        callback_filter: Callable[[jobflow.Flow | Job], bool] = lambda _: True,
     ):
         """
         Update the metadata of the job.
@@ -935,6 +950,9 @@ class Job(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
+        callback_filter
+            A function that takes a Flow or Job instance and returns True if updates
+            should be applied to that instance. Allows for custom filtering logic.
 
         Examples
         --------
@@ -953,11 +971,16 @@ class Job(MSONable):
         will not only set the `example` metadata to the `test_job`, but also to all the
         new Jobs that will be generated at runtime by the ExampleMaker.
 
-        `update_metadata` can be called multiple times with different `name_filter` or
-        `function_filter` to control which Jobs will be updated.
+        `update_metadata` can be called multiple times with different filters to control
+        which Jobs will be updated. For example, using a callback filter:
 
-        At variance, if `dynamic` is set to `False` the `example` metadata will only be
-        added to the `test_job` and not to the generated Jobs.
+        >>> test_job.update_metadata(
+        ...     {"material_id": 42},
+        ...     callback_filter=lambda job: isinstance(job.maker, SomeMaker)
+        ... )
+
+        At variance, if `dynamic` is set to `False` the metadata will only be
+        added to the filtered Jobs and not to any generated Jobs.
         """
         from jobflow.utils.dict_mods import apply_mod
 
@@ -967,6 +990,7 @@ class Job(MSONable):
                 "name_filter": name_filter,
                 "function_filter": function_filter,
                 "dict_mod": dict_mod,
+                "callback_filter": callback_filter,
             }
             self.metadata_updates.append(dict_input)
 
@@ -974,13 +998,15 @@ class Job(MSONable):
         function_filter = getattr(function_filter, "__wrapped__", function_filter)
         function = getattr(self.function, "__wrapped__", self.function)
 
-        # if function_filter is not None and function_filter != self.function:
         if function_filter is not None and function_filter != function:
             return
 
         if name_filter is not None and (
             self.name is None or name_filter not in self.name
         ):
+            return
+
+        if callback_filter(self) is False:
             return
 
         # if we get to here then we pass all the filters
