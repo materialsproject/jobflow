@@ -4,7 +4,7 @@ from monty.dev import deprecated
 
 
 @deprecated(
-    message="The UUID system will be replace with UID that contains both UUID and ULID."
+    message="The UUID system will be replaced with a UID that contains both the UUID and ULID."
 )
 def suuid() -> str:
     """
