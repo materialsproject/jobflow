@@ -42,7 +42,7 @@ docs = [
     "furo==2024.8.6",
     "ipython==8.31.0",
     "myst_parser==4.0.0",
-    "nbsphinx==0.9.5",
+    "nbsphinx==0.9.6",
     "sphinx-copybutton==0.5.2",
     "sphinx==8.1.3",
 ]
