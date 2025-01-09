@@ -617,7 +617,7 @@ class Flow(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
-        callback_filter: Callable[[Flow | Job], bool] = lambda _: True,
+        callback_filter: Callable[[Flow | Job], bool] | None = None,
     ):
         """
         Update the metadata of the Flow and/or its Jobs.
@@ -681,7 +681,7 @@ class Flow(MSONable):
                 callback_filter=callback_filter,
             )
 
-        if callback_filter(self) is False:
+        if callback_filter is not None and callback_filter(self) is False:
             return
 
         if dict_mod:

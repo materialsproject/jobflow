@@ -926,7 +926,7 @@ class Job(MSONable):
         function_filter: Callable = None,
         dict_mod: bool = False,
         dynamic: bool = True,
-        callback_filter: Callable[[jobflow.Flow | Job], bool] = lambda _: True,
+        callback_filter: Callable[[jobflow.Flow | Job], bool] | None = None,
     ):
         """
         Update the metadata of the job.
@@ -1006,7 +1006,7 @@ class Job(MSONable):
         ):
             return
 
-        if callback_filter(self) is False:
+        if callback_filter is not None and callback_filter(self) is False:
             return
 
         # if we get to here then we pass all the filters
