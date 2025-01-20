@@ -60,7 +60,7 @@ strict = [
     "networkx==3.2.1",
     "pydantic-settings==2.7.1",
     "pydantic==2.10.5",
-    "pydash==8.0.4",
+    "pydash==8.0.5",
     "pydot==2.0.0",
     "python-ulid==3.0.0",
     "typing-extensions==4.12.2",
