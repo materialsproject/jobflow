@@ -40,7 +40,7 @@ ulid = ["python-ulid"]
 docs = [
     "autodoc_pydantic==2.1.0",
     "furo==2024.8.6",
-    "ipython==8.32.0",
+    "ipython==9.0.1",
     "myst_parser==4.0.1",
     "nbsphinx==0.9.6",
     "sphinx-copybutton==0.5.2",
