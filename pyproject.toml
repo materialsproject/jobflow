@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 42", "versioningit ~= 1.0", "wheel"]
+requires = ["setuptools >= 42", "versioningit >= 1,< 4", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -39,31 +39,31 @@ dependencies = [
 ulid = ["python-ulid"]
 docs = [
     "autodoc_pydantic==2.2.0",
-    "furo==2024.5.6",
-    "ipython==8.23.0",
-    "myst_parser==2.0.0",
-    "nbsphinx==0.9.4",
+    "furo==2024.8.6",
+    "ipython==9.0.2",
+    "myst_parser==4.0.1",
+    "nbsphinx==0.9.6",
     "sphinx-copybutton==0.5.2",
-    "sphinx==7.3.7",
+    "sphinx==8.2.3",
 ]
 dev = ["pre-commit>=2.12.1", "typing_extensions; python_version < '3.11'"]
-tests = ["moto==4.2.13", "pytest-cov==5.0.0", "pytest==8.1.1"]
+tests = ["moto==4.2.13", "pytest-cov==6.1.1", "pytest==8.4.0"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
-    "FireWorks==2.0.3",
-    "PyYAML==6.0.1",
-    "maggma==0.65.0",
-    "matplotlib==3.8.4",
-    "monty==2024.4.17",
+    "FireWorks==2.0.4",
+    "PyYAML==6.0.2",
+    "maggma==0.71.5",
+    "matplotlib==3.9.4",
+    "monty==2025.3.3",
     "moto==4.2.13",
     "networkx==3.2.1",
-    "pydantic-settings==2.2.1",
-    "pydantic==2.7.1",
-    "pydash==8.0.0",
+    "pydantic-settings==2.9.1",
+    "pydantic==2.11.5",
+    "pydash==8.0.5",
     "pydot==2.0.0",
-    "python-ulid==2.4.0.post0",
-    "typing-extensions==4.11.0",
+    "python-ulid==3.0.0",
+    "typing-extensions==4.13.2",
 ]
 
 [project.urls]
@@ -121,6 +121,7 @@ exclude_lines = [
 
 [tool.ruff]
 target-version = "py39"
+output-format = "concise"
 
 [tool.ruff.lint]
 select = [
@@ -171,7 +172,6 @@ ignore = [
 ]
 pydocstyle.convention = "numpy"
 isort.known-first-party = ["jobflow"]
-ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 # F401: unused import
@@ -180,3 +180,4 @@ ignore-init-module-imports = true
 # PLR2004: magic-value-comparison
 # PT004: pytest-missing-fixture-name-underscore
 "**/tests/*" = ["ANN", "ARG001", "D", "PLR2004", "PT004", "S101"]
+"docs/tutorials/*" = ["D", "PLR2004"]

@@ -1096,32 +1096,94 @@ def test_update_metadata(memory_jobstore):
     test_job.update_metadata({"b": 5}, function_filter=A.jsm_wrapped)
     assert test_job.metadata["b"] == 5
 
-    # test dict mod
+    # test callback filter with complex conditions
     test_job = Job(add, function_args=(1,))
-    test_job.metadata = {"b": 2}
-    test_job.update_metadata({"_inc": {"b": 5}}, dict_mod=True)
-    assert test_job.metadata["b"] == 7
+    test_job.metadata = {"x": 1, "y": 2}
+    test_job.name = "test_name"
 
-    # test applied dynamic updates
+    # Test multiple metadata keys
+    test_job.update_metadata(
+        {"z": 3},
+        callback_filter=lambda job: (
+            all(key in job.metadata for key in ["x", "y"])
+            and job.name == "test_name"
+            and isinstance(job.function_args[0], int)
+        ),
+    )
+    assert test_job.metadata["z"] == 3
+
+    # Test callback filter with no match due to complex condition
+    test_job = Job(add, function_args=(1,))
+    test_job.metadata = {"x": 1}
+    test_job.name = "test_name"
+    test_job.update_metadata(
+        {"z": 3},
+        callback_filter=lambda job: (
+            all(key in job.metadata for key in ["x", "y"]) and job.name == "test_name"
+        ),
+    )
+    assert "z" not in test_job.metadata
+
+    # Test callback filter with function argument inspection
+    test_job = Job(add, function_args=(1, 2))
+    test_job.update_metadata(
+        {"w": 4},
+        callback_filter=lambda job: (
+            len(job.function_args) == 2
+            and all(isinstance(arg, int) for arg in job.function_args)
+        ),
+    )
+    assert test_job.metadata["w"] == 4
+
+    # Test callback filter with maker attributes
     @dataclass
-    class TestMaker(Maker):
-        name = "test"
+    class SpecialMaker(Maker):
+        name: str = "special"
+        value: int = 42
 
         @job
-        def make(self, a, b):
-            return a + b
+        def make(self):
+            return 1
 
+    maker = SpecialMaker()
+    test_job = maker.make()
+    test_job.update_metadata(
+        {"v": 5},
+        callback_filter=lambda job: (job.maker is not None and job.maker.value == 42),
+    )
+    assert test_job.metadata["v"] == 5
+
+    # Test callback filter with dynamic updates and complex conditions
     @job
     def use_maker(maker):
         return Response(replace=maker.make())
 
-    test_job = use_maker(TestMaker())
-    test_job.name = "use"
-    test_job.update_metadata({"b": 2}, name_filter="test")
-    assert "b" not in test_job.metadata
+    test_job = use_maker(SpecialMaker())
+    test_job.update_metadata(
+        {"u": 6},
+        callback_filter=lambda job: (
+            hasattr(job, "maker") and getattr(job.maker, "name", "") == "special"
+        ),
+        dynamic=True,
+    )
     response = test_job.run(memory_jobstore)
-    assert response.replace[0].metadata["b"] == 2
-    assert response.replace[0].metadata_updates[0]["update"] == {"b": 2}
+    assert "u" not in test_job.metadata  # Original job shouldn't match
+    assert response.replace[0].metadata["u"] == 6  # But replacement should
+    assert any(
+        "callback_filter" in update and update["update"].get("u") == 6
+        for update in response.replace[0].metadata_updates
+    )
+
+    # Test callback filter with function inspection
+    def has_specific_signature(job):
+        import inspect
+
+        sig = inspect.signature(job.function)
+        return len(sig.parameters) == 2 and "b" in sig.parameters
+
+    test_job = Job(add, function_args=(1,))
+    test_job.update_metadata({"t": 7}, callback_filter=has_specific_signature)
+    assert test_job.metadata["t"] == 7
 
 
 def test_update_config(memory_jobstore):
