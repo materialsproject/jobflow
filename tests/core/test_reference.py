@@ -515,6 +515,6 @@ def test_not_iterable():
     with pytest.raises(TypeError):
         next(ref)
 
-    with pytest.raises(TypeError):  # noqa: PT012
+    with pytest.raises(TypeError):
         for _ in ref:
             pass

@@ -1265,7 +1265,7 @@ class Response(typing.Generic[T]):
                 job_returns.output = apply_schema(job_returns.output, output_schema)
 
             job_returns.job_dir = job_dir
-            return cast(Self, job_returns)
+            return cast("Self", job_returns)
 
         if isinstance(job_returns, (list, tuple)):
             # check that a Response object is not given as one of many outputs
