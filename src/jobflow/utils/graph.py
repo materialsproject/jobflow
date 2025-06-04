@@ -170,7 +170,7 @@ def to_pydot(flow: jobflow.Flow):
             if isinstance(job, Flow):
                 add_cluster(job, cluster)
             else:
-                cluster.add_node(pydot_graph.get_node(f'"{job.uuid}"')[0])
+                cluster.add_node(pydot_graph.get_node(f"{job.uuid}")[0])
 
         outer_graph.add_subgraph(cluster)
 
