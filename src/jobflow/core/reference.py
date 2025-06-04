@@ -513,7 +513,7 @@ def validate_schema_access(
         the bool is ``True`` if the schema access was valid.
         The BaseModel class associated with the item, if any.
     """
-    schema_dict = schema.schema()
+    schema_dict = schema.model_json_schema()
     if item not in schema_dict["properties"]:
         raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
 
