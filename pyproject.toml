@@ -38,7 +38,7 @@ dependencies = [
 [project.optional-dependencies]
 ulid = ["python-ulid"]
 docs = [
-    "autodoc_pydantic==2.1.0",
+    "autodoc_pydantic==2.2.0",
     "furo==2024.8.6",
     "ipython==9.0.2",
     "myst_parser==4.0.1",
