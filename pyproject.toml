@@ -48,7 +48,7 @@ docs = [
     "sphinx==8.1.3",
 ]
 dev = ["pre-commit>=2.12.1", "typing_extensions; python_version < '3.11'"]
-tests = ["moto==5.1.6", "pytest-cov==6.1.1", "pytest==8.4.0"]
+tests = ["moto==5.1.6", "pytest-cov==6.1.1", "pytest==8.4.1"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
