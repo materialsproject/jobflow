@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from monty.json import MSONable
 
 import jobflow
+from jobflow.core.job import Steps
 from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
@@ -916,3 +917,22 @@ def get_flow(
             )
 
     return flow
+
+
+def flow(method=None):
+    """Wrap a function to produce a :obj:`Flow`."""
+    steps = Steps()
+    istart = len(steps)
+
+    def wrapper(*args, **kwargs):
+        method_out = method(*args, **kwargs)
+        # Here deal with when it is already a Flow
+        if isinstance(method_out, Flow):
+            f = method_out
+        else:
+            flow_steps = steps.steps[istart:]
+            f = Flow(flow_steps, output=method_out)
+        steps.add(f)
+        return f
+
+    return wrapper
