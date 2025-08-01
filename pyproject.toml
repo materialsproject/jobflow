@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: Other/Nonlisted Topic",
     "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "PyYAML",
     "maggma>=0.57.0",
@@ -34,6 +34,8 @@ dependencies = [
     "pydantic-settings>=2.0.3",
     "pydantic>=2.0.1",
     "pydash",
+    "prefect",
+    "pytest",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +53,7 @@ dev = ["pre-commit>=2.12.1", "typing_extensions; python_version < '3.11'"]
 tests = ["moto==5.1.9", "pytest-cov==6.2.1", "pytest==8.4.1"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
+prefect = ["prefect>=3.0.0"]
 strict = [
     "FireWorks==2.0.4",
     "PyYAML==6.0.2",
