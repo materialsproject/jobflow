@@ -330,18 +330,47 @@ def job_to_prefect_task_with_references(
             # Execute the job function directly
             result = job_copy.function(*resolved_args, **resolved_kwargs)
 
-            # Store the result in our Prefect store
-            if store is not None:
-                doc = JobStoreDocument(
-                    uuid=job_copy.uuid,
-                    index=1,
-                    job=job_copy,
-                    output=result
-                )
-                try:
-                    store.update(doc, key=["uuid", "index"])
-                except Exception as store_error:
-                    logger.warning(f"Failed to store job result: {store_error}")
+            # Handle Response objects with dynamic flow operations
+            from jobflow.core.job import Response
+            if isinstance(result, Response):
+                logger.info(f"Job {job.name} returned Response object with dynamic operations")
+
+                # Handle dynamic flow operations
+                dynamic_results = _handle_dynamic_operations(result, job_copy, store)
+
+                # Store the response in our Prefect store
+                if store is not None:
+                    doc = JobStoreDocument(
+                        uuid=job_copy.uuid,
+                        index=1,
+                        job=job_copy,
+                        output=result
+                    )
+                    try:
+                        store.update(doc, key=["uuid", "index"])
+                    except Exception as store_error:
+                        logger.warning(f"Failed to store job result: {store_error}")
+
+                # Return the output of the response, not the response itself
+                # For replace operations, we need to handle this specially
+                if result.replace is not None:
+                    # For replace operations, return the results from the replacement
+                    return dynamic_results.get('replace_result', result.output)
+                else:
+                    return result.output
+            else:
+                # Store the result in our Prefect store
+                if store is not None:
+                    doc = JobStoreDocument(
+                        uuid=job_copy.uuid,
+                        index=1,
+                        job=job_copy,
+                        output=result
+                    )
+                    try:
+                        store.update(doc, key=["uuid", "index"])
+                    except Exception as store_error:
+                        logger.warning(f"Failed to store job result: {store_error}")
 
             logger.info(f"Job {job.name} completed successfully")
             return result
@@ -351,6 +380,141 @@ def job_to_prefect_task_with_references(
             raise
 
     return execute_job_with_references
+
+
+def _handle_dynamic_operations(response, original_job, store):
+    """
+    Handle dynamic flow operations (detour, addition, replace) in Prefect.
+
+    Parameters
+    ----------
+    response
+        The Response object containing dynamic operations
+    original_job
+        The original job that returned the response
+    store
+        The result store for storing intermediate results
+
+    Returns
+    -------
+    dict
+        Results from the dynamic operations
+    """
+    from jobflow.core.flow import get_flow
+    from copy import deepcopy
+
+    dynamic_results = {}
+
+    # Handle replace operations first (these replace the current job)
+    if response.replace is not None:
+        logger.info(f"Handling replace operation for job {original_job.name}")
+        replace_flow = get_flow(response.replace, allow_external_references=True)
+
+        # Execute the replacement flow as Prefect tasks
+        replace_results = _execute_dynamic_flow(replace_flow, store)
+        dynamic_results['replace_result'] = replace_results
+
+    # Handle detour operations (parallel execution)
+    if response.detour is not None:
+        logger.info(f"Handling detour operation for job {original_job.name}")
+        detour_flow = get_flow(response.detour, allow_external_references=True)
+
+        # Execute the detour flow as Prefect tasks
+        detour_results = _execute_dynamic_flow(detour_flow, store)
+        dynamic_results['detour_result'] = detour_results
+
+    # Handle addition operations (add to current flow)
+    if response.addition is not None:
+        logger.info(f"Handling addition operation for job {original_job.name}")
+        addition_flow = get_flow(response.addition, allow_external_references=True)
+
+        # Execute the addition flow as Prefect tasks
+        addition_results = _execute_dynamic_flow(addition_flow, store)
+        dynamic_results['addition_result'] = addition_results
+
+    return dynamic_results
+
+
+def _execute_dynamic_flow(flow, store):
+    """
+    Execute a dynamic flow using Prefect tasks.
+
+    This is a simplified execution that creates and runs Prefect tasks
+    for the jobs in the dynamic flow.
+
+    Parameters
+    ----------
+    flow
+        The Flow object to execute
+    store
+        The result store
+
+    Returns
+    -------
+    dict
+        Results from executing the flow
+    """
+    from jobflow.core.schemas import JobStoreDocument
+
+    results = {}
+    task_results = {}
+
+    # Execute each job in the flow
+    for job, parents in flow.iterflow():
+        logger.info(f"Executing dynamic job: {job.name} ({job.uuid})")
+
+        # Create task for this job
+        job_task = job_to_prefect_task_with_references(job, store)
+
+        # Handle dependencies by collecting parent results
+        parent_data = []
+        if parents:
+            for parent_uuid in parents:
+                if parent_uuid in task_results:
+                    parent_data.append({
+                        'uuid': parent_uuid,
+                        'task_result': task_results[parent_uuid]
+                    })
+
+        # Execute the task
+        try:
+            task_result = job_task.submit(
+                job=job,
+                store=store,
+                parent_data=parent_data
+            )
+
+            # Get the actual result
+            actual_result = task_result.result() if hasattr(task_result, 'result') else task_result
+
+            task_results[job.uuid] = task_result
+            results[job.uuid] = actual_result
+
+            logger.info(f"Dynamic job {job.name} completed with result: {actual_result}")
+
+        except Exception as e:
+            logger.error(f"Dynamic job {job.name} failed: {str(e)}")
+            # Continue with other jobs even if one fails
+            results[job.uuid] = None
+
+    # Return the flow output if specified, otherwise return all results
+    if hasattr(flow, 'output') and flow.output is not None:
+        # Try to resolve the flow output reference
+        try:
+            from jobflow.core.reference import find_and_get_references
+            references = find_and_get_references(flow.output)
+            if references:
+                # Simple case: return the result of the referenced job
+                ref_uuid = references[0].uuid
+                if ref_uuid in results:
+                    return results[ref_uuid]
+            else:
+                # Direct output value
+                return flow.output
+        except Exception as e:
+            logger.warning(f"Could not resolve flow output: {e}")
+
+    return results
 
 
 def resolve_references_with_uuid_mapping(data, result_map, references):
