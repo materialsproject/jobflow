@@ -48,7 +48,7 @@ class PrefectResultStore:
 
 
 def flow_to_prefect_flow(
-    jobflow_obj: jobflow.Flow | jobflow.Job | Sequence[jobflow.Job],
+    jobflow_obj: jobflow.Flow | jobflow.Job | list[jobflow.Job],
     store: jobflow.JobStore | None = None,
     allow_external_references: bool = False,
     task_runner: TaskRunner | None = ConcurrentTaskRunner,
@@ -202,26 +202,22 @@ def job_to_prefect_task(
             resolved_kwargs = job_copy.function_kwargs
 
             if hasattr(job_copy, 'config') and job_copy.config.resolve_references:
-                from jobflow.core.reference import find_and_get_references
+                from jobflow.core.reference import find_and_resolve_references
 
-                # Only resolve if there are actual references
+                # Resolve references in args and kwargs directly
                 if job_copy.function_args:
-                    args_refs = find_and_get_references(job_copy.function_args)
-                    if args_refs:
-                        resolved_args = resolve_references(
-                            job_copy.function_args,
-                            store,
-                            job_copy.config.on_missing_references
-                        )
+                    resolved_args = find_and_resolve_references(
+                        job_copy.function_args,
+                        store,
+                        on_missing=job_copy.config.on_missing_references,
+                    )
 
                 if job_copy.function_kwargs:
-                    kwargs_refs = find_and_get_references(job_copy.function_kwargs)
-                    if kwargs_refs:
-                        resolved_kwargs = resolve_references(
-                            job_copy.function_kwargs,
-                            store,
-                            job_copy.config.on_missing_references
-                        )
+                    resolved_kwargs = find_and_resolve_references(
+                        job_copy.function_kwargs,
+                        store,
+                        on_missing=job_copy.config.on_missing_references,
+                    )
 
             # Execute the job function directly
             result = job_copy.function(*resolved_args, **resolved_kwargs)
@@ -232,8 +228,11 @@ def job_to_prefect_task(
                 doc = JobStoreDocument(
                     uuid=job_copy.uuid,
                     index=1,
-                    job=job_copy,
-                    output=result
+                    output=result,
+                    name=job_copy.name,
+                    completed_at=None,
+                    metadata=None,
+                    hosts=None
                 )
                 try:
                     store.update(doc, key=["uuid", "index"])
@@ -343,8 +342,11 @@ def job_to_prefect_task_with_references(
                     doc = JobStoreDocument(
                         uuid=job_copy.uuid,
                         index=1,
-                        job=job_copy,
-                        output=result
+                        output=result,
+                        name=job_copy.name,
+                        completed_at=None,
+                        metadata=None,
+                        hosts=None
                     )
                     try:
                         store.update(doc, key=["uuid", "index"])
@@ -364,8 +366,11 @@ def job_to_prefect_task_with_references(
                     doc = JobStoreDocument(
                         uuid=job_copy.uuid,
                         index=1,
-                        job=job_copy,
-                        output=result
+                        output=result,
+                        name=job_copy.name,
+                        completed_at=None,
+                        metadata=None,
+                        hosts=None
                     )
                     try:
                         store.update(doc, key=["uuid", "index"])
