@@ -64,7 +64,7 @@ strict = [
     "pydash==8.0.5",
     "pydot==4.0.1",
     "python-ulid==3.1.0",
-    "typing-extensions==4.14.1",
+    "typing-extensions==4.15.0",
 ]
 
 [project.urls]
