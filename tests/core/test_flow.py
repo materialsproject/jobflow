@@ -115,12 +115,13 @@ def test_flow_of_jobs_init():
 
     # test job given rather than outputs
     add_job = get_test_job()
-    with pytest.warns(UserWarning):
+    warn_msg = "Flow 'Flow' contains a Flow or Job as an output."
+    with pytest.warns(UserWarning, match=warn_msg):
         Flow([add_job], output=add_job)
 
     # test complex object containing job given rather than outputs
     add_job = get_test_job()
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=warn_msg):
         Flow([add_job], output={1: [[{"a": add_job}]]})
 
     # test job already belongs to another flow
@@ -203,13 +204,14 @@ def test_flow_of_flows_init():
     # test flow given rather than outputs
     add_job = get_test_job()
     sub_flow = Flow([add_job], output=add_job.output)
-    with pytest.warns(UserWarning):
+    warn_msg = "Flow 'Flow' contains a Flow or Job as an output."
+    with pytest.warns(UserWarning, match=warn_msg):
         Flow([sub_flow], output=sub_flow)
 
     # test complex object containing job given rather than outputs
     add_job = get_test_job()
     sub_flow = Flow([add_job], output=add_job.output)
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=warn_msg):
         Flow([sub_flow], output={1: [[{"a": sub_flow}]]})
 
     # test flow already belongs to another flow
@@ -717,7 +719,7 @@ def test_add_jobs():
     flow2 = Flow([flow1])
     flow3 = Flow([flow2])
     with pytest.raises(
-        ValueError, match="circular dependency: Flow .+ contains the current Flow"
+        ValueError, match=r"circular dependency: Flow .+ contains the current Flow"
     ):
         flow1.add_jobs(flow3)
 
@@ -1315,7 +1317,7 @@ def test_flow_magic_methods_edge_cases():
     ):
         _ = flow1 + job1
 
-    with pytest.raises(ValueError, match="Job .+ already belongs to another flow"):
+    with pytest.raises(ValueError, match=r"Job .+ already belongs to another flow"):
         _ = flow1 + job6
 
 

@@ -163,6 +163,7 @@ ignore = [
     "FBT001",
     "FBT002",
     "ISC001",
+    "PLC0415", # import should be at the top-level of a file
     "PLR0911", # too-many-return-statements
     "PLR0912", # too-many-branches
     "PLR0913", # too-many-arguments
@@ -180,5 +181,6 @@ isort.known-first-party = ["jobflow"]
 # D: pydocstyle
 # PLR2004: magic-value-comparison
 # PT004: pytest-missing-fixture-name-underscore
+
 "**/tests/*" = ["ANN", "ARG001", "D", "PLR2004", "PT004", "S101"]
 "docs/tutorials/*" = ["D", "PLR2004"]

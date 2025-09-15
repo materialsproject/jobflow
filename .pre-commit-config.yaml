@@ -12,8 +12,6 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-yaml
-      - id: fix-encoding-pragma
-        args: [--remove]
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/asottile/blacken-docs

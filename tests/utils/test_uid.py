@@ -20,7 +20,7 @@ def test_uid():
 
     with pytest.raises(
         ValueError,
-        match="UUID4 is randomly generated and not associated with a time stamp.",
+        match=r"UUID4 is randomly generated and not associated with a time stamp.",
     ):
         get_timestamp_from_uid(uuid)
 
@@ -29,10 +29,10 @@ def test_uid():
     t2 = get_timestamp_from_uid(ulid)
     assert isinstance(t2, float)
 
-    with pytest.raises(ValueError, match="UUID type uuid2 not supported."):
+    with pytest.raises(ValueError, match=r"UUID type uuid2 not supported."):
         suid("uuid2")
 
-    with pytest.raises(ValueError, match="ID type for FAKEUUID not recognized."):
+    with pytest.raises(ValueError, match=r"ID type for FAKEUUID not recognized."):
         get_timestamp_from_uid("FAKEUUID")
 
     default_uid = suid()

@@ -33,7 +33,9 @@ def test_job_init():
     assert test_job.output.uuid == test_job.uuid
 
     # test job as another job as input
-    with pytest.warns(UserWarning):
+    with pytest.warns(
+        UserWarning, match="Job 'add' contains an Flow or Job as an input"
+    ):
         Job(function=add, function_args=(test_job,))
 
     # test init with kwargs

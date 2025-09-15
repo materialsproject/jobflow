@@ -20,7 +20,7 @@ def test_itergraph():
 
     # test non-connected
     graph = DiGraph([("a", "b"), ("c", "d")])
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="Some jobs are not connected"):
         result = list(itergraph(graph))
     assert {*result} == {"a", "b", "c", "d"}
 
