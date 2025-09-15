@@ -252,6 +252,6 @@ def test_recursive_call():
     # test bad recursive call
     with pytest.raises(
         ValueError,
-        match="Function must return a Maker object. Got <class 'int'> instead.",
+        match=r"Function must return a Maker object. Got <class 'int'> instead.",
     ):
         recursive_call(maker, bad_func)
