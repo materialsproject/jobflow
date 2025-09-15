@@ -1,5 +1,42 @@
 # Change log
 
+## v0.2.0
+
+Dropped support for Python 3.9.
+
+### Bug Fixes 🐛
+* Change default `callback_filter` in `update_metadata` by @esoteric-ephemera in https://github.com/materialsproject/jobflow/pull/721
+
+### Documentation 📖
+* Added tutorial and example for handling missing references by @jmmshn in https://github.com/materialsproject/jobflow/pull/716
+
+### House-Keeping 🧹
+* `schema` -> `model_json_schema` by @jmmshn in https://github.com/materialsproject/jobflow/pull/743
+* Update linting and dependencies by @utf in https://github.com/materialsproject/jobflow/pull/774
+
+## New Contributors
+* @esoteric-ephemera made their first contribution in https://github.com/materialsproject/jobflow/pull/721
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.19...v0.2.0
+
+## v0.1.19
+
+### Bug Fixes 🐛
+* fix @job annotation again (again) by @FabiPi3 in https://github.com/materialsproject/jobflow/pull/654
+
+### Enhancements 🛠
+* `JobflowSettings` add `LOG_FORMAT`, also directly passable to `run_locally` by @janosh in https://github.com/materialsproject/jobflow/pull/706
+* Add `Flow.metadata` attribute and `Flow.update_metadata` method by @janosh in https://github.com/materialsproject/jobflow/pull/679
+
+### Documentation 📖
+* Fix docstring in Job. by @davidwaroquiers in https://github.com/materialsproject/jobflow/pull/673
+
+### House-Keeping 🧹
+* Update commit hooks and fix new `ruff` and `mypy` issues by @janosh in https://github.com/materialsproject/jobflow/pull/685
+
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.1.18...v0.1.19
+
 ## v0.1.18
 
 ### Bug Fixes 🐛

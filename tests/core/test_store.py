@@ -38,11 +38,11 @@ def test_additional(memory_store):
 
     import boto3
     from maggma.stores import MemoryStore, S3Store
-    from moto import mock_s3
+    from moto import mock_aws
 
     from jobflow import JobStore
 
-    with mock_s3():
+    with mock_aws():
         conn = boto3.resource("s3", region_name="us-east-1")
         conn.create_bucket(Bucket="bucket1")
         index = MemoryStore("index", key="blob_uuid")

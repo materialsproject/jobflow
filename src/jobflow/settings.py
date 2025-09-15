@@ -11,6 +11,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from jobflow import JobStore
 
 DEFAULT_CONFIG_FILE_PATH = Path("~/.jobflow.yaml").expanduser().as_posix()
+DEFAULT_LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
+DEFAULT_DIRECTORY_FORMAT = "%Y-%m-%d-%H-%M-%S-%f"
 
 
 def _default_additional_store():
@@ -28,7 +30,7 @@ class JobflowSettings(BaseSettings):
     """
     Settings for jobflow.
 
-    The default way to modify these is to modify ~/.jobflow.yaml. Alternatively,
+    The default way to modify these is to create a ~/.jobflow.yaml. Alternatively,
     the environment variable ``JOBFLOW_CONFIG_FILE`` can be set to point to a yaml file
     with jobflow settings.
 
@@ -114,8 +116,17 @@ class JobflowSettings(BaseSettings):
         "accepted formats.",
     )
     DIRECTORY_FORMAT: str = Field(
-        "%Y-%m-%d-%H-%M-%S-%f",
+        DEFAULT_DIRECTORY_FORMAT,
         description="Date stamp format used to create directories",
+    )
+    LOG_FORMAT: str = Field(
+        DEFAULT_LOG_FORMAT,
+        description="""Logging format string. Common format codes:
+    - %(message)s - The logged message
+    - %(asctime)s - Human-readable time
+    - %(levelname)s - DEBUG, INFO, WARNING, ERROR, or CRITICAL
+    - %(name)s - Logger name
+    See Python logging documentation for more format codes.""",
     )
 
     UID_TYPE: str = Field(
