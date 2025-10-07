@@ -8,6 +8,12 @@ from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.core.state import CURRENT_JOB
 from jobflow.core.store import JobStore
 from jobflow.managers.local import run_locally
+
+try:
+    from jobflow.managers.prefect import PrefectManager, run_on_prefect
+except ImportError:
+    PrefectManager = None
+    run_on_prefect = None
 from jobflow.settings import JobflowSettings
 from jobflow.utils.log import initialize_logger
 
