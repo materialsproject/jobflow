@@ -1,5 +1,7 @@
 import pytest
 
+pytest.importorskip("fireworks")
+
 
 def test_flow_to_workflow(
     memory_jobstore, simple_job, simple_flow, connected_flow, nested_flow

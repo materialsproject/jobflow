@@ -79,7 +79,7 @@ def test_settings_object(clean_dir, test_data):
     with open(config_file_path, "w") as f:
         pass
 
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="An empty JobFlow config file was located at"):
         settings = JobflowSettings()
 
     # An error should be thrown if the file exists and
