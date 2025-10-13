@@ -55,7 +55,7 @@ strict = [
     "FireWorks==2.0.5",
     "PyYAML==6.0.3",
     "maggma==0.72.0",
-    "matplotlib==3.10.6",
+    "matplotlib==3.10.7",
     "monty==2025.3.3",
     "moto==5.1.14",
     "networkx==3.4.2",
