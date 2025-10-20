@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import warnings
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
@@ -916,3 +918,62 @@ def get_flow(
             )
 
     return flow
+
+
+class DecoratedFlow(Flow):
+    """A DecoratedFlow is a Flow that is returned on using the @flow decorator."""
+
+    def __init__(self, fn, *args, **kwargs):
+        # jobs are added when .run() is called
+        super().__init__(jobs=[])
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+
+def flow(fn):
+    """
+    Turn a function into a DecoratedFlow object.
+
+    Parameters
+    ----------
+        fn (Callable): The function to be wrapped in a DecoratedFlow object.
+
+    Returns
+    -------
+        Callable: A wrapper function that, when called, creates and returns
+        an instance of DecoratedFlow initialized with the provided function
+        and its arguments.
+    """
+
+    def wrapper(*args, **kwargs):
+        return DecoratedFlow(fn, *args, **kwargs)
+
+    return wrapper
+
+
+@contextmanager
+def flow_build_context(flow):
+    """Provide a context manager for setting and resetting the current flow context.
+
+    Parameters
+    ----------
+        flow: The Flow object to be set as the current flow context.
+
+    Yields
+    ------
+        None: Temporarily sets the provided flow object as the current flow
+        context within the managed block.
+
+    Raises
+    ------
+        None
+    """
+    token = _current_flow_context.set(flow)
+    try:
+        yield
+    finally:
+        _current_flow_context.reset(token)
+
+
+_current_flow_context = ContextVar("current_flow_context", default=None)

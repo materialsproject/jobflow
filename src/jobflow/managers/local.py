@@ -9,6 +9,7 @@ if typing.TYPE_CHECKING:
     from pathlib import Path
 
     import jobflow
+from jobflow.core.flow import DecoratedFlow, flow_build_context
 
 logger = logging.getLogger(__name__)
 
@@ -176,11 +177,29 @@ def run_locally(
 
         return not encountered_bad_response
 
+    def _get_final_output_by_job(output_job):
+        # Get the final output of a job, possibly recursively if it has been
+        # replaced.
+        final_output_job_index = max(responses[output_job.uuid].keys())
+        final_output_job_response = responses[output_job.uuid][final_output_job_index]
+        if final_output_job_response.replace is not None:
+            return [
+                _get_final_output_by_job(job)
+                for job in final_output_job_response.replace.jobs
+            ]
+        return final_output_job_response.output
+
     logger.info("Started executing jobs locally")
+    output_job = None
+    if isinstance(flow, DecoratedFlow):
+        with flow_build_context(flow):
+            output_job = flow.fn(*flow.args, **flow.kwargs)
     finished_successfully = _run(flow)
     logger.info("Finished executing jobs locally")
 
     if ensure_success and not finished_successfully:
         raise RuntimeError("Flow did not finish running successfully")
 
+    if output_job is not None:
+        return _get_final_output_by_job(output_job)
     return dict(responses)
