@@ -11,6 +11,7 @@ from typing import cast, overload
 from monty.json import MSONable, jsanitize
 from typing_extensions import Self
 
+from jobflow.core.flow import _current_flow_context
 from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uid import suid
 
@@ -212,9 +213,13 @@ def job(
                         f = met
                         args = args[1:]
 
-            return Job(
+            job = Job(
                 function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
             )
+            current_flow = _current_flow_context.get()
+            if current_flow is not None:
+                current_flow.add_jobs(job)
+            return job
 
         get_job.original = func
 
