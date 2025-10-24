@@ -99,8 +99,92 @@ def test_decorated_flow_multiple_calls():
     assert flow1.uuid != flow2.uuid
 
 
-def test_flow_run_locally():
-    """Test that a flow can be run locally and returns the correct output."""
+def test_flow_returns_none():
+    """Test that a flow that does nothing can be run locally and returns the
+    correct output."""
+    from jobflow import flow
+    from jobflow.managers.local import run_locally
+
+    flow_did_run = False
+
+    @flow
+    def my_flow(a, b):
+        nonlocal flow_did_run
+        flow_did_run = True
+
+    flow1 = my_flow(3, 4)
+    result = run_locally(flow1, ensure_success=True)
+    assert flow_did_run
+    assert result is None
+
+
+def test_flow_returns_job():
+    """Test that a flow that returns a Job can be run locally and returns the
+    correct output."""
+    from jobflow import flow, job
+    from jobflow.managers.local import run_locally
+
+    @job
+    def add(x, y):
+        return x + y
+
+    @flow
+    def my_flow(a, b):
+        return add(a, b)
+
+    flow1 = my_flow(3, 4)
+    result = run_locally(flow1, ensure_success=True)
+    assert result == 7
+
+
+def test_flow_returns_output_reference():
+    """Test that a flow that returns an OutputReference can be run locally and
+    returns the correct output."""
+    from jobflow import flow, job
+    from jobflow.managers.local import run_locally
+
+    @job
+    def add(x, y):
+        return x + y
+
+    @flow
+    def my_flow(a, b):
+        return add(a, b).output
+
+    flow1 = my_flow(3, 4)
+    result = run_locally(flow1, ensure_success=True)
+    assert result == 7
+
+
+def test_flow_returns_primitive():
+    """Test that a flow that returns a primitive value can be run locally and
+    returns the correct output."""
+    from jobflow import flow, job
+    from jobflow.managers.local import run_locally
+
+    job_did_run = False
+
+    @job
+    def add(x, y):
+        nonlocal job_did_run
+        job_did_run = True
+        return x + y
+
+    @flow
+    def my_flow(a, b):
+        # Run a job for side effects, but return a primitive value
+        _ = add(a, b)
+        return 42
+
+    flow1 = my_flow(3, 4)
+    result = run_locally(flow1, ensure_success=True)
+    assert job_did_run
+    assert result == 42
+
+
+def test_flow_returns_nested():
+    """Test that a flow that returns a nested structure of mixed types can be
+    run locally and returns the correct output."""
     from jobflow import flow, job
     from jobflow.managers.local import run_locally
 
@@ -109,18 +193,19 @@ def test_flow_run_locally():
         return x + y
 
     @job
-    def mult(x, y):
-        return x * y
+    def subtract(x, y):
+        return x - y
 
     @flow
-    def hypot_sq(a, b):
-        x = mult(a, a)
-        y = mult(b, b)
-        return add(x.output, y.output)
+    def my_flow(a, b):
+        return [add(a, b), add(b, a).output], {
+            "foo": add(a, b).output,
+            "bar": [add(a, b), subtract(a, b)],
+        }
 
-    hypot_sq_flow = hypot_sq(3, 4)
-    result = run_locally(hypot_sq_flow)
-    assert result == 25
+    flow1 = my_flow(3, 4)
+    result = run_locally(flow1, ensure_success=True)
+    assert result == tuple([[7, 7], {"foo": 7, "bar": [7, -1]}])  # noqa: C409
 
 
 def test_replace_job_run_locally():
