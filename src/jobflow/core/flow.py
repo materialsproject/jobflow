@@ -706,7 +706,7 @@ class Flow(MSONable):
         function_filter: Callable = None,
         attributes: list[str] | str = None,
         dynamic: bool = True,
-        dict_mod: bool = True,
+        dict_mod: bool = False,
     ):
         """
         Update the job config of all Jobs in the Flow.
