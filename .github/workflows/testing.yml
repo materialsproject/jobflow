@@ -53,7 +53,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Setup Graphviz
-        uses: ts-graphviz/setup-graphviz@v4
+        uses: ts-graphviz/setup-graphviz@v2
 
       - name: Install dependencies
         run: |
