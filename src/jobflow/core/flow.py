@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from monty.json import MSONable
 
 import jobflow
-from jobflow.core.reference import find_and_get_references
+from jobflow.core.reference import OutputReference, find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
 if TYPE_CHECKING:
@@ -925,10 +925,25 @@ class DecoratedFlow(Flow):
 
     def __init__(self, fn, *args, **kwargs):
         # jobs are added when .run() is called
-        super().__init__(jobs=[])
+        super().__init__(name=fn.__name__, jobs=[])
         self.fn = fn
         self.args = args
         self.kwargs = kwargs
+
+        self._build()
+
+    def _build(self):
+        with flow_build_context(self):
+            output = self.fn(*self.args, **self.kwargs)
+
+        if isinstance(output, (jobflow.Job, jobflow.Flow)):
+            output = output.output
+        elif not isinstance(output, OutputReference):
+            raise RuntimeError(
+                "A @flow decorated function must return a Job or an OutputReference"
+            )
+
+        self.output = output
 
 
 def flow(fn):
@@ -947,7 +962,10 @@ def flow(fn):
     """
 
     def wrapper(*args, **kwargs):
-        return DecoratedFlow(fn, *args, **kwargs)
+        decorated_flow = DecoratedFlow(fn, *args, **kwargs)
+        if (flow_context := _current_flow_context.get()) is not None:
+            flow_context.add_jobs(decorated_flow)
+        return decorated_flow
 
     return wrapper
 

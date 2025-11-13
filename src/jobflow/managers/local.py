@@ -9,7 +9,6 @@ if typing.TYPE_CHECKING:
     from pathlib import Path
 
     import jobflow
-from jobflow.core.flow import DecoratedFlow, flow_build_context
 
 logger = logging.getLogger(__name__)
 
@@ -177,47 +176,13 @@ def run_locally(
 
         return not encountered_bad_response
 
-    def get_output(flow_output):
-        def _get_final_response(output_job):
-            # Get the final output of a job, possibly recursively if it has been
-            # replaced.
-            final_output_job_index = max(responses[output_job.uuid].keys())
-            final_output_job_response = responses[output_job.uuid][
-                final_output_job_index
-            ]
-            if final_output_job_response.replace is not None:
-                return [
-                    _get_final_response(job)
-                    for job in final_output_job_response.replace.jobs
-                ]
-            return final_output_job_response.output
-
-        if isinstance(flow_output, (list, tuple)):
-            return type(flow_output)(get_output(i) for i in flow_output)
-        if isinstance(flow_output, dict):
-            return {k: get_output(flow_output[k]) for k in flow_output}
-
-        if hasattr(flow_output, "uuid"):
-            return _get_final_response(flow_output)
-        return flow_output
-
     logger.info("Started executing jobs locally")
 
-    output = None
-    if isinstance(flow, DecoratedFlow):
-        with flow_build_context(flow):
-            output = flow.fn(*flow.args, **flow.kwargs)
-
-    # If the flow has no jobs, return the output directly.
-    if len(flow) == 0:
-        return output
-
     finished_successfully = _run(flow)
+
     logger.info("Finished executing jobs locally")
 
     if ensure_success and not finished_successfully:
         raise RuntimeError("Flow did not finish running successfully")
 
-    if isinstance(flow, DecoratedFlow):
-        return get_output(output)
-    return dict(responses)  # legacy behavior
+    return dict(responses)
