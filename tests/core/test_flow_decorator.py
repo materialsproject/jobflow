@@ -179,7 +179,6 @@ def test_flow_nested():
     assert all_responses == {3, 5, 8, 10}
 
 
-@pytest.mark.xfail(reason="Replace not working yet.")
 def test_replace_job_run_locally():
     """Test that a flow where a job is replaced can be run locally and returns
     the correct output."""
@@ -208,7 +207,6 @@ def test_replace_job_run_locally():
     assert 11 in all_responses
 
 
-@pytest.mark.xfail(reason="Dynamic Flow not working yet.")
 def test_dynamic_flow_run_locally():
     """Test that a flow where a job is replaced by several Flow objects can be
     run locally and returns the correct output."""
