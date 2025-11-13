@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import logging
 import warnings
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from monty.json import MSONable
 
 import jobflow
-from jobflow.core.reference import find_and_get_references
+from jobflow.core.reference import OutputReference, find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
 if TYPE_CHECKING:
@@ -921,3 +923,80 @@ def get_flow(
             )
 
     return flow
+
+
+class DecoratedFlow(Flow):
+    """A DecoratedFlow is a Flow that is returned on using the @flow decorator."""
+
+    def __init__(self, fn, *args, **kwargs):
+        # jobs are added when .run() is called
+        super().__init__(name=fn.__name__, jobs=[])
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+        self._build()
+
+    def _build(self):
+        with flow_build_context(self):
+            output = self.fn(*self.args, **self.kwargs)
+
+        if isinstance(output, (jobflow.Job, jobflow.Flow)):
+            output = output.output
+        elif not isinstance(output, OutputReference):
+            raise RuntimeError(
+                "A @flow decorated function must return a Job or an OutputReference"
+            )
+
+        self.output = output
+
+
+def flow(fn):
+    """
+    Turn a function into a DecoratedFlow object.
+
+    Parameters
+    ----------
+        fn (Callable): The function to be wrapped in a DecoratedFlow object.
+
+    Returns
+    -------
+        Callable: A wrapper function that, when called, creates and returns
+        an instance of DecoratedFlow initialized with the provided function
+        and its arguments.
+    """
+
+    def wrapper(*args, **kwargs):
+        decorated_flow = DecoratedFlow(fn, *args, **kwargs)
+        if (flow_context := _current_flow_context.get()) is not None:
+            flow_context.add_jobs(decorated_flow)
+        return decorated_flow
+
+    return wrapper
+
+
+@contextmanager
+def flow_build_context(flow):
+    """Provide a context manager for setting and resetting the current flow context.
+
+    Parameters
+    ----------
+        flow: The Flow object to be set as the current flow context.
+
+    Yields
+    ------
+        None: Temporarily sets the provided flow object as the current flow
+        context within the managed block.
+
+    Raises
+    ------
+        None
+    """
+    token = _current_flow_context.set(flow)
+    try:
+        yield
+    finally:
+        _current_flow_context.reset(token)
+
+
+_current_flow_context = ContextVar("current_flow_context", default=None)
