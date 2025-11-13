@@ -177,9 +177,7 @@ def run_locally(
         return not encountered_bad_response
 
     logger.info("Started executing jobs locally")
-
     finished_successfully = _run(flow)
-
     logger.info("Finished executing jobs locally")
 
     if ensure_success and not finished_successfully:
