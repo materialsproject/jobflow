@@ -1027,6 +1027,7 @@ class Job(MSONable):
         function_filter: Callable = None,
         attributes: list[str] | str = None,
         dynamic: bool = True,
+        dict_mod: bool = False,
     ):
         """
         Update the job config.
@@ -1050,6 +1051,9 @@ class Job(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
 
         Examples
         --------
@@ -1101,12 +1105,23 @@ class Job(MSONable):
         At variance, if `dynamic` is set to `False` the `manager_config` option will
         only be set for the `test_job` and not for the generated Jobs.
         """
+        from jobflow.utils.dict_mods import apply_mod
+
+        if dict_mod and attributes:
+            raise ValueError("dict_mod and attributes options cannot be used together")
+
+        if dict_mod and isinstance(config, JobConfig):
+            raise ValueError(
+                "If dict_mod is selected the update config cannot be a JobConfig object"
+            )
+
         if dynamic:
             dict_input = {
                 "config": config,
                 "name_filter": name_filter,
                 "function_filter": function_filter,
                 "attributes": attributes,
+                "dict_mod": dict_mod,
             }
             self.config_updates.append(dict_input)
 
@@ -1124,29 +1139,34 @@ class Job(MSONable):
             return
 
         # if we get to here then we pass all the filters
-        if isinstance(config, dict):
-            # convert dict specification to a JobConfig but set the attributes
-            if attributes is None:
-                attributes = list(config.keys())
-
-            attributes = [attributes] if isinstance(attributes, str) else attributes
-            if not set(attributes).issubset(set(config.keys())):
-                raise ValueError(
-                    "Specified attributes include a key that is not present in the "
-                    "config dictionary."
-                )
-            config = JobConfig(**config)
-
-        if attributes is None:
-            # overwrite the whole config
-            self.config = config
+        if dict_mod:
+            conf_dict = self.config.as_dict()
+            apply_mod(config, conf_dict)
+            self.config = JobConfig.from_dict(conf_dict)
         else:
-            # only update the specified attributes
-            attributes = [attributes] if isinstance(attributes, str) else attributes
-            for attr in attributes:
-                if not hasattr(self.config, attr):
-                    raise ValueError(f"Unknown JobConfig attribute: {attr}")
-                setattr(self.config, attr, getattr(config, attr))
+            if isinstance(config, dict):
+                # convert dict specification to a JobConfig but set the attributes
+                if attributes is None:
+                    attributes = list(config.keys())
+
+                attributes = [attributes] if isinstance(attributes, str) else attributes
+                if not set(attributes).issubset(set(config.keys())):
+                    raise ValueError(
+                        "Specified attributes include a key that is not present in the "
+                        "config dictionary."
+                    )
+                config = JobConfig(**config)
+
+            if attributes is None:
+                # overwrite the whole config
+                self.config = config
+            else:
+                # only update the specified attributes
+                attributes = [attributes] if isinstance(attributes, str) else attributes
+                for attr in attributes:
+                    if not hasattr(self.config, attr):
+                        raise ValueError(f"Unknown JobConfig attribute: {attr}")
+                    setattr(self.config, attr, getattr(config, attr))
 
     def as_dict(self) -> dict:
         """Serialize the job as a dictionary."""
