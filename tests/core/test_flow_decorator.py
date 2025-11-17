@@ -124,6 +124,29 @@ def test_flow_returns_job():
     assert result[flow1.output.uuid][1].output == 7
 
 
+@pytest.mark.xfail(reason="@flow cannot contain a Flow inside it yet.", strict=True)
+def test_flow_returns_flow():
+    """Test that a flow that returns a Flow can be run locally and returns the
+    correct output."""
+    from jobflow import Flow, flow
+    from jobflow.managers.local import run_locally
+
+    @flow
+    def add_single(a, b):
+        j1 = add(a, b)
+        return add(j1.output, 2)
+
+    @flow
+    def add_combine(a, b):
+        j = add(a, b)
+        f1 = Flow(j, j.output)
+        return add_single(f1.output, 3)
+
+    flow1 = add_combine(1, 2)
+    result = run_locally(flow1, ensure_success=True)
+    assert result[flow1.output.uuid][1].output == 8
+
+
 def test_flow_returns_output_reference():
     """Test that a flow that returns an OutputReference can be run locally and
     returns the correct output."""
@@ -139,17 +162,18 @@ def test_flow_returns_output_reference():
     assert result[flow1.output.uuid][1].output == 7
 
 
-def test_flow_returns_invalid():
-    """Test that a flow that doesn't return a Job or OutputReference
-    raises a RuntimeError when created."""
+def test_flow_returns_list():
+    """Test that a flow that returns a list of OutputReferences
+    can be created and run."""
     from jobflow import flow
+    from jobflow.managers.local import run_locally
 
     @flow
     def my_flow(a, b):
-        return 42
+        return [add(a, a), add(b, b)]
 
-    with pytest.raises(RuntimeError):
-        _ = my_flow(3, 4)
+    f = my_flow(1, 2)
+    _ = run_locally(f, ensure_success=True)
 
 
 def test_flow_nested():

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from monty.json import MSONable
 
 import jobflow
-from jobflow.core.reference import OutputReference, find_and_get_references
+from jobflow.core.reference import find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suid
 
 if TYPE_CHECKING:
@@ -941,12 +941,23 @@ class DecoratedFlow(Flow):
         with flow_build_context(self):
             output = self.fn(*self.args, **self.kwargs)
 
+        """
+        The output of the @flow decorated function might be an unrecognized
+        type, including container types with Job/Flow/OutputReference as
+        elements, constructed solely to allow addition of Jobs/Flows to
+        the DiGraph of the Flow. We try not to insist on any particular
+        return type, but warn when we can.
+        """
         if isinstance(output, (jobflow.Job, jobflow.Flow)):
-            output = output.output
-        elif not isinstance(output, OutputReference):
-            raise RuntimeError(
-                "A @flow decorated function must return a Job or an OutputReference"
+            warnings.warn(
+                f"@flow decorated function '{self.name}' contains a Flow or"
+                f"Job as an output. Usually the output should be the output of"
+                f"a Job or another Flow (e.g. job.output). If this message is"
+                f"unexpected then double check the outputs of your @flow"
+                f"decorated function.",
+                stacklevel=2,
             )
+            output = output.output
 
         self.output = output
 
