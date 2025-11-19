@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import warnings
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
@@ -921,3 +923,91 @@ def get_flow(
             )
 
     return flow
+
+
+class DecoratedFlow(Flow):
+    """A DecoratedFlow is a Flow that is returned on using the @flow decorator."""
+
+    def __init__(self, fn, *args, **kwargs):
+        # jobs are added when .run() is called
+        super().__init__(name=fn.__name__, jobs=[])
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+        self._build()
+
+    def _build(self):
+        with flow_build_context(self):
+            output = self.fn(*self.args, **self.kwargs)
+
+        """
+        The output of the @flow decorated function might be an unrecognized
+        type, including container types with Job/Flow/OutputReference as
+        elements, constructed solely to allow addition of Jobs/Flows to
+        the DiGraph of the Flow. We try not to insist on any particular
+        return type, but warn when we can.
+        """
+        if isinstance(output, (jobflow.Job, jobflow.Flow)):
+            warnings.warn(
+                f"@flow decorated function '{self.name}' contains a Flow or"
+                f"Job as an output. Usually the output should be the output of"
+                f"a Job or another Flow (e.g. job.output). If this message is"
+                f"unexpected then double check the outputs of your @flow"
+                f"decorated function.",
+                stacklevel=2,
+            )
+            output = output.output
+
+        self.output = output
+
+
+def flow(fn):
+    """
+    Turn a function into a DecoratedFlow object.
+
+    Parameters
+    ----------
+        fn (Callable): The function to be wrapped in a DecoratedFlow object.
+
+    Returns
+    -------
+        Callable: A wrapper function that, when called, creates and returns
+        an instance of DecoratedFlow initialized with the provided function
+        and its arguments.
+    """
+
+    def wrapper(*args, **kwargs):
+        decorated_flow = DecoratedFlow(fn, *args, **kwargs)
+        if (flow_context := _current_flow_context.get()) is not None:
+            flow_context.add_jobs(decorated_flow)
+        return decorated_flow
+
+    return wrapper
+
+
+@contextmanager
+def flow_build_context(flow):
+    """Provide a context manager for setting and resetting the current flow context.
+
+    Parameters
+    ----------
+        flow: The Flow object to be set as the current flow context.
+
+    Yields
+    ------
+        None: Temporarily sets the provided flow object as the current flow
+        context within the managed block.
+
+    Raises
+    ------
+        None
+    """
+    token = _current_flow_context.set(flow)
+    try:
+        yield
+    finally:
+        _current_flow_context.reset(token)
+
+
+_current_flow_context = ContextVar("current_flow_context", default=None)
