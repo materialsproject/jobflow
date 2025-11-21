@@ -394,6 +394,24 @@ class Job(MSONable):
         name, uuid = self.name, self.uuid
         return f"Job({name=}, {uuid=})"
 
+    def __getitem__(self, key: Any) -> OutputReference:
+        """
+        Get the corresponding `OutputReference` for the `Job`.
+
+        This is for when it is indexed like a dictionary or list.
+
+        Parameters
+        ----------
+        key
+            The index/key.
+
+        Returns
+        -------
+        OutputReference
+            The equivalent of `Job.output[k]`
+        """
+        return self.output[key]
+
     def __contains__(self, item: Hashable) -> bool:
         """
         Check if the job contains a reference to a given UUID.
