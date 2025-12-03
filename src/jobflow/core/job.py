@@ -11,6 +11,7 @@ from typing import cast, overload
 from monty.json import MSONable, jsanitize
 from typing_extensions import Self
 
+from jobflow.core.flow import _current_flow_context
 from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uid import suid
 
@@ -384,10 +385,32 @@ class Job(MSONable):
                 stacklevel=2,
             )
 
+        current_flow_children_list = _current_flow_context.get()
+        if current_flow_children_list is not None:
+            current_flow_children_list.append(self)
+
     def __repr__(self):
         """Get a string representation of the job."""
         name, uuid = self.name, self.uuid
         return f"Job({name=}, {uuid=})"
+
+    def __getitem__(self, key: Any) -> OutputReference:
+        """
+        Get the corresponding `OutputReference` for the `Job`.
+
+        This is for when it is indexed like a dictionary or list.
+
+        Parameters
+        ----------
+        key
+            The index/key.
+
+        Returns
+        -------
+        OutputReference
+            The equivalent of `Job.output[k]`
+        """
+        return self.output[key]
 
     def __contains__(self, item: Hashable) -> bool:
         """
