@@ -1,5 +1,3 @@
-import pytest
-
 from jobflow.core.job import job
 
 
@@ -124,7 +122,6 @@ def test_flow_returns_job():
     assert result[flow1.output.uuid][1].output == 7
 
 
-@pytest.mark.xfail(reason="@flow cannot contain a Flow inside it yet.", strict=True)
 def test_flow_returns_flow():
     """Test that a flow that returns a Flow can be run locally and returns the
     correct output."""
@@ -134,13 +131,13 @@ def test_flow_returns_flow():
     @flow
     def add_single(a, b):
         j1 = add(a, b)
-        return add(j1.output, 2)
+        return add(j1.output, 2).output
 
     @flow
     def add_combine(a, b):
         j = add(a, b)
         f1 = Flow(j, j.output)
-        return add_single(f1.output, 3)
+        return add_single(f1.output, 3).output
 
     flow1 = add_combine(1, 2)
     result = run_locally(flow1, ensure_success=True)
@@ -184,12 +181,12 @@ def test_flow_nested():
     @flow
     def add_single(a, b):
         j1 = add(a, b)
-        return add(j1.output, 2)
+        return add(j1.output, 2).output
 
     @flow
     def add_combine(a, b):
         f1 = add_single(a, b)
-        return add_single(f1.output, 3)
+        return add_single(f1.output, 3).output
 
     f = add_combine(1, 2)
     results = run_locally(f, ensure_success=True)
@@ -262,3 +259,33 @@ def test_dynamic_flow_run_locally():
         for response in index_to_response.values()
     ]
     assert all_responses.count(3) == 3
+
+
+def test_decorate_maker():
+    from dataclasses import dataclass
+
+    from jobflow import Maker, flow
+    from jobflow.managers.local import run_locally
+
+    @dataclass
+    class TestMaker(Maker):
+        a: int
+        name: str = "test_maker"
+
+        @flow
+        def make(self, b):
+            j = add(self.a, b)
+            return j.output
+
+    f = TestMaker(a=1).make(2)
+
+    assert f.name == "test_maker"
+
+    results = run_locally(f, ensure_success=True)
+
+    all_responses = [
+        response.output
+        for index_to_response in results.values()
+        for response in index_to_response.values()
+    ]
+    assert 3 in all_responses

@@ -213,13 +213,9 @@ def job(
                         f = met
                         args = args[1:]
 
-            job = Job(
+            return Job(
                 function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
             )
-            current_flow = _current_flow_context.get()
-            if current_flow is not None:
-                current_flow.add_jobs(job)
-            return job
 
         get_job.original = func
 
@@ -388,6 +384,10 @@ class Job(MSONable):
                 f"inputs to your Job.",
                 stacklevel=2,
             )
+
+        current_flow_children_list = _current_flow_context.get()
+        if current_flow_children_list is not None:
+            current_flow_children_list.append(self)
 
     def __repr__(self):
         """Get a string representation of the job."""

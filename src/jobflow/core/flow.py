@@ -157,6 +157,10 @@ class Flow(MSONable):
         self.add_jobs(jobs)
         self.output = output
 
+        current_flow_children_list = _current_flow_context.get()
+        if current_flow_children_list is not None:
+            current_flow_children_list.append(self)
+
     def __len__(self) -> int:
         """Get the number of jobs or subflows in the flow."""
         return len(self.jobs)
@@ -830,7 +834,7 @@ class Flow(MSONable):
             if job.host is not None and job.host != self.uuid:
                 raise ValueError(
                     f"{type(job).__name__} {job.name} ({job.uuid}) already belongs "
-                    f"to another flow."
+                    f"to another flow: {job.host}."
                 )
             if job.uuid in job_ids:
                 raise ValueError(
@@ -929,37 +933,35 @@ class DecoratedFlow(Flow):
     """A DecoratedFlow is a Flow that is returned on using the @flow decorator."""
 
     def __init__(self, fn, *args, **kwargs):
-        # jobs are added when .run() is called
-        super().__init__(name=fn.__name__, jobs=[])
+        from jobflow import Maker
+
         self.fn = fn
         self.args = args
         self.kwargs = kwargs
 
-        self._build()
-
-    def _build(self):
-        with flow_build_context(self):
+        # Collect the jobs and flows that are used in the function
+        children_list = []
+        with flow_build_context(children_list):
             output = self.fn(*self.args, **self.kwargs)
 
-        """
-        The output of the @flow decorated function might be an unrecognized
-        type, including container types with Job/Flow/OutputReference as
-        elements, constructed solely to allow addition of Jobs/Flows to
-        the DiGraph of the Flow. We try not to insist on any particular
-        return type, but warn when we can.
-        """
-        if isinstance(output, (jobflow.Job, jobflow.Flow)):
-            warnings.warn(
-                f"@flow decorated function '{self.name}' contains a Flow or"
-                f"Job as an output. Usually the output should be the output of"
-                f"a Job or another Flow (e.g. job.output). If this message is"
-                f"unexpected then double check the outputs of your @flow"
-                f"decorated function.",
-                stacklevel=2,
-            )
-            output = output.output
+        # From the collected items, remove those that have already been assigned
+        # to another Flow during the call of the function.
+        # This handles the case where a Flow object is instantiated inside
+        # the decorated function
+        children_list = [c for c in children_list if c.host is None]
 
-        self.output = output
+        name = getattr(self.fn, "__qualname__", self.fn.__name__)
+
+        # if decorates a make() in a Maker use that as a name
+        if (
+            len(self.args) > 0
+            and name.split(".")[-1] == "make"
+            and getattr(args[0], self.fn.__name__, None)
+            and isinstance(args[0], Maker)
+        ):
+            name = args[0].name
+
+        super().__init__(name=name, jobs=children_list, output=output)
 
 
 def flow(fn):
@@ -976,18 +978,17 @@ def flow(fn):
         an instance of DecoratedFlow initialized with the provided function
         and its arguments.
     """
+    from functools import wraps
 
+    @wraps(fn)
     def wrapper(*args, **kwargs):
-        decorated_flow = DecoratedFlow(fn, *args, **kwargs)
-        if (flow_context := _current_flow_context.get()) is not None:
-            flow_context.add_jobs(decorated_flow)
-        return decorated_flow
+        return DecoratedFlow(fn, *args, **kwargs)
 
     return wrapper
 
 
 @contextmanager
-def flow_build_context(flow):
+def flow_build_context(children_list):
     """Provide a context manager for setting and resetting the current flow context.
 
     Parameters
@@ -1003,7 +1004,7 @@ def flow_build_context(flow):
     ------
         None
     """
-    token = _current_flow_context.set(flow)
+    token = _current_flow_context.set(children_list)
     try:
         yield
     finally:
