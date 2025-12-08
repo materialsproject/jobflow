@@ -52,7 +52,7 @@ tests = ["moto==5.1.18", "pytest-cov==7.0.0", "pytest==9.0.1"]
 vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
-    "FireWorks==2.0.6",
+    "FireWorks==2.0.8",
     "PyYAML==6.0.3",
     "maggma==0.72.0",
     "matplotlib==3.10.7",
