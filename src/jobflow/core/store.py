@@ -51,7 +51,7 @@ class JobStore(Store):
         Which items to save in additional stores when uploading documents. Given as a
         mapping of ``{store name: store_type}`` where ``store_type`` can be a dictionary
         key (string or enum), an :obj:`.MSONable` class, or a list of keys/classes.
-        If the list of keys/classes itself contains a list, this will be treated
+        If the list of keys/classes itself contains a list/tuple, this will be treated
         as the path to the save key. Can be used if a key is duplicate in the output
         and only a single occurrence shall be put in the additional store.
     load
@@ -315,8 +315,8 @@ class JobStore(Store):
                 locations = []
                 for store_name, store_save in save_keys.items():
                     for save_key in store_save:
-                        if isinstance(save_key, list):
-                            locations.append(save_key)
+                        if isinstance(save_key, list | tuple):
+                            locations.append(list(save_key))
                         else:
                             locations.extend(find_key(doc, save_key, include_end=True))
 
