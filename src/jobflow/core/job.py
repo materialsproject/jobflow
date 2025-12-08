@@ -385,6 +385,8 @@ class Job(MSONable):
                 stacklevel=2,
             )
 
+        # If we're running inside a `DecoratedFlow`, add *this* Job to the
+        # context.
         current_flow_children_list = _current_flow_context.get()
         if current_flow_children_list is not None:
             current_flow_children_list.append(self)

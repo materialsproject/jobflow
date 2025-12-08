@@ -63,8 +63,8 @@ def test_flow_build_context():
 
     assert _current_flow_context.get() is None
 
-    with flow_build_context(test_flow):
-        assert _current_flow_context.get() is test_flow
+    with flow_build_context([test_flow]):
+        assert test_flow in _current_flow_context.get()
 
     assert _current_flow_context.get() is None
 
@@ -77,13 +77,13 @@ def test_flow_build_context_nested():
     flow1 = Flow([], name="flow1")
     flow2 = Flow([], name="flow2")
 
-    with flow_build_context(flow1):
-        assert _current_flow_context.get() is flow1
+    with flow_build_context([flow1]):
+        assert _current_flow_context.get() == [flow1]
 
-        with flow_build_context(flow2):
-            assert _current_flow_context.get() is flow2
+        with flow_build_context([flow2]):
+            assert _current_flow_context.get() == [flow2]
 
-        assert _current_flow_context.get() is flow1
+        assert _current_flow_context.get() == [flow1]
 
     assert _current_flow_context.get() is None
 
@@ -137,7 +137,7 @@ def test_flow_returns_flow():
     def add_combine(a, b):
         j = add(a, b)
         f1 = Flow(j, j.output)
-        return add_single(f1.output, 3).output
+        return add_single(f1.output, 3)
 
     flow1 = add_combine(1, 2)
     result = run_locally(flow1, ensure_success=True)

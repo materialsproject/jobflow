@@ -157,6 +157,8 @@ class Flow(MSONable):
         self.add_jobs(jobs)
         self.output = output
 
+        # If we're running inside a `DecoratedFlow`, add *this* Flow to the
+        # context.
         current_flow_children_list = _current_flow_context.get()
         if current_flow_children_list is not None:
             current_flow_children_list.append(self)
@@ -1001,16 +1003,20 @@ def flow(fn):
 
 @contextmanager
 def flow_build_context(children_list):
-    """Provide a context manager for setting and resetting the current flow context.
+    """Provide a context manager for flows.
+
+    Provides a context manager for setting and resetting the `Job` and `Flow`
+    objects in the current flow context.
 
     Parameters
     ----------
-        flow: The Flow object to be set as the current flow context.
+        children_list: The `Job` or `Flow` objects that are part of the current
+        flow context.
 
     Yields
     ------
-        None: Temporarily sets the provided flow object as the current flow
-        context within the managed block.
+        None: Temporarily sets the provided `Job` or `Flow` objects as
+        belonging to the current flow context within the managed block.
 
     Raises
     ------
