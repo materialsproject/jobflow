@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import warnings
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
@@ -154,6 +156,12 @@ class Flow(MSONable):
         self._jobs: tuple[Flow | Job, ...] = ()
         self.add_jobs(jobs)
         self.output = output
+
+        # If we're running inside a `DecoratedFlow`, add *this* Flow to the
+        # context.
+        current_flow_children_list = _current_flow_context.get()
+        if current_flow_children_list is not None:
+            current_flow_children_list.append(self)
 
     def __len__(self) -> int:
         """Get the number of jobs or subflows in the flow."""
@@ -828,7 +836,7 @@ class Flow(MSONable):
             if job.host is not None and job.host != self.uuid:
                 raise ValueError(
                     f"{type(job).__name__} {job.name} ({job.uuid}) already belongs "
-                    f"to another flow."
+                    f"to another flow: {job.host}."
                 )
             if job.uuid in job_ids:
                 raise ValueError(
@@ -921,3 +929,104 @@ def get_flow(
             )
 
     return flow
+
+
+class DecoratedFlow(Flow):
+    """A DecoratedFlow is a Flow that is returned on using the @flow decorator."""
+
+    def __init__(self, fn, *args, **kwargs):
+        from jobflow import Maker
+
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+        # Collect the jobs and flows that are used in the function
+        children_list = []
+        with flow_build_context(children_list):
+            output = self.fn(*self.args, **self.kwargs)
+
+        # From the collected items, remove those that have already been assigned
+        # to another Flow during the call of the function.
+        # This handles the case where a Flow object is instantiated inside
+        # the decorated function
+        children_list = [c for c in children_list if c.host is None]
+
+        name = getattr(self.fn, "__qualname__", self.fn.__name__)
+
+        # if decorates a make() in a Maker use that as a name
+        if (
+            len(self.args) > 0
+            and name.split(".")[-1] == "make"
+            and getattr(args[0], self.fn.__name__, None)
+            and isinstance(args[0], Maker)
+        ):
+            name = args[0].name
+
+        if isinstance(output, (jobflow.Job, jobflow.Flow)):
+            warnings.warn(
+                f"@flow decorated function '{name}' contains a Flow or"
+                f"Job as an output. Usually the output should be the output of"
+                f"a Job or another Flow (e.g. job.output). Replacing the"
+                f"output of the @flow with the output of the Flow/Job."
+                f"If this message is unexpected then double check the outputs"
+                f"of your @flow decorated function.",
+                stacklevel=2,
+            )
+            output = output.output
+
+        super().__init__(name=name, jobs=children_list, output=output)
+
+
+def flow(fn):
+    """
+    Turn a function into a DecoratedFlow object.
+
+    Parameters
+    ----------
+        fn (Callable): The function to be wrapped in a DecoratedFlow object.
+
+    Returns
+    -------
+        Callable: A wrapper function that, when called, creates and returns
+        an instance of DecoratedFlow initialized with the provided function
+        and its arguments.
+    """
+    from functools import wraps
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        return DecoratedFlow(fn, *args, **kwargs)
+
+    return wrapper
+
+
+@contextmanager
+def flow_build_context(children_list):
+    """Provide a context manager for flows.
+
+    Provides a context manager for setting and resetting the `Job` and `Flow`
+    objects in the current flow context.
+
+    Parameters
+    ----------
+        children_list: The `Job` or `Flow` objects that are part of the current
+        flow context.
+
+    Yields
+    ------
+        None: Temporarily sets the provided `Job` or `Flow` objects as
+        belonging to the current flow context within the managed block.
+
+    Raises
+    ------
+        None
+    """
+    token = _current_flow_context.set(children_list)
+    try:
+        yield
+    finally:
+        _current_flow_context.reset(token)
+
+
+_current_flow_context = ContextVar("current_flow_context", default=None)
