@@ -58,7 +58,7 @@ strict = [
     "matplotlib==3.10.8",
     "monty==2025.3.3",
     "moto==5.1.19",
-    "networkx==3.4.2",
+    "networkx==3.6.1",
     "pydantic-settings==2.12.0",
     "pydantic==2.12.5",
     "pydash==8.0.5",
