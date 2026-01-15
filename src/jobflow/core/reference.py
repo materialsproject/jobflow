@@ -514,12 +514,47 @@ def validate_schema_access(
         The BaseModel class associated with the item, if any.
     """
     schema_dict = schema.model_json_schema()
-    if item not in schema_dict["properties"]:
+    item_in_schema = item in schema_dict["properties"]
+    property_like = isinstance(item, str) and has_property_like(schema, item)
+    if not item_in_schema and not property_like:
         raise AttributeError(f"{schema.__name__} does not have attribute '{item}'.")
 
     subschema = None
-    item_type = schema.model_fields[item].annotation
-    if lenient_issubclass(item_type, BaseModel):
-        subschema = item_type
+    if item_in_schema:
+        item_type = schema.model_fields[item].annotation
+        if lenient_issubclass(item_type, BaseModel):
+            subschema = item_type
 
     return True, subschema
+
+
+def has_property_like(obj_type: type, name: str) -> bool:
+    """
+    Check if a class has an attribute and if it is property-like.
+
+    Parameters
+    ----------
+    obj_type
+        The class that needs to be checked
+    name
+        The name of the attribute to be verified
+
+    Returns
+    -------
+    bool
+        True if the property corresponding to the name is property-like.
+    """
+    if not hasattr(obj_type, name):
+        return False
+
+    attr = getattr(obj_type, name)
+
+    if isinstance(attr, property):
+        return True
+
+    if callable(attr):
+        return False
+
+    # Check for custom property-like descriptors with __get__ but not callable
+    # If not, is not property-like.
+    return hasattr(attr, "__get__")
