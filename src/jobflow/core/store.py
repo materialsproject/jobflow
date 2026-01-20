@@ -7,10 +7,12 @@ import typing
 from maggma.core import Store
 from monty.json import MSONable
 
+import jobflow.core.file_store
 from jobflow.core.reference import OnMissing
 from jobflow.utils.find import get_root_locations
 
 if typing.TYPE_CHECKING:
+    import io
     from collections.abc import Iterator
     from enum import Enum
     from pathlib import Path
@@ -19,6 +21,7 @@ if typing.TYPE_CHECKING:
     from maggma.core import Sort
     from typing_extensions import Self
 
+    from jobflow.core.file_store import FileStore
     from jobflow.core.schemas import JobStoreDocument
 
     obj_type = Union[str, Enum, type[MSONable], list[Union[Enum, str, type[MSONable]]]]
@@ -55,6 +58,7 @@ class JobStore(Store):
         self,
         docs_store: Store,
         additional_stores: dict[str, Store] = None,
+        files_stores: dict[str, FileStore] = None,
         save: save_type = None,
         load: load_type = False,
     ):
@@ -63,6 +67,11 @@ class JobStore(Store):
             self.additional_stores = {}
         else:
             self.additional_stores = additional_stores
+
+        if files_stores is None:
+            self.files_stores = {}
+        else:
+            self.files_stores = files_stores
 
         # enforce uuid key
         self.docs_store.key = "uuid"
@@ -113,12 +122,16 @@ class JobStore(Store):
         self.docs_store.connect(force_reset=force_reset)
         for additional_store in self.additional_stores.values():
             additional_store.connect(force_reset=force_reset)
+        for file_store in self.files_stores.values():
+            file_store.connect(force_reset=force_reset)
 
     def close(self):
         """Close any connections."""
         self.docs_store.close()
         for additional_store in self.additional_stores.values():
             additional_store.close()
+        for file_store in self.files_stores.values():
+            file_store.close()
 
     def count(self, criteria: dict = None) -> int:
         """
@@ -661,6 +674,9 @@ class JobStore(Store):
             )
 
         all_stores = {s.__name__: s for s in all_subclasses(maggma.stores.Store)}
+        all_files_stores = {
+            s.__name__: s for s in all_subclasses(jobflow.core.file_store.FileStore)
+        }
 
         # add ssh tunnel support
         tunnel = maggma.stores.ssh_tunnel.SSHTunnel
@@ -673,7 +689,49 @@ class JobStore(Store):
         if "additional_stores" in spec:
             for store_name, info in spec["additional_stores"].items():
                 additional_stores[store_name] = _construct_store(info, all_stores)
-        return cls(docs_store, additional_stores, **kwargs)
+        files_stores = {}
+        if "files_stores" in spec:
+            for store_name, info in spec["files_stores"].items():
+                files_stores[store_name] = _construct_store(info, all_files_stores)
+        return cls(docs_store, additional_stores, files_stores=files_stores, **kwargs)
+
+    def get_file(
+        self,
+        dest: str | io.IOBase,
+        reference: str,
+        job_doc: JobStoreDocument | None = None,
+        store_name: str | None = None,
+    ):
+        """Fetch a file from a FileStore."""
+        if job_doc is None and store_name is None:
+            raise ValueError("Either job_doc or store_name should be specified")
+        if job_doc:
+            for files_data in job_doc.files:
+                if reference == files_data.name:
+                    reference = files_data.reference
+                    store_name = files_data.store
+                    break
+
+        if store_name not in self.files_stores:
+            raise ValueError(f"No store with name {store_name} is defined")
+
+        store = self.files_stores[store_name]
+
+        store.get(reference=reference, dest=dest)
+
+    def put_file(
+        self,
+        file: str | io.IOBase,
+        store_name: str,
+        dest: str,
+    ) -> str:
+        """Insert a file in a FileStore."""
+        if store_name not in self.files_stores:
+            raise ValueError(f"No store with name {store_name} is defined")
+
+        store = self.files_stores[store_name]
+
+        return store.put(src=file, dest=dest)
 
 
 def _construct_store(spec_dict, valid_stores):

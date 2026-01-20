@@ -113,3 +113,28 @@ def _get_id_type(uid: str) -> str:
         pass
 
     raise ValueError(f"ID type for {uid} not recognized.")
+
+
+def uid_to_path(
+    uid: str, index: int | None = None, num_subdirs: int = 3, subdir_len: int = 2
+):
+    """Generate a path from a unique id."""
+    import os
+
+    # TODO adapt this for ULID if needed
+    u = UUID(uid)
+    u_hex = u.hex
+
+    # Split the digest into groups of "subdir_len" characters
+    subdirs = [
+        u_hex[i : i + subdir_len]
+        for i in range(0, num_subdirs * subdir_len, subdir_len)
+    ]
+
+    # add the index to the final dir name
+    dir_name = f"{uid}"
+    if index is not None:
+        dir_name += f"_{index}"
+
+    # Combine root directory and subdirectories to form the final path
+    return os.path.join(*subdirs, dir_name)
