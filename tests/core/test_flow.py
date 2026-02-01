@@ -1355,6 +1355,38 @@ def test_flow_repr():
         assert line.startswith(expected), f"{line=} doesn't start with {expected=}"
 
 
+def test_job_autoreplace(memory_jobstore):
+    # test to check if a job that returns a list of jobs
+    # is interpreted as a replace.
+    from jobflow import Flow, job
+    from jobflow.managers.local import run_locally
+
+    @job
+    def add(x, y):
+        return x + y
+
+    @job
+    def make_list_of_n(a, n):
+        return [a] * n
+
+    @job
+    def add_distributed_list(list_a):
+        return [add(val, 1) for val in list_a]
+
+    job1 = make_list_of_n(2, 3)
+    dynamic_job = add_distributed_list(job1.output)
+    flow = Flow([job1, dynamic_job])
+    results = run_locally(flow, store=memory_jobstore)
+
+    # Ensure the final result (3 instances of 3s) is in the results.
+    all_responses = [
+        response.output
+        for index_to_response in results.values()
+        for response in index_to_response.values()
+    ]
+    assert all_responses.count(3) == 3
+
+
 def test_get_item():
     from jobflow import Flow, job, run_locally
 
