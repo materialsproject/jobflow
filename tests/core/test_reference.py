@@ -153,6 +153,8 @@ def test_set_uuid():
 
 
 def test_schema():
+    from functools import cached_property
+
     from pydantic import BaseModel
 
     from jobflow import OutputReference
@@ -173,6 +175,17 @@ def test_schema():
         name: str
         nested: MediumSchema
 
+        @property
+        def b(self) -> int:
+            return self.number
+
+        @cached_property
+        def c(self) -> int:
+            return self.number
+
+        def some_method(self) -> int:
+            return self.number
+
     ref = OutputReference("123", output_schema=MySchema)
     assert ref.attributes == ()
 
@@ -185,14 +198,25 @@ def test_schema():
     assert new_ref.uuid == "123"
     assert new_ref.output_schema is None
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError, match="does not have attribute 'a'"):
         _ = ref.a.uuid
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError, match="does not have attribute 'a'"):
         _ = ref["a"].uuid
 
     with pytest.raises(AttributeError):
         _ = ref[1].uuid
+
+    assert ref.b
+    assert ref["b"]
+    assert ref.c
+    assert ref["c"]
+
+    with pytest.raises(AttributeError, match="does not have attribute 'some_method'"):
+        _ = ref.some_method
+
+    with pytest.raises(AttributeError, match="does not have attribute 'some_method'"):
+        _ = ref["some_method"]
 
     # check valid nested schemas
     assert ref.nested.s.uuid == "123"
@@ -518,3 +542,49 @@ def test_not_iterable():
     with pytest.raises(TypeError):
         for _ in ref:
             pass
+
+
+def test_has_property_like():
+    from functools import cached_property
+
+    from monty.functools import lazy_property
+    from pydantic import BaseModel, ConfigDict
+
+    from jobflow.core.reference import has_property_like
+
+    class TestModel(BaseModel):
+        model_config = ConfigDict(ignored_types=(lazy_property,))
+
+        x: str = "x"
+        y: int = 1
+
+        def method(self):
+            return self.x
+
+        @staticmethod
+        def static_method():
+            return 1
+
+        @classmethod
+        def class_method(cls):
+            return cls.y
+
+        @property
+        def standard_property(self):
+            return self.x
+
+        @lazy_property
+        def monty_lazy_property(self):
+            return self.x
+
+        @cached_property
+        def functools_cached_property(self):
+            return self.x
+
+    assert not has_property_like(TestModel, "method")
+    assert not has_property_like(TestModel, "static_method")
+    assert not has_property_like(TestModel, "class_method")
+    assert has_property_like(TestModel, "standard_property")
+    assert has_property_like(TestModel, "monty_lazy_property")
+    assert has_property_like(TestModel, "functools_cached_property")
+    assert not has_property_like(TestModel, "not_existing_prop")
