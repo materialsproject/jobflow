@@ -1385,3 +1385,23 @@ def test_job_autoreplace(memory_jobstore):
         for response in index_to_response.values()
     ]
     assert all_responses.count(3) == 3
+
+
+def test_get_item():
+    from jobflow import Flow, job, run_locally
+
+    @job
+    def make_str(s):
+        return {"hello": s}
+
+    @job
+    def capitalize(s):
+        return s.upper()
+
+    job1 = make_str("world")
+    job2 = capitalize(job1["hello"])
+
+    flow = Flow([job1, job2])
+
+    responses = run_locally(flow, ensure_success=True)
+    assert responses[job2.uuid][1].output == "WORLD"
