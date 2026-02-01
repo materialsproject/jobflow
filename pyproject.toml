@@ -10,6 +10,7 @@ keywords = ["high-throughput", "workflow"]
 license = { text = "modified BSD" }
 authors = [{ name = "Alex Ganose", email = "a.ganose@imperial.ac.uk" }]
 dynamic = ["version"]
+
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Information Technology",
