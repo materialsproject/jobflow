@@ -1332,6 +1332,41 @@ def test_update_config(memory_jobstore):
     ):
         test_job.update_config(new_config_dict, attributes="abc_xyz")
 
+    # test with dict_mod
+    test_job = Job(add)
+    with pytest.raises(
+        ValueError, match="dict_mod and attributes options cannot be used together"
+    ):
+        test_job.update_config({}, attributes="manager_config", dict_mod=True)
+
+    with pytest.raises(
+        ValueError,
+        match="If dict_mod is selected the update config cannot be a JobConfig object",
+    ):
+        test_job.update_config(JobConfig(), dict_mod=True)
+
+    dict_mod_config_1 = {
+        "_set": {
+            "manager_config->test->x": 1,
+            "resolve_references": True,
+        }
+    }
+    test_job.update_config(dict_mod_config_1, dict_mod=True)
+    assert test_job.config.manager_config["test"]["x"] == 1
+    assert test_job.config.resolve_references
+
+    dict_mod_config_2 = {
+        "_set": {
+            "manager_config->test->y": 2,
+            "manager_config->test2->z": 3,
+        }
+    }
+    test_job.update_config(dict_mod_config_2, dict_mod=True)
+    assert test_job.config.manager_config["test"]["x"] == 1
+    assert test_job.config.manager_config["test"]["y"] == 2
+    assert test_job.config.manager_config["test2"]["z"] == 3
+    assert test_job.config.resolve_references
+
     # test applied dynamic updates
     @dataclass
     class TestMaker(Maker):

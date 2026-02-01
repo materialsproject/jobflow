@@ -11,6 +11,7 @@ from typing import cast, overload
 from monty.json import MSONable, jsanitize
 from typing_extensions import Self
 
+from jobflow.core.flow import _current_flow_context
 from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.uid import suid
 
@@ -383,6 +384,30 @@ class Job(MSONable):
                 f"inputs to your Job.",
                 stacklevel=2,
             )
+
+        # If we're running inside a `DecoratedFlow`, add *this* Job to the
+        # context.
+        current_flow_children_list = _current_flow_context.get()
+        if current_flow_children_list is not None:
+            current_flow_children_list.append(self)
+
+    def __getitem__(self, key: Any) -> OutputReference:
+        """
+        Get the corresponding `OutputReference` for the `Job`.
+
+        This is for when it is indexed like a dictionary or list.
+
+        Parameters
+        ----------
+        key
+            The index/key.
+
+        Returns
+        -------
+        OutputReference
+            The equivalent of `Job.output[k]`
+        """
+        return self.output[key]
 
     def __repr__(self):
         """Get a string representation of the job."""
@@ -1022,6 +1047,7 @@ class Job(MSONable):
         function_filter: Callable = None,
         attributes: list[str] | str = None,
         dynamic: bool = True,
+        dict_mod: bool = False,
     ):
         """
         Update the job config.
@@ -1045,6 +1071,9 @@ class Job(MSONable):
         dynamic
             The updates will be propagated to Jobs/Flows dynamically generated at
             runtime.
+        dict_mod
+            Use the dict mod language to apply updates. See :obj:`.DictMods` for more
+            details.
 
         Examples
         --------
@@ -1096,12 +1125,23 @@ class Job(MSONable):
         At variance, if `dynamic` is set to `False` the `manager_config` option will
         only be set for the `test_job` and not for the generated Jobs.
         """
+        from jobflow.utils.dict_mods import apply_mod
+
+        if dict_mod and attributes:
+            raise ValueError("dict_mod and attributes options cannot be used together")
+
+        if dict_mod and isinstance(config, JobConfig):
+            raise ValueError(
+                "If dict_mod is selected the update config cannot be a JobConfig object"
+            )
+
         if dynamic:
             dict_input = {
                 "config": config,
                 "name_filter": name_filter,
                 "function_filter": function_filter,
                 "attributes": attributes,
+                "dict_mod": dict_mod,
             }
             self.config_updates.append(dict_input)
 
@@ -1119,29 +1159,34 @@ class Job(MSONable):
             return
 
         # if we get to here then we pass all the filters
-        if isinstance(config, dict):
-            # convert dict specification to a JobConfig but set the attributes
-            if attributes is None:
-                attributes = list(config.keys())
-
-            attributes = [attributes] if isinstance(attributes, str) else attributes
-            if not set(attributes).issubset(set(config.keys())):
-                raise ValueError(
-                    "Specified attributes include a key that is not present in the "
-                    "config dictionary."
-                )
-            config = JobConfig(**config)
-
-        if attributes is None:
-            # overwrite the whole config
-            self.config = config
+        if dict_mod:
+            conf_dict = self.config.as_dict()
+            apply_mod(config, conf_dict)
+            self.config = JobConfig.from_dict(conf_dict)
         else:
-            # only update the specified attributes
-            attributes = [attributes] if isinstance(attributes, str) else attributes
-            for attr in attributes:
-                if not hasattr(self.config, attr):
-                    raise ValueError(f"Unknown JobConfig attribute: {attr}")
-                setattr(self.config, attr, getattr(config, attr))
+            if isinstance(config, dict):
+                # convert dict specification to a JobConfig but set the attributes
+                if attributes is None:
+                    attributes = list(config.keys())
+
+                attributes = [attributes] if isinstance(attributes, str) else attributes
+                if not set(attributes).issubset(set(config.keys())):
+                    raise ValueError(
+                        "Specified attributes include a key that is not present in the "
+                        "config dictionary."
+                    )
+                config = JobConfig(**config)
+
+            if attributes is None:
+                # overwrite the whole config
+                self.config = config
+            else:
+                # only update the specified attributes
+                attributes = [attributes] if isinstance(attributes, str) else attributes
+                for attr in attributes:
+                    if not hasattr(self.config, attr):
+                        raise ValueError(f"Unknown JobConfig attribute: {attr}")
+                    setattr(self.config, attr, getattr(config, attr))
 
     def as_dict(self) -> dict:
         """Serialize the job as a dictionary."""

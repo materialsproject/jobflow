@@ -1,5 +1,15 @@
 # Change log
 
+## v0.2.1
+
+### Enhancements 🛠
+* Jobconfig by @gpetretto in https://github.com/materialsproject/jobflow/pull/817
+
+### House-Keeping 🧹
+* Increase CI sensitivity by testing both lowest-direct and highest dependency resolution strategy by @janosh in https://github.com/materialsproject/jobflow/pull/640
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.2.0...v0.2.1
+
 ## v0.2.0
 
 Dropped support for Python 3.9.
