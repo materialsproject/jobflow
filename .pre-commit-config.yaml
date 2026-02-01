@@ -40,7 +40,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        stages: [commit, commit-msg]
+        stages: [pre-commit, commit-msg]
         args:
           - --ignore-words-list
           - 'titel,statics,ba,nd,te,atomate'
