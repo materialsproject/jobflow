@@ -1386,6 +1386,13 @@ def test_job_autoreplace(memory_jobstore):
     ]
     assert all_responses.count(3) == 3
 
+    # check that if an empty list is returned the output is not misinterpreted
+    # as a replace
+    job1 = make_list_of_n(2, 0)
+    flow = Flow([job1])
+    responses = run_locally(flow, store=memory_jobstore)
+    assert responses[job1.uuid][1].output == []
+
 
 def test_get_item():
     from jobflow import Flow, job, run_locally

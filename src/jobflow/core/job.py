@@ -1312,7 +1312,7 @@ class Response(typing.Generic[T]):
             return isinstance(x, Job | Flow)
 
         should_replace = is_job_or_flow(job_returns)
-        if isinstance(job_returns, (list, tuple)):
+        if job_returns and isinstance(job_returns, (list, tuple)):
             should_replace = all(is_job_or_flow(resp) for resp in job_returns)
 
         if should_replace:
