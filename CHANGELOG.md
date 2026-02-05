@@ -1,5 +1,14 @@
 # Change log
 
+
+
+## v0.3.1
+
+### Bug Fixes 🐛
+* Fix autoreplace by @gpetretto in https://github.com/materialsproject/jobflow/pull/848
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.3.0...v0.3.1
+
 ## v0.3.0
 
 This version includes a number of fixes aiming for improved support with Quacc.
