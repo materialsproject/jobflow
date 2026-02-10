@@ -559,6 +559,58 @@ class JobStore(Store):
             results, self, cache=cache, on_missing=on_missing
         )
 
+    def get_output_from_criteria(
+        self,
+        criteria: dict | None = None,
+        sort: dict[str, Sort | int] = None,
+        load: load_type = False,
+    ):
+        """
+        Get the output of a job based on a search criteria.
+
+        Note that, unlike :obj:`JobStore.query`, this function will automatically
+        try to resolve any output references in the job outputs.
+
+        Parameters
+        ----------
+        criteria
+            PyMongo filter for documents to search.
+        load
+            Which items to load from additional stores. Setting to ``True`` will load
+            all items stored in additional stores. See the ``JobStore`` constructor for
+            more details.
+        sort
+            Dictionary of sort order for fields. Keys are field names and values are 1
+            for ascending or -1 for descending.
+
+        Returns
+        -------
+        Any
+            The output for the selected job.
+        """
+        from jobflow.core.reference import (
+            find_and_get_references,
+            find_and_resolve_references,
+        )
+
+        result = self.query_one(
+            criteria=criteria,
+            properties=["output", "uuid"],
+            sort=sort,
+            load=load,
+        )
+
+        if result is None:
+            raise ValueError(f"No result from criteria {criteria}")
+
+        refs = find_and_get_references(result["output"])
+        if any(ref.uuid == result["uuid"] for ref in refs):
+            raise RuntimeError("Reference cycle detected - aborting.")
+
+        return find_and_resolve_references(
+            result["output"], self, on_missing=OnMissing.ERROR
+        )
+
     @classmethod
     def from_file(cls, db_file: str | Path, **kwargs) -> Self:
         """

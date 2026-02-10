@@ -7,13 +7,15 @@ import warnings
 from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from monty.json import MSONable
 
 import jobflow
-from jobflow.core.reference import find_and_get_references
+from jobflow.core.reference import OutputReference, find_and_get_references
 from jobflow.utils import ValueEnum, contains_flow_or_job, suid
+from jobflow.utils.hosts import normalize_hosts
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 
     from networkx import DiGraph
 
-    from jobflow import Job
+    from jobflow import Job, JobStore, Maker
 
 
 logger = logging.getLogger(__name__)
@@ -134,9 +136,13 @@ class Flow(MSONable):
         name: str = "Flow",
         order: JobOrder = JobOrder.AUTO,
         uuid: str = None,
-        hosts: list[str] = None,
+        hosts: list[tuple[str, int]] = None,
         metadata: dict[str, Any] = None,
         metadata_updates: list[dict[str, Any]] = None,
+        maker: Maker | None = None,
+        make_args: list | None = None,
+        make_kwargs: dict | None = None,
+        index: int = 1,
     ):
         from jobflow.core.job import Job
 
@@ -149,13 +155,22 @@ class Flow(MSONable):
         self.name = name
         self.order = order
         self.uuid = uuid
-        self.hosts = hosts or []
+        self.index = index
+        self.hosts = normalize_hosts(hosts)
         self.metadata = metadata or {}
         self.metadata_updates = metadata_updates or []
 
         self._jobs: tuple[Flow | Job, ...] = ()
         self.add_jobs(jobs)
+        # keep track of the references to the real output and
+        # prepare an OutputReference for the Flow.
         self.output = output
+        # TODO output schema?
+        self._output_reference = OutputReference(self.uuid)
+
+        self.maker = maker
+        self.make_args = make_args
+        self.make_kwargs = make_kwargs
 
         # If we're running inside a `DecoratedFlow`, add *this* Flow to the
         # context.
@@ -232,6 +247,21 @@ class Flow(MSONable):
         """Get the hash of the flow."""
         return hash(self.uuid)
 
+    def as_dict(self) -> dict:
+        """
+        Create a JSON serializable dict representation of an object.
+
+        Returns
+        -------
+        dict
+            The serialized version of the object
+        """
+        d = super().as_dict()
+        # replace the output with the dereferenced, otherwise it will store the
+        # reference to itself
+        d["output"] = self.output_dereferenced
+        return d
+
     @property
     def jobs(self) -> tuple[Flow | Job, ...]:
         """
@@ -268,7 +298,7 @@ class Flow(MSONable):
         Any
             The output of the flow.
         """
-        return self._output
+        return self._output_reference
 
     @output.setter
     def output(self, output: Any):
@@ -305,6 +335,45 @@ class Flow(MSONable):
         self._output = output
 
     @property
+    def output_reference(self) -> OutputReference:
+        """
+        The Flow output reference.
+
+        Returns
+        -------
+        OutputReference
+            The Flow output reference.
+        """
+        return self._output_reference
+
+    @property
+    def output_dereferenced(self) -> Any:
+        """
+        The references to real output of the Flow.
+
+        Returns
+        -------
+        Any
+            The references to real output of the Flow.
+        """
+        return self._output
+
+    def set_uuid_index(self, uuid: str, index: int) -> None:
+        """
+        Set the UUID of the job.
+
+        Parameters
+        ----------
+        uuid
+            A UUID.
+        """
+        for job_or_flow in self.jobs:
+            job_or_flow.replace_host((self.uuid, self.index), (uuid, index))
+        self.uuid = uuid
+        self.index = index
+        self.output.set_uuid(uuid)
+
+    @property
     def job_uuids(self) -> tuple[str, ...]:
         """
         Uuids of every Job contained in the Flow (including nested Flows).
@@ -320,6 +389,19 @@ class Flow(MSONable):
                 uuids.extend(job.job_uuids)
             else:
                 uuids.append(job.uuid)
+        return tuple(uuids)
+
+    @property
+    def job_flow_uuids(self) -> tuple[str, ...]:
+        """
+        Uuids of every Job contained in the Flow (including nested Flows).
+
+        Returns
+        -------
+        tuple[str]
+            The uuids of all Jobs in the Flow (including nested Flows).
+        """
+        uuids: list[str] = [job.uuid for job in self]
         return tuple(uuids)
 
     @property
@@ -380,7 +462,30 @@ class Flow(MSONable):
         return graph
 
     @property
-    def host(self) -> str | None:
+    def hierarchy_tree(self) -> DiGraph:
+        """
+        Generate a hierarchy tree of the elements in the Flow.
+
+        Returns
+        -------
+        DiGraph
+            The graph with the hierarchy tree.
+        """
+        import networkx as nx
+
+        sub_trees = [job.hierarchy_tree for job in self.jobs]
+
+        tree = nx.compose_all(sub_trees) if sub_trees else nx.DiGraph()
+
+        tree.add_node(self)
+
+        for job in self.jobs:
+            tree.add_edge(self, job)
+
+        return tree
+
+    @property
+    def host(self) -> tuple[str, int] | None:
         """
         UUID of the first Flow that contains this Flow.
 
@@ -390,6 +495,29 @@ class Flow(MSONable):
             the UUID of the host.
         """
         return self.hosts[0] if self.hosts else None
+
+    def replace_host(self, old_host: tuple[str, int], new_host: tuple[str, int]):
+        """
+        Replace the uuid of an host if present.
+
+        Applied also to all the inner Jobs/Flows.
+
+        Parameters
+        ----------
+        old_host
+            The host to be replaced,
+        new_host
+            The new host.
+        """
+        old_host = tuple(old_host)  # type: ignore
+        new_host = tuple(new_host)  # type: ignore
+        try:
+            i = self.hosts.index(old_host)
+            self.hosts[i] = new_host
+            for job in self.jobs:
+                job.replace_host(old_host, new_host)
+        except ValueError:
+            pass
 
     def draw_graph(self, **kwargs):
         """
@@ -783,7 +911,9 @@ class Flow(MSONable):
             )
 
     def add_hosts_uuids(
-        self, hosts_uuids: str | list[str] = None, prepend: bool = False
+        self,
+        hosts: tuple[str, int] | list[tuple[str, int]] = None,
+        prepend: bool = False,
     ):
         """
         Add a list of UUIDs to the internal list of hosts.
@@ -797,23 +927,22 @@ class Flow(MSONable):
 
         Parameters
         ----------
-        hosts_uuids
+        hosts
             A list of UUIDs to add. If None the current uuid of the flow will be
             added to the inner Flows and Jobs.
         prepend
             Insert the UUIDs at the beginning of the list rather than extending it.
         """
-        if hosts_uuids is not None:
-            if not isinstance(hosts_uuids, (list, tuple)):
-                hosts_uuids = [hosts_uuids]
+        hosts = normalize_hosts(hosts)
+        if hosts:
             if prepend:
-                self.hosts[0:0] = hosts_uuids
+                self.hosts[0:0] = hosts
             else:
-                self.hosts.extend(hosts_uuids)
+                self.hosts.extend(hosts)
         else:
-            hosts_uuids = [self.uuid]
+            hosts = [(self.uuid, self.index)]
         for job in self:
-            job.add_hosts_uuids(hosts_uuids, prepend=prepend)
+            job.add_hosts_uuids(hosts, prepend=prepend)
 
     def add_jobs(self, jobs: Job | Flow | Sequence[Flow | Job]) -> None:
         """
@@ -831,9 +960,9 @@ class Flow(MSONable):
             jobs = [jobs]  # type: ignore[list-item]
 
         job_ids = set(self.all_uuids)
-        hosts = [self.uuid, *self.hosts]
+        hosts = [(self.uuid, self.index), *self.hosts]
         for job in jobs:
-            if job.host is not None and job.host != self.uuid:
+            if job.host is not None and tuple(job.host) != (self.uuid, self.index):
                 raise ValueError(
                     f"{type(job).__name__} {job.name} ({job.uuid}) already belongs "
                     f"to another flow: {job.host}."
@@ -850,7 +979,7 @@ class Flow(MSONable):
                     f"current Flow ({self.uuid})"
                 )
             job_ids.add(job.uuid)
-            if job.host != self.uuid:
+            if not job.host or tuple(job.host) != (self.uuid, self.index):
                 job.add_hosts_uuids(hosts)
         self._jobs += tuple(jobs)
 
@@ -919,7 +1048,7 @@ def get_flow(
         # ensure that we have all the jobs needed to resolve the reference connections
         job_references = find_and_get_references(flow.jobs)
         job_reference_uuids = {ref.uuid for ref in job_references}
-        missing_jobs = job_reference_uuids.difference(set(flow.job_uuids))
+        missing_jobs = job_reference_uuids.difference(set(flow.all_uuids))
         if len(missing_jobs) > 0:
             raise ValueError(
                 "The following jobs were not found in the jobs array and are needed to "
@@ -1030,3 +1159,32 @@ def flow_build_context(children_list):
 
 
 _current_flow_context = ContextVar("current_flow_context", default=None)
+
+
+def store_flow_output(store: JobStore, flow: Flow):
+    """
+    Add the output of a Flow to the Store.
+
+    Parameters
+    ----------
+    store
+    flow
+    """
+    from jobflow.core.schemas import JobStoreDocument, MakerData
+
+    maker = None
+    if flow.maker:
+        maker = MakerData(
+            maker=flow.maker, args=flow.make_args, kwargs=flow.make_kwargs
+        )
+    data: JobStoreDocument = JobStoreDocument(
+        uuid=flow.uuid,
+        index=flow.index,
+        output=flow.output_dereferenced,
+        completed_at=datetime.now().isoformat(),
+        metadata=flow.metadata,
+        hosts=flow.hosts,
+        name=flow.name,
+        maker=maker,
+    )
+    store.update(data, key=["uuid", "index"])
