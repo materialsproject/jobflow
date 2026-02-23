@@ -13,6 +13,25 @@ if typing.TYPE_CHECKING:
     import jobflow
 
 
+from functools import wraps
+
+
+def _make(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        from jobflow.core.flow import Flow
+
+        result = func(self, *args, **kwargs)
+        if isinstance(result, Flow):
+            result.maker = self
+            result.make_args = args
+            result.make_kwargs = kwargs
+
+        return result
+
+    return wrapper
+
+
 @dataclass
 class Maker(MSONable):
     """
@@ -117,6 +136,13 @@ class Maker(MSONable):
     >>> maker = DoubleAddMaker()
     >>> double_add_job = maker.make(1, 2)
     """
+
+    def __init_subclass__(cls, **kwargs):
+        """Init subclass."""
+        super().__init_subclass__(**kwargs)
+
+        if hasattr(cls, "make") and callable(cls.make):
+            cls.make = _make(cls.make)
 
     def make(self, *args, **kwargs) -> jobflow.Flow | jobflow.Job:
         """Make a job or a flow - must be overridden with a concrete implementation."""

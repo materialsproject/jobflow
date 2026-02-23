@@ -13,6 +13,7 @@ from typing_extensions import Self
 
 from jobflow.core.flow import _current_flow_context
 from jobflow.core.reference import OnMissing, OutputReference
+from jobflow.utils.hosts import normalize_hosts
 from jobflow.utils.uid import suid
 
 if typing.TYPE_CHECKING:
@@ -331,7 +332,7 @@ class Job(MSONable):
         name: str = None,
         metadata: dict[str, Any] = None,
         config: JobConfig = None,
-        hosts: list[str] = None,
+        hosts: list[tuple[str, int]] = None,
         metadata_updates: list[dict[str, Any]] = None,
         config_updates: list[dict[str, Any]] = None,
         name_updates: list[dict[str, Any]] = None,
@@ -356,7 +357,7 @@ class Job(MSONable):
         self.name = name
         self.metadata = metadata or {}
         self.config = config
-        self.hosts = hosts or []
+        self.hosts = normalize_hosts(hosts)
         self.metadata_updates = metadata_updates or []
         self.name_updates = name_updates or []
         self.config_updates = config_updates or []
@@ -549,6 +550,34 @@ class Job(MSONable):
         return graph
 
     @property
+    def full_graph(self) -> DiGraph:
+        """
+        Get a graph of the job indicating the inputs to the job.
+
+        Returns
+        -------
+        DiGraph
+            The graph showing the connectivity of the jobs.
+        """
+        return self.graph
+
+    @property
+    def hierarchy_tree(self) -> DiGraph:
+        """
+        Generate the Job node of the hierarchy tree.
+
+        Returns
+        -------
+        DiGraph
+            The graph with the job node.
+        """
+        from networkx import DiGraph
+
+        tree = DiGraph()
+        tree.add_node(self)
+        return tree
+
+    @property
     def host(self):
         """
         UUID of the first Flow that contains the Job.
@@ -559,6 +588,25 @@ class Job(MSONable):
             the UUID of the host.
         """
         return self.hosts[0] if self.hosts else None
+
+    def replace_host(self, old_host: tuple[str, int], new_host: tuple[str, int]):
+        """
+        Replace the uuid of an host if present.
+
+        Parameters
+        ----------
+        old_host
+            The host to be replaced,
+        new_host
+            The new host.
+        """
+        old_host = tuple(old_host)  # type: ignore
+        new_host = tuple(new_host)  # type: ignore
+        try:
+            i = self.hosts.index(old_host)
+            self.hosts[i] = new_host
+        except ValueError:
+            pass
 
     def set_uuid(self, uuid: str) -> None:
         """
@@ -1207,7 +1255,11 @@ class Job(MSONable):
         else:
             super().__setattr__(key, value)
 
-    def add_hosts_uuids(self, hosts_uuids: str | Sequence[str], prepend: bool = False):
+    def add_hosts_uuids(
+        self,
+        hosts: tuple[str, int] | Sequence[tuple[str, int]],
+        prepend: bool = False,
+    ):
         """
         Add a list of UUIDs to the internal list of hosts.
 
@@ -1217,17 +1269,16 @@ class Job(MSONable):
 
         Parameters
         ----------
-        hosts_uuids
+        hosts
             A list of UUIDs to add.
         prepend
             Insert the UUIDs at the beginning of the list rather than extending it.
         """
-        if isinstance(hosts_uuids, str):
-            hosts_uuids = [hosts_uuids]
+        hosts = normalize_hosts(hosts)
         if prepend:
-            self.hosts[0:0] = hosts_uuids
+            self.hosts[0:0] = hosts
         else:
-            self.hosts.extend(hosts_uuids)
+            self.hosts.extend(hosts)
 
 
 # For type checking, the Response output type can be specified
@@ -1423,16 +1474,13 @@ def prepare_replace(
         replace = Flow(jobs=replace)
 
     if isinstance(replace, Flow) and replace.output is not None:
-        # add a job with same UUID as the current job to store the outputs of the
-        # flow; this job will inherit the metadata and output schema of the current
-        # job
-        store_output_job = store_inputs(replace.output)
-        store_output_job.set_uuid(current_job.uuid)
-        store_output_job.index = current_job.index + 1
-        store_output_job.metadata = current_job.metadata
-        store_output_job.output_schema = current_job.output_schema
-        store_output_job._kwargs = current_job._kwargs
-        replace.add_jobs(store_output_job)
+        replace.set_uuid_index(current_job.uuid, current_job.index + 1)
+
+        metadata = replace.metadata
+        metadata.update(current_job.metadata)
+        replace.metadata = metadata
+        if replace.name == "Flow":
+            replace.name = current_job.name
 
     elif isinstance(replace, Job):
         # replace is a single Job
