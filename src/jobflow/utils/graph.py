@@ -219,10 +219,11 @@ def to_mermaid(flow: jobflow.Flow | jobflow.Job, show_flow_boxes: bool = False) 
         flow = Flow(jobs=[flow])
 
     lines = ["flowchart TD"]
-    nodes = flow.graph.nodes(data=True)
+    graph = flow.full_graph
+    nodes = graph.nodes(data=True)
 
     # add edges
-    for u, v, d in flow.graph.edges(data=True):
+    for u, v, d in graph.edges(data=True):
         if isinstance(d["properties"], list):
             props = ", ".join(d["properties"])
         else:

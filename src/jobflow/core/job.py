@@ -550,6 +550,18 @@ class Job(MSONable):
         return graph
 
     @property
+    def full_graph(self) -> DiGraph:
+        """
+        Get a graph of the job indicating the inputs to the job.
+
+        Returns
+        -------
+        DiGraph
+            The graph showing the connectivity of the jobs.
+        """
+        return self.graph
+
+    @property
     def hierarchy_tree(self) -> DiGraph:
         """
         Generate the Job node of the hierarchy tree.
@@ -1463,11 +1475,12 @@ def prepare_replace(
 
     if isinstance(replace, Flow) and replace.output is not None:
         replace.set_uuid_index(current_job.uuid, current_job.index + 1)
-        # replace.index = current_job.index + 1
 
         metadata = replace.metadata
         metadata.update(current_job.metadata)
         replace.metadata = metadata
+        if replace.name == "Flow":
+            replace.name = current_job.name
 
     elif isinstance(replace, Job):
         # replace is a single Job

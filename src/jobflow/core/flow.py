@@ -328,7 +328,7 @@ class Flow(MSONable):
             references = find_and_get_references(output)
             reference_uuids = {ref.uuid for ref in references}
 
-            if not reference_uuids.issubset(set(self.job_uuids)):
+            if not reference_uuids.issubset(set(self.all_uuids)):
                 raise ValueError(
                     "jobs array does not contain all jobs needed for flow output"
                 )
@@ -357,6 +357,38 @@ class Flow(MSONable):
             The references to real output of the Flow.
         """
         return self._output
+
+    @property
+    def output_references(self) -> tuple[jobflow.OutputReference, ...]:
+        """
+        Find :obj:`.OutputReference` objects in the flow output.
+
+        Returns
+        -------
+        tuple(OutputReference, ...)
+            The references in the flow output.
+        """
+        from jobflow.core.reference import find_and_get_references
+
+        return find_and_get_references(self.output_dereferenced)
+
+    @property
+    def output_references_grouped(self) -> dict[str, tuple[OutputReference, ...]]:
+        """
+        Group any :obj:`.OutputReference` objects in the flow outputs by their UUIDs.
+
+        Returns
+        -------
+        dict[str, tuple(OutputReference, ...)]
+            The references grouped by their UUIDs.
+        """
+        from collections import defaultdict
+
+        groups = defaultdict(set)
+        for ref in self.output_references:
+            groups[ref.uuid].add(ref)
+
+        return {k: tuple(v) for k, v in groups.items()}
 
     def set_uuid_index(self, uuid: str, index: int) -> None:
         """
@@ -462,6 +494,62 @@ class Flow(MSONable):
         return graph
 
     @property
+    def full_graph(self) -> DiGraph:
+        """
+        Get a graph indicating the connectivity of jobs and subflows in the flow.
+
+        Returns
+        -------
+        DiGraph
+            The graph showing the connectivity of the jobs.
+        """
+        from itertools import product
+
+        import networkx as nx
+
+        graph = nx.compose_all([job.full_graph for job in self])
+
+        for node in graph:
+            node_props = graph.nodes[node]
+            if all(k not in node_props for k in ("job", "label")):
+                nx.set_node_attributes(graph, {node: {"label": "external"}})
+
+        graph.add_node(self.uuid, flow=self, label=self.name)
+        edges = []
+        for uuid, refs in self.output_references_grouped.items():
+            properties: list[str] | str = [
+                ref.attributes_formatted[-1]
+                .replace("[", "")
+                .replace("]", "")
+                .replace(".", "")
+                for ref in refs
+                if ref.attributes
+            ]
+            properties = properties[0] if len(properties) == 1 else properties
+            properties = properties if len(properties) > 0 else "output"
+            edges.append((uuid, self.uuid, {"properties": properties}))
+        graph.add_edges_from(edges)
+
+        if self.order == JobOrder.LINEAR:
+            # add fake edges between jobs to force linear order
+            edges = []
+            for job_a, job_b in nx.utils.pairwise(self):
+                if isinstance(job_a, Flow):
+                    leaves = [v for v, d in job_a.graph.out_degree() if d == 0]
+                else:
+                    leaves = [job_a.uuid]
+
+                if isinstance(job_b, Flow):
+                    roots = [v for v, d in job_b.graph.in_degree() if d == 0]
+                else:
+                    roots = [job_b.uuid]
+
+                for leaf, root in product(leaves, roots):
+                    edges.append((leaf, root, {"properties": ""}))
+            graph.add_edges_from(edges)
+        return graph
+
+    @property
     def hierarchy_tree(self) -> DiGraph:
         """
         Generate a hierarchy tree of the elements in the Flow.
@@ -539,7 +627,7 @@ class Flow(MSONable):
 
         return draw_graph(self.graph, **kwargs)
 
-    def iterflow(self):
+    def iterflow(self, include_flow_outputs: bool = False):
         """
         Iterate through the jobs of the flow.
 
@@ -548,7 +636,7 @@ class Flow(MSONable):
 
         Yields
         ------
-        Job, list[str]
+        Job | Flow, list[str]
             The Job and the uuids of any parent jobs (not to be confused with the host
             flow).
         """
@@ -556,7 +644,7 @@ class Flow(MSONable):
 
         from jobflow.utils.graph import itergraph
 
-        graph = self.graph
+        graph = self.full_graph
 
         if not is_directed_acyclic_graph(graph):
             raise ValueError(
@@ -566,7 +654,9 @@ class Flow(MSONable):
 
         for node in itergraph(graph):
             parents = [u for u, v in graph.in_edges(node) if "job" in graph.nodes[u]]
-            if "job" not in graph.nodes[node]:
+            if "job" not in graph.nodes[node] and (
+                ("flow" not in graph.nodes[node]) or (not include_flow_outputs)
+            ):
                 continue
             job = graph.nodes[node]["job"]
             yield job, parents
