@@ -1265,7 +1265,13 @@ class Response(typing.Generic[T]):
     output: T = None
     detour: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
     addition: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
-    replace: jobflow.Flow | Job | list[Job] | list[jobflow.Flow] = None
+    replace: (
+        jobflow.Flow
+        | Job
+        | list[Job]
+        | list[jobflow.Flow]
+        | dict[Any, jobflow.Job | jobflow.Flow]
+    ) = None
     stored_data: dict[Hashable, Any] = None
     stop_children: bool = False
     stop_jobflow: bool = False
@@ -1312,8 +1318,13 @@ class Response(typing.Generic[T]):
             return isinstance(x, Job | Flow)
 
         should_replace = is_job_or_flow(job_returns)
-        if job_returns and isinstance(job_returns, (list, tuple)):
-            should_replace = all(is_job_or_flow(resp) for resp in job_returns)
+        if job_returns:
+            if isinstance(job_returns, (list, tuple)):
+                should_replace = all(is_job_or_flow(resp) for resp in job_returns)
+            elif isinstance(job_returns, dict):
+                should_replace = all(
+                    is_job_or_flow(resp) for resp in job_returns.values()
+                )
 
         if should_replace:
             job_returns = Response(replace=job_returns)
@@ -1330,6 +1341,13 @@ class Response(typing.Generic[T]):
         if isinstance(job_returns, (list, tuple)):
             # check that a Response object is not given as one of many outputs
             for resp in job_returns:
+                if isinstance(resp, Response):
+                    raise ValueError(
+                        "Response cannot be returned in combination with other outputs."
+                    )
+        elif isinstance(job_returns, dict):
+            # check that a Response object is not given as one of many outputs
+            for resp in job_returns.values():
                 if isinstance(resp, Response):
                     raise ValueError(
                         "Response cannot be returned in combination with other outputs."
@@ -1393,7 +1411,7 @@ def store_inputs(inputs: Any) -> Any:
 
 
 def prepare_replace(
-    replace: jobflow.Flow | Job | list[Job],
+    replace: jobflow.Flow | Job | list[Job] | dict[Any, jobflow.Job | jobflow.Flow],
     current_job: Job,
 ) -> jobflow.Flow:
     """
@@ -1418,6 +1436,10 @@ def prepare_replace(
         The updated flow.
     """
     from jobflow.core.flow import Flow
+
+    if isinstance(replace, dict):
+        output = {k: j.output for k, j in replace.items()}
+        replace = Flow(jobs=list(replace.values()), output=output)
 
     if isinstance(replace, (list, tuple)):
         replace = Flow(jobs=replace)

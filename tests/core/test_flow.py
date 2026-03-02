@@ -1376,7 +1376,7 @@ def test_job_autoreplace(memory_jobstore):
     job1 = make_list_of_n(2, 3)
     dynamic_job = add_distributed_list(job1.output)
     flow = Flow([job1, dynamic_job])
-    results = run_locally(flow, store=memory_jobstore)
+    results = run_locally(flow, store=memory_jobstore, ensure_success=True)
 
     # Ensure the final result (3 instances of 3s) is in the results.
     all_responses = [
@@ -1390,8 +1390,42 @@ def test_job_autoreplace(memory_jobstore):
     # as a replace
     job1 = make_list_of_n(2, 0)
     flow = Flow([job1])
-    responses = run_locally(flow, store=memory_jobstore)
+    responses = run_locally(flow, store=memory_jobstore, ensure_success=True)
     assert responses[job1.uuid][1].output == []
+
+
+def test_job_autoreplace_dict(memory_jobstore):
+    # test to check if a job that returns a dict of jobs
+    # is interpreted as a replace.
+    from jobflow import Flow, job
+    from jobflow.managers.local import run_locally
+
+    @job
+    def add(x, y):
+        return x + y
+
+    @job
+    def make_named_jobs(a, b):
+        return {"sum": add(a, b), "diff": add(a, -b)}
+
+    @job
+    def double(x):
+        return x * 2
+
+    job1 = make_named_jobs(3, 2)
+    job2 = double(job1.output["sum"])
+    flow = Flow([job1, job2])
+    results = run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+    assert results[job2.uuid][1].output == 10
+
+    all_outputs = [
+        response.output
+        for index_to_response in results.values()
+        for response in index_to_response.values()
+    ]
+    assert 5 in all_outputs  # sum
+    assert 1 in all_outputs  # diff
 
 
 def test_get_item():
