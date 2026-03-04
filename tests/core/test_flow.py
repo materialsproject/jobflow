@@ -1457,3 +1457,29 @@ def test_get_item():
 
     responses = run_locally(flow, ensure_success=True)
     assert responses[job2.uuid][1].output == "WORLD"
+
+
+def test_flow_no_truthiness(memory_jobstore):
+    # Test to check if a job that returns a value for which truthiness on the output
+    # cannot be ascertained works correctly.
+    # This can happen when a job returns a numpy array, for example.
+
+    from monty.json import MSONable
+
+    from jobflow import Flow, job
+    from jobflow.managers.local import run_locally
+
+    class NoTruthiness(MSONable):
+        def __bool__(self):
+            raise ValueError("No truthiness")
+
+    no_truthiness_obj = NoTruthiness()
+
+    @job
+    def no_truthiness_job():
+        return no_truthiness_obj
+
+    job1 = no_truthiness_job()
+    flow = Flow([job1])
+    results = run_locally(flow, store=memory_jobstore, ensure_success=True)
+    assert results[job1.uuid][1].output == no_truthiness_obj
