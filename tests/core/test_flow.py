@@ -1427,6 +1427,17 @@ def test_job_autoreplace_dict(memory_jobstore):
     assert 5 in all_outputs  # sum
     assert 1 in all_outputs  # diff
 
+    # check that if an empty dict is returned the output is not misinterpreted
+    # as a replace
+    @job
+    def make_empty_dict():
+        return {}
+
+    job1 = make_empty_dict()
+    flow = Flow([job1])
+    responses = run_locally(flow, store=memory_jobstore, ensure_success=True)
+    assert responses[job1.uuid][1].output == {}
+
 
 def test_get_item():
     from jobflow import Flow, job, run_locally

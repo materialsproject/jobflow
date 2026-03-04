@@ -1268,8 +1268,8 @@ class Response(typing.Generic[T]):
     replace: (
         jobflow.Flow
         | Job
-        | list[Job]
-        | list[jobflow.Flow]
+        | tuple[jobflow.Job | jobflow.Flow]
+        | list[jobflow.Job | jobflow.Flow]
         | dict[Any, jobflow.Job | jobflow.Flow]
     ) = None
     stored_data: dict[Hashable, Any] = None
@@ -1318,10 +1318,10 @@ class Response(typing.Generic[T]):
             return isinstance(x, Job | Flow)
 
         should_replace = is_job_or_flow(job_returns)
-        if job_returns:
-            if isinstance(job_returns, (list, tuple)):
+        if job_returns is not None:
+            if isinstance(job_returns, (list, tuple)) and len(job_returns) > 0:
                 should_replace = all(is_job_or_flow(resp) for resp in job_returns)
-            elif isinstance(job_returns, dict):
+            elif isinstance(job_returns, dict) and len(job_returns) > 0:
                 should_replace = all(
                     is_job_or_flow(resp) for resp in job_returns.values()
                 )
@@ -1411,7 +1411,11 @@ def store_inputs(inputs: Any) -> Any:
 
 
 def prepare_replace(
-    replace: jobflow.Flow | Job | list[Job] | dict[Any, jobflow.Job | jobflow.Flow],
+    replace: jobflow.Flow
+    | Job
+    | tuple[jobflow.Job | jobflow.Flow]
+    | list[jobflow.Job | jobflow.Flow]
+    | dict[Any, jobflow.Job | jobflow.Flow],
     current_job: Job,
 ) -> jobflow.Flow:
     """
@@ -1442,7 +1446,11 @@ def prepare_replace(
         replace = Flow(jobs=list(replace.values()), output=output)
 
     if isinstance(replace, (list, tuple)):
-        replace = Flow(jobs=replace)
+        if isinstance(replace, tuple):
+            seq_output: tuple | list = tuple(j.output for j in replace)
+        else:
+            seq_output = [j.output for j in replace]
+        replace = Flow(jobs=list(replace), output=seq_output)
 
     if isinstance(replace, Flow) and replace.output is not None:
         # add a job with same UUID as the current job to store the outputs of the
