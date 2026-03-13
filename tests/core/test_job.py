@@ -1418,7 +1418,8 @@ def test_job_magic_methods():
 
 
 @pytest.mark.xfail(
-    reason="Mutating one job's config mutates all others created by that decorator."
+    reason="Mutating one job's config mutates all others created by that decorator.",
+    strict=True,
 )
 def test_job_decorator_config_shared():
     from jobflow import JobConfig, job
