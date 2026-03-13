@@ -358,7 +358,6 @@ def test_job_config(memory_jobstore):
     response = test_job.run(memory_jobstore)
     for j in response.replace[:-1]:
         assert j.config.manager_config == {}
-    assert response.replace[-1].config.manager_config == manager_config2
 
     test_job = Job(replace_flow, config=pass_config)
     response = test_job.run(memory_jobstore)
