@@ -1419,3 +1419,31 @@ def test_job_magic_methods():
 
     # test __hash__
     assert hash(job1) != hash(job2) != hash(job3)
+
+
+@pytest.mark.xfail(
+    reason="Mutating one job's config mutates all others created by that decorator.",
+    strict=True,
+)
+def test_job_decorator_config_shared():
+    from jobflow import JobConfig, job
+
+    config = JobConfig(manager_config={"key": "original"})
+
+    @job(config=config)
+    def add_configured(a, b):
+        return a + b
+
+    job1 = add_configured(1, 3)
+    job2 = add_configured(2, 3)
+
+    assert job1.config.manager_config == {"key": "original"}
+    assert job2.config.manager_config == {"key": "original"}
+
+    job1.config.manager_config["key"] = "changed"
+
+    # job2 should still have the original value.
+    assert job2.config.manager_config == {"key": "original"}, (
+        f"Expected job2.config.manager_config to be {{'key': 'original'}}, "
+        f"but got {job2.config.manager_config!r} — shared instance bug confirmed."
+    )
