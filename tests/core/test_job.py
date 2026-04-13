@@ -135,6 +135,7 @@ def test_job_run(capsys, memory_jobstore, memory_data_jobstore):
 
 def test_replace_response(memory_jobstore):
     from jobflow import Flow, Job, Response
+    from jobflow.core.job import store_inputs
 
     def replace_job():
         job = Job(add, function_args=(1,))
@@ -183,9 +184,11 @@ def test_replace_response(memory_jobstore):
     test_job = Job(replace_list_job, metadata=metadata, output_schema="123")
     response = test_job.run(memory_jobstore)
     assert isinstance(response.replace, Flow)
-    assert response.replace[-1].function == add
-    assert len(response.replace) == 2
-    # currently output schema and metadata ignored in this case
+    assert response.replace[-2].function == add
+    assert response.replace[-1].function == store_inputs.original
+
+    assert len(response.replace) == 3
+    # currently output schema and metadata ignored for all but the last `store_inputs`
     for j in response.replace:
         assert j.hosts == [response.replace.uuid]
 
@@ -218,12 +221,13 @@ def test_replace_response(memory_jobstore):
     test_job = Job(replace_list_flow, metadata=metadata, output_schema="123")
     response = test_job.run(memory_jobstore)
     assert isinstance(response.replace, Flow)
-    assert isinstance(response.replace[-1], Flow)
-    assert len(response.replace) == 2
+    assert isinstance(response.replace[-2], Flow)
+    assert len(response.replace) == 3
     for f in response.replace:
-        for j in f:
-            assert j.hosts == [f.uuid, response.replace.uuid]
-    # currently output schema and metadata ignored in this case
+        if isinstance(f, Flow):
+            for j in f:
+                assert j.hosts == [f.uuid, response.replace.uuid]
+    # currently output schema and metadata ignored for all but the last `store_inputs`
 
 
 def test_job_config(memory_jobstore):
@@ -352,7 +356,7 @@ def test_job_config(memory_jobstore):
     # test replace with flow
     test_job = Job(replace_flow, config=nopass_config)
     response = test_job.run(memory_jobstore)
-    for j in response.replace:
+    for j in response.replace[:-1]:
         assert j.config.manager_config == {}
 
     test_job = Job(replace_flow, config=pass_config)
