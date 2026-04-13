@@ -8,9 +8,9 @@ from typing import Any
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
 from pydantic import BaseModel
-from pydantic.v1.utils import lenient_issubclass
 
 from jobflow.utils.enum import ValueEnum
+from jobflow.utils.types import lenient_issubclass
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
