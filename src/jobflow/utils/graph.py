@@ -219,10 +219,11 @@ def to_mermaid(flow: jobflow.Flow | jobflow.Job, show_flow_boxes: bool = False) 
         flow = Flow(jobs=[flow])
 
     lines = ["flowchart TD"]
-    nodes = flow.graph.nodes(data=True)
+    graph = flow.full_graph
+    nodes = graph.nodes(data=True)
 
     # add edges
-    for u, v, d in flow.graph.edges(data=True):
+    for u, v, d in graph.edges(data=True):
         if isinstance(d["properties"], list):
             props = ", ".join(d["properties"])
         else:
@@ -249,3 +250,38 @@ def to_mermaid(flow: jobflow.Flow | jobflow.Job, show_flow_boxes: bool = False) 
     add_subgraph(flow)
 
     return "\n".join(lines)
+
+
+def build_hierarchy_graph(flow_or_job, hierarchy_tree=None) -> nx.DiGraph:
+    """
+    Build a hierarchy graph with (uuid, index) of Flow or Job.
+
+    Optionally add it to an already existing tree,
+
+    Parameters
+    ----------
+    flow_or_job
+        A Flow or Job to build the hierarchy tree.
+    hierarchy_tree
+        A hierarchy tree to which the generated one will be added.
+
+    Returns
+    -------
+    DiGraph
+        The graph of the hierarchy tree.
+    """
+    from jobflow import Flow
+
+    if hierarchy_tree is None:
+        hierarchy_tree = nx.DiGraph()
+    if isinstance(flow_or_job, Flow):
+        iterator = flow_or_job.iterflow()
+    else:
+        iterator = [flow_or_job]
+    for job, _ in iterator:
+        hierarchy_tree.add_nodes_from(tuple(uuid_index) for uuid_index in job.hosts)
+        hierarchy_tree.add_node((job.uuid, job.index))
+        for n1, n2 in zip([(job.uuid, job.index), *job.hosts], job.hosts):
+            hierarchy_tree.add_edge(n2, n1)
+
+    return hierarchy_tree
