@@ -391,6 +391,7 @@ def test_find_and_resolve_references(memory_jobstore):
     from jobflow.core.reference import (
         OnMissing,
         OutputReference,
+        ResolvedReference,
         find_and_resolve_references,
     )
 
@@ -494,6 +495,58 @@ def test_find_and_resolve_references(memory_jobstore):
     with pytest.raises(ValueError, match="Could not resolve reference"):
         find_and_resolve_references(
             [ref1, ref3], memory_jobstore, on_missing=OnMissing.ERROR, deserialize=False
+        )
+
+    # test wrap_resolved: single reference
+    wrapped = find_and_resolve_references(ref1, memory_jobstore, wrap_resolved=True)
+    assert isinstance(wrapped, ResolvedReference)
+    assert wrapped.reference == ref1
+    assert wrapped.value == 101
+
+    # test wrap_resolved: nested
+    wrapped_nested = find_and_resolve_references(
+        {"a": [ref1, ref2]}, memory_jobstore, wrap_resolved=True
+    )
+    inner = wrapped_nested["a"]
+    assert isinstance(inner[0], ResolvedReference)
+    assert inner[0].reference == ref1
+    assert inner[0].value == 101
+    assert isinstance(inner[1], ResolvedReference)
+    assert inner[1].reference == ref2
+    assert inner[1].value == "xyz"
+
+    # test wrap_resolved with on_missing=PASS
+    wrapped_pass = find_and_resolve_references(
+        [ref1, ref3],
+        memory_jobstore,
+        on_missing=OnMissing.PASS,
+        wrap_resolved=True,
+    )
+    assert isinstance(wrapped_pass[0], ResolvedReference)
+    assert isinstance(wrapped_pass[1], ResolvedReference)
+    assert wrapped_pass[0].value == 101
+    assert wrapped_pass[1].value == ref3
+
+    # test wrap_resolved with on_missing=NONE
+    wrapped_pass = find_and_resolve_references(
+        [ref1, ref3],
+        memory_jobstore,
+        on_missing=OnMissing.NONE,
+        wrap_resolved=True,
+    )
+    assert isinstance(wrapped_pass[0], ResolvedReference)
+    assert isinstance(wrapped_pass[1], ResolvedReference)
+    assert wrapped_pass[0].value == 101
+    assert wrapped_pass[1].value is None
+
+    # test wrap_resolved with on_missing=ERROR
+    with pytest.raises(ValueError, match="Could not resolve reference"):
+        find_and_resolve_references(
+            [ref1, ref3],
+            memory_jobstore,
+            on_missing=OnMissing.ERROR,
+            deserialize=False,
+            wrap_resolved=True,
         )
 
 

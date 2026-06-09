@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import typing
+from dataclasses import dataclass
 from typing import Any
 
 from monty.json import MontyDecoder, MontyEncoder, MSONable, jsanitize
@@ -305,6 +306,36 @@ class OutputReference(MSONable):
         }
 
 
+@dataclass
+class ResolvedReference(MSONable):
+    """
+    A wrapper pairing an :obj:`OutputReference` with its resolved value.
+
+    The reference identity is stored as plain ``uuid`` and ``attributes`` fields
+    rather than as a nested :obj:`OutputReference` object. This avoids the
+    serialized form containing an ``OutputReference`` that in some cases may be
+    resolved again on a subsequent pass.
+
+    Parameters
+    ----------
+    uuid
+        The job uuid to which the output belongs.
+    attributes
+        The chain of attribute/index accesses stored on the original reference.
+    value
+        The resolved value the reference points to.
+    """
+
+    uuid: str
+    attributes: tuple[tuple[str, Any], ...]
+    value: Any
+
+    @property
+    def reference(self) -> OutputReference:
+        """Reconstruct the original :obj:`OutputReference` on demand."""
+        return OutputReference(self.uuid, self.attributes)
+
+
 def resolve_references(
     references: Sequence[OutputReference],
     store: jobflow.JobStore,
@@ -409,6 +440,7 @@ def find_and_resolve_references(
     cache: dict[str, Any] = None,
     on_missing: OnMissing = OnMissing.ERROR,
     deserialize: bool = True,
+    wrap_resolved: bool = False,
 ) -> Any:
     """
     Return the input but with all output references replaced with their resolved values.
@@ -431,6 +463,9 @@ def find_and_resolve_references(
         If False, the data extracted from the store will not be deserialized.
         Note that in this case, if a reference contains a derived property,
         it cannot be resolved.
+    wrap_resolved
+        If True, each resolved reference is wrapped in a :obj:`ResolvedReference`
+        exposing both the original reference and its resolved value.
 
     Returns
     -------
@@ -449,9 +484,14 @@ def find_and_resolve_references(
 
     if isinstance(arg, OutputReference):
         # if the argument is a reference then stop there
-        return arg.resolve(
+        resolved = arg.resolve(
             store, cache=cache, on_missing=on_missing, deserialize=deserialize
         )
+        if wrap_resolved:
+            return ResolvedReference(
+                uuid=arg.uuid, attributes=arg.attributes, value=resolved
+            )
+        return resolved
 
     if isinstance(arg, (float, int, str, bool)):
         # argument is a primitive, we won't find a reference here
@@ -476,11 +516,18 @@ def find_and_resolve_references(
 
     # replace the references in the arg dict
     for location, reference in zip(locations, references):
-        # skip references that have not been resolved, e.g., on missing is PASS
-        if reference == resolved_references[reference]:
+        # skip references that have not been resolved.
+        # If wrap_resolved always wrap in ResolvedReference.
+        if reference == resolved_references[reference] and not wrap_resolved:
             continue
 
         resolved_reference = resolved_references[reference]
+        if wrap_resolved:
+            resolved_reference = ResolvedReference(
+                uuid=reference.uuid,
+                attributes=reference.attributes,
+                value=resolved_reference,
+            )
         set_(encoded_arg, list(location), resolved_reference)
 
     # deserialize dict array
