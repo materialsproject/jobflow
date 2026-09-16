@@ -111,6 +111,24 @@ def test_connected_flow(memory_jobstore, clean_dir, connected_flow):
     assert result2["output"] == "12345_end_end"
 
 
+def test_output_reference_as_dictionary_key(memory_jobstore, clean_dir):
+    from jobflow import Flow, job, run_locally
+
+    @job
+    def add_test_value(data):
+        data["test"] = "text"
+        return data
+
+    first_job = add_test_value({"a": "b"})
+    second_job = add_test_value({first_job.output["test"]: "c"})
+
+    responses = run_locally(
+        Flow([first_job, second_job]), store=memory_jobstore, ensure_success=True
+    )
+
+    assert responses[second_job.uuid][1].output == {"text": "c", "test": "text"}
+
+
 def test_nested_flow(memory_jobstore, clean_dir, nested_flow):
     from jobflow import run_locally
 
