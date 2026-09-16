@@ -380,6 +380,13 @@ def test_find_and_get_references():
     assert find_and_get_references({"a": ref1}) == (ref1,)
     assert set(find_and_get_references({"a": ref1, "b": ref2})) == {ref1, ref2}
 
+    # test dictionary keys
+    assert find_and_get_references({ref1: "a"}) == (ref1,)
+    assert set(find_and_get_references([{ref1: "a"}, ({ref2: "b"},)])) == {
+        ref1,
+        ref2,
+    }
+
     # test nested
     assert set(find_and_get_references({"a": [ref1, ref2]})) == {ref1, ref2}
     assert set(find_and_get_references([{"a": ref1}, {"b": ref2}])) == {ref1, ref2}
@@ -403,6 +410,12 @@ def test_find_and_resolve_references(memory_jobstore):
         @property
         def plus(self):
             return self.x + 1
+
+    global WithMapping
+
+    class WithMapping(MSONable):
+        def __init__(self, mapping):
+            self.mapping = mapping
 
     ref1 = OutputReference("123")
     ref2 = OutputReference("1234", (("i", "a"),))
@@ -452,6 +465,17 @@ def test_find_and_resolve_references(memory_jobstore):
         "b": "xyz",
     }
 
+    # test dictionary keys and values
+    output = find_and_resolve_references(
+        {ref1: ref2, "nested": [({ref2: ref1},)]}, memory_jobstore
+    )
+    assert output == {101: "xyz", "nested": [[{"xyz": 101}]]}
+
+    # test dictionary keys inside an MSONable object
+    output = find_and_resolve_references(WithMapping({ref2: "value"}), memory_jobstore)
+    assert isinstance(output, WithMapping)
+    assert output.mapping == {"xyz": "value"}
+
     # test nested
     output = find_and_resolve_references({"a": [ref1, ref2]}, memory_jobstore)
     assert output == {"a": [101, "xyz"]}
@@ -494,6 +518,46 @@ def test_find_and_resolve_references(memory_jobstore):
     with pytest.raises(ValueError, match="Could not resolve reference"):
         find_and_resolve_references(
             [ref1, ref3], memory_jobstore, on_missing=OnMissing.ERROR, deserialize=False
+        )
+
+    # test missing dictionary keys
+    output = find_and_resolve_references(
+        {ref3: "value"}, memory_jobstore, on_missing=OnMissing.PASS
+    )
+    assert output == {ref3: "value"}
+    output = find_and_resolve_references(
+        {ref3: "value"}, memory_jobstore, on_missing=OnMissing.NONE
+    )
+    assert output == {None: "value"}
+    with pytest.raises(ValueError, match="Could not resolve reference"):
+        find_and_resolve_references(
+            {ref3: "value"}, memory_jobstore, on_missing=OnMissing.ERROR
+        )
+
+
+def test_resolved_reference_key_validation(memory_jobstore):
+    from jobflow.core.reference import OutputReference, find_and_resolve_references
+
+    list_ref = OutputReference("list")
+    first_ref = OutputReference("first")
+    second_ref = OutputReference("second")
+    static_ref = OutputReference("static")
+    memory_jobstore.update({"uuid": "list", "index": 1, "output": []})
+    memory_jobstore.update({"uuid": "first", "index": 1, "output": "same"})
+    memory_jobstore.update({"uuid": "second", "index": 1, "output": "same"})
+    memory_jobstore.update({"uuid": "static", "index": 1, "output": "existing"})
+
+    with pytest.raises(TypeError, match="hashable"):
+        find_and_resolve_references({list_ref: "value"}, memory_jobstore)
+
+    with pytest.raises(ValueError, match="duplicate key"):
+        find_and_resolve_references(
+            {first_ref: "first", second_ref: "second"}, memory_jobstore
+        )
+
+    with pytest.raises(ValueError, match="duplicate key"):
+        find_and_resolve_references(
+            {static_ref: "resolved", "existing": "static"}, memory_jobstore
         )
 
 
