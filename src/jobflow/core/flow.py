@@ -13,7 +13,12 @@ from monty.json import MSONable
 
 import jobflow
 from jobflow.core.reference import find_and_get_references
-from jobflow.utils import ValueEnum, contains_flow_or_job, suid
+from jobflow.utils import (
+    ValueEnum,
+    contains_flow_or_job,
+    replace_job_or_flow_with_output,
+    suid,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -965,15 +970,14 @@ class DecoratedFlow(Flow):
 
         if isinstance(output, (jobflow.Job, jobflow.Flow)):
             warnings.warn(
-                f"@flow decorated function '{name}' contains a Flow or"
-                f"Job as an output. Usually the output should be the output of"
-                f"a Job or another Flow (e.g. job.output). Replacing the"
-                f"output of the @flow with the output of the Flow/Job."
-                f"If this message is unexpected then double check the outputs"
-                f"of your @flow decorated function.",
+                f"@flow decorated function '{name}' contains a Flow or Job as an "
+                "output. Usually the output should be the output of a Job or another "
+                "Flow (e.g. job.output). Replacing the output of the @flow with the "
+                "output of the Flow/Job. If this message is unexpected then double "
+                "check the outputs of your @flow decorated function.",
                 stacklevel=2,
             )
-            output = output.output
+        output = replace_job_or_flow_with_output(output)
 
         super().__init__(name=name, jobs=children_list, output=output)
 

@@ -79,7 +79,7 @@ jobflow = ["py.typed"]
 
 [tool.versioningit.vcs]
 method = "git"
-default-tag = "0.0.1"
+default-tag = "0.3.1"
 
 [tool.flake8]
 max-line-length = 88

@@ -5,6 +5,7 @@ from jobflow.utils.find import (
     contains_flow_or_job,
     find_key,
     find_key_value,
+    replace_job_or_flow_with_output,
     update_in_dictionary,
 )
 from jobflow.utils.log import initialize_logger
