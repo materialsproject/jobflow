@@ -237,6 +237,7 @@ def test_job_config(memory_jobstore):
         JobConfig,
         OnMissing,
         OutputReference,
+        ResolvedReference,
         Response,
     )
 
@@ -271,6 +272,18 @@ def test_job_config(memory_jobstore):
     test_job = Job(reference_resolved, function_args=(ref,), config=config)
     response = test_job.run(memory_jobstore)
     assert response.output is True
+
+    # test resolve_references="both": job receives a ResolvedReference
+    config = JobConfig(resolve_references="both")
+    test_job = Job(return_arg, function_args=(ref,), config=config)
+    response = test_job.run(memory_jobstore)
+    assert isinstance(response.output, ResolvedReference)
+    assert response.output.reference == ref
+    assert response.output.value == 5
+
+    # validate invalid values are rejected
+    with pytest.raises(ValueError, match="resolve_references must be"):
+        JobConfig(resolve_references="wrong_value")
 
     ref = OutputReference("xyz")
     config = JobConfig(on_missing_references=OnMissing.ERROR)
