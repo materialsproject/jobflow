@@ -186,6 +186,7 @@ def job(
     """
 
     def decorator(func):
+        from copy import deepcopy
         from functools import wraps
 
         # unwrap staticmethod or classmethod decorators
@@ -214,7 +215,10 @@ def job(
                         args = args[1:]
 
             return Job(
-                function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
+                function=f,
+                function_args=args,
+                function_kwargs=kwargs,
+                **deepcopy(job_kwargs),
             )
 
         get_job.original = func
