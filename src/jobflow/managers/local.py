@@ -5,6 +5,9 @@ from __future__ import annotations
 import logging
 import typing
 
+from jobflow import Response
+from jobflow.core.flow import store_flow_output
+
 if typing.TYPE_CHECKING:
     from pathlib import Path
 
@@ -65,11 +68,13 @@ def run_locally(
     from pathlib import Path
     from random import randint
 
+    import networkx as nx
     from monty.os import cd
 
     from jobflow import SETTINGS, initialize_logger
     from jobflow.core.flow import get_flow
     from jobflow.core.reference import OnMissing
+    from jobflow.utils.graph import build_hierarchy_graph
 
     if store is None:
         store = SETTINGS.JOB_STORE
@@ -89,8 +94,13 @@ def run_locally(
     responses: dict[str, dict[int, jobflow.Response]] = defaultdict(dict)
     stop_jobflow = False
 
+    processed: set[tuple[str, int]] = set()
+    full_tree = build_hierarchy_graph(flow)
+    flow_job_refs: dict[tuple[str, int], jobflow.Flow | jobflow.Job] = {}
+
     def _run_job(job: jobflow.Job, parents):
         nonlocal stop_jobflow
+        nonlocal full_tree
 
         if stop_jobflow:
             return None, True
@@ -103,12 +113,24 @@ def run_locally(
             stopped_parents.add(job.uuid)
             return None, False
 
-        if (
-            len(set(parents).intersection(errored)) > 0
-            and job.config.on_missing_references == OnMissing.ERROR
-        ):
-            errored.add(job.uuid)
-            return None, False
+        # handle the case where a job should not be executed if not all
+        # the references are available.
+        if job.config.on_missing_references == OnMissing.ERROR:
+            # avoid further checks if can it is already know that references will
+            # not be available
+            if len(set(parents).intersection(errored)) > 0:
+                errored.add(job.uuid)
+                return None, False
+            try:
+                # Try to explicitly resolve references to check if possible.
+                # This prevents failures due to previous jobs containing further
+                # references.
+                # References are set inplace, so this does not require
+                # fetching the references more than once.
+                job.resolve_args(store=store)
+            except ValueError:
+                errored.add(job.uuid)
+                return None, False
 
         if raise_immediately:
             response = job.run(store=store)
@@ -138,14 +160,21 @@ def run_locally(
 
         diversion_responses = []
         if response.replace is not None:
+            full_tree = build_hierarchy_graph(
+                response.replace, hierarchy_tree=full_tree
+            )
             # first run any restarts
             diversion_responses.append(_run(response.replace))
 
         if response.detour is not None:
+            full_tree = build_hierarchy_graph(response.detour, hierarchy_tree=full_tree)
             # next any detours
             diversion_responses.append(_run(response.detour))
 
         if response.addition is not None:
+            full_tree = build_hierarchy_graph(
+                response.addition, hierarchy_tree=full_tree
+            )
             # finally any additions
             diversion_responses.append(_run(response.addition))
 
@@ -161,8 +190,31 @@ def run_locally(
             return job_dir
         return root_dir
 
+    def _check_complete_flows(job):
+        # iterate over the hosts of a Job and complete the Flow if
+        # all its children have been processed.
+        for host in job.hosts:
+            host = tuple(host)  # noqa: PLW2901
+            descendants_ids = nx.descendants(full_tree, host)
+            if descendants_ids.issubset(processed):
+                host_flow = flow_job_refs[host]
+                store_flow_output(store, host_flow)
+                processed.add(host)
+                responses[host[0]][host[1]] = Response(
+                    output=host_flow.output_dereferenced
+                )
+                logger.info(f"Completing Flow - {host_flow.name} ({host[0]} {host[1]})")
+            else:
+                # if the current flow is not completed do not go up in the hosts
+                break
+
     def _run(root_flow):
         encountered_bad_response = False
+
+        # build a lookup map matching the Jobs/Flows to their uuid/index
+        for n in root_flow.hierarchy_tree.nodes:
+            flow_job_refs[(n.uuid, n.index)] = n
+
         for job, parents in root_flow.iterflow():
             job_dir = _get_job_dir()
             with cd(job_dir):
@@ -174,6 +226,12 @@ def run_locally(
             if jobflow_stopped:
                 return False
 
+            # Always set a Job as processes, even if an error happened.
+            # The containing Flow will be completed once all the Jobs are processed.
+            # If not, in case of replace references to a specific uuid may fetch the
+            # already existing output with the wrong index.
+            processed.add((job.uuid, job.index))
+            _check_complete_flows(job)
         return not encountered_bad_response
 
     logger.info("Started executing jobs locally")
