@@ -11,6 +11,24 @@ if typing.TYPE_CHECKING:
     from monty.json import MSONable
 
 
+def replace_job_or_flow_with_output(value):
+    """Replace Jobs and Flows in a value with their outputs."""
+    from jobflow import Flow, Job
+
+    if isinstance(value, (Job, Flow)):
+        return value.output
+    if isinstance(value, list):
+        return [replace_job_or_flow_with_output(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(replace_job_or_flow_with_output(item) for item in value)
+    if isinstance(value, dict):
+        return {
+            replace_job_or_flow_with_output(key): replace_job_or_flow_with_output(item)
+            for key, item in value.items()
+        }
+    return value
+
+
 def find_key(
     d: dict[Hashable, Any] | list[Any],
     key: Hashable | type[MSONable],

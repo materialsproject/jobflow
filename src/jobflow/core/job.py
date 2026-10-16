@@ -13,6 +13,7 @@ from typing_extensions import Self
 
 from jobflow.core.flow import _current_flow_context
 from jobflow.core.reference import OnMissing, OutputReference
+from jobflow.utils.find import replace_job_or_flow_with_output
 from jobflow.utils.uid import suid
 
 if typing.TYPE_CHECKING:
@@ -212,6 +213,10 @@ def job(
                         # Ah ha. The function is a bound method.
                         f = met
                         args = args[1:]
+
+            if _current_flow_context.get() is not None:
+                args = replace_job_or_flow_with_output(args)
+                kwargs = replace_job_or_flow_with_output(kwargs)
 
             return Job(
                 function=f, function_args=args, function_kwargs=kwargs, **job_kwargs
