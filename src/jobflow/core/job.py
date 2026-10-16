@@ -36,9 +36,14 @@ class JobConfig(MSONable):
     Parameters
     ----------
     resolve_references
-        Whether to resolve any references before the job function is executed.
-        If ``False`` the unresolved reference objects will be passed into the function
-        call.
+        Controls how :obj:`.OutputReference` inputs are handled before the job
+        function is executed. Accepted values:
+
+        - ``True`` (default): resolve references and pass the resolved values.
+        - ``False``: pass the unresolved :obj:`.OutputReference` objects to the
+          function.
+        - ``"both"``: pass a :obj:`.ResolvedReference` wrapper containing both
+          the original reference and its resolved value.
     on_missing_references
         What to do if the references cannot be resolved. The default is to throw an
         error.
@@ -61,12 +66,22 @@ class JobConfig(MSONable):
         A :obj:`JobConfig` object.
     """
 
-    resolve_references: bool = True
+    resolve_references: bool | str = True
     on_missing_references: OnMissing = OnMissing.ERROR
     manager_config: dict = field(default_factory=dict)
     expose_store: bool = False
     pass_manager_config: bool = True
     response_manager_config: dict = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Verify that resolve_references contains an acceptable value."""
+        if not isinstance(self.resolve_references, bool) and (
+            self.resolve_references != "both"
+        ):
+            raise ValueError(
+                "resolve_references must be a bool or the string 'both', got "
+                f"{self.resolve_references!r}"
+            )
 
 
 @overload
@@ -615,7 +630,10 @@ class Job(MSONable):
             CURRENT_JOB.store = store
 
         if self.config.resolve_references:
-            self.resolve_args(store=store)
+            self.resolve_args(
+                store=store,
+                wrap_resolved=self.config.resolve_references == "both",
+            )
 
         # if Job was created using the job decorator, then access the original function
         function = getattr(self.function, "original", self.function)
@@ -702,6 +720,7 @@ class Job(MSONable):
         self,
         store: jobflow.JobStore,
         inplace: bool = True,
+        wrap_resolved: bool = False,
     ) -> Job:
         """
         Resolve any :obj:`.OutputReference` objects in the input arguments.
@@ -714,6 +733,9 @@ class Job(MSONable):
             A maggma store to use for resolving references.
         inplace
             Update the arguments of the current job or return a new job object.
+        wrap_resolved
+            If True, wrap each resolved reference in a :obj:`.ResolvedReference`
+            exposing both the original reference and its resolved value.
 
         Returns
         -------
@@ -730,12 +752,14 @@ class Job(MSONable):
             store,
             cache=cache,
             on_missing=self.config.on_missing_references,
+            wrap_resolved=wrap_resolved,
         )
         resolved_kwargs = find_and_resolve_references(
             self.function_kwargs,
             store,
             cache=cache,
             on_missing=self.config.on_missing_references,
+            wrap_resolved=wrap_resolved,
         )
         resolved_args = tuple(resolved_args)
 
