@@ -1,5 +1,17 @@
 # Change log
 
+## v0.4.0
+
+### New Features 🎉
+* Resolve Job inputs automatically in decorated flows by @Andrew-S-Rosen in https://github.com/materialsproject/jobflow/pull/885
+* Passing both reference and value to job by @gpetretto in https://github.com/materialsproject/jobflow/pull/870
+### Bug Fixes 🐛
+* implement local version of lenient_issubclass by @gpetretto in https://github.com/materialsproject/jobflow/pull/863
+* fix job_kwargs by @gpetretto in https://github.com/materialsproject/jobflow/pull/869
+### Enhancements 🛠
+* A return type of a dict of jobs from a Job is interpreted as a replace by @vineetbansal in https://github.com/materialsproject/jobflow/pull/856
+
+**Full Changelog**: https://github.com/materialsproject/jobflow/compare/v0.3.1...v0.4.0
 
 
 ## v0.3.1
@@ -25,23 +37,6 @@ This version includes a number of fixes aiming for improved support with Quacc.
 ### Documentation 📖
 * Tutorial for Pydantic validation by @tomdemeyere in https://github.com/materialsproject/jobflow/pull/812
 
-### Other Changes
-* Bump pydantic from 2.12.3 to 2.12.4 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/818
-* Bump pytest from 8.4.2 to 9.0.0 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/819
-* Bump pydantic-settings from 2.11.0 to 2.12.0 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/820
-* Bump pytest from 9.0.0 to 9.0.1 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/822
-* Bump moto from 5.1.16 to 5.1.17 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/824
-* Bump nbsphinx from 0.9.7 to 0.9.8 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/825
-* Bump pydantic from 2.12.4 to 2.12.5 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/827
-* Bump moto from 5.1.17 to 5.1.18 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/826
-* Bump pytest from 9.0.1 to 9.0.2 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/829
-* Bump fireworks from 2.0.6 to 2.0.8 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/828
-* Bump matplotlib from 3.10.7 to 3.10.8 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/830
-* Bump furo from 2025.9.25 to 2025.12.19 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/831
-* Bump moto from 5.1.18 to 5.1.19 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/832
-* Bump ipython from 9.3.0 to 9.9.0 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/836
-* Bump moto from 5.1.19 to 5.1.20 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/840
-* Bump pydash from 8.0.5 to 8.0.6 by @dependabot[bot] in https://github.com/materialsproject/jobflow/pull/841
 
 ### New Contributors
 * @vineetbansal made their first contribution in https://github.com/materialsproject/jobflow/pull/815
