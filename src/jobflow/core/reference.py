@@ -365,6 +365,92 @@ def resolve_references(
     return resolved_references
 
 
+def _serialize_argument(arg: Any) -> Any:
+    """Serialize an argument without stringifying output-reference keys."""
+    if isinstance(arg, OutputReference):
+        return arg
+
+    if isinstance(arg, dict):
+        if arg.get("@class") == "OutputReference":
+            return OutputReference.from_dict(arg)
+
+        return {
+            key if isinstance(key, OutputReference) else str(key): _serialize_argument(
+                value
+            )
+            for key, value in arg.items()
+        }
+
+    if isinstance(arg, (list, tuple)):
+        return [_serialize_argument(value) for value in arg]
+
+    if type(arg) in (float, int, str, bool) or arg is None:
+        return arg
+
+    if isinstance(arg, BaseModel):
+        return _serialize_argument(MontyEncoder().default(arg))
+
+    with contextlib.suppress(AttributeError):
+        return _serialize_argument(arg.as_dict())
+
+    serialized = jsanitize(arg, strict=True, enum_values=True, allow_bson=True)
+    if serialized is arg:
+        return arg
+    return _serialize_argument(serialized)
+
+
+def _find_references(arg: Any) -> list[OutputReference]:
+    """Find output references in a serialized argument, including dict keys."""
+    if isinstance(arg, OutputReference):
+        return [arg]
+
+    references = []
+    if isinstance(arg, dict):
+        for key, value in arg.items():
+            references.extend(_find_references(key))
+            references.extend(_find_references(value))
+    elif isinstance(arg, list):
+        for value in arg:
+            references.extend(_find_references(value))
+
+    return references
+
+
+def _replace_references(
+    arg: Any, resolved_references: dict[OutputReference, Any]
+) -> Any:
+    """Replace output references, rejecting invalid or duplicate dict keys."""
+    if isinstance(arg, OutputReference):
+        return resolved_references[arg]
+
+    if isinstance(arg, list):
+        return [_replace_references(value, resolved_references) for value in arg]
+
+    if isinstance(arg, dict):
+        resolved = {}
+        for key, value in arg.items():
+            resolved_key = _replace_references(key, resolved_references)
+            try:
+                duplicate = resolved_key in resolved
+            except TypeError as exc:
+                raise TypeError(
+                    "An OutputReference used as a dictionary key resolved to an "
+                    f"unhashable {type(resolved_key).__name__} value"
+                ) from exc
+
+            if duplicate:
+                raise ValueError(
+                    "Resolving OutputReference dictionary keys produced duplicate key "
+                    f"{resolved_key!r}"
+                )
+
+            resolved[resolved_key] = _replace_references(value, resolved_references)
+
+        return resolved
+
+    return arg
+
+
 def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
     """
     Find and extract output references.
@@ -382,25 +468,7 @@ def find_and_get_references(arg: Any) -> tuple[OutputReference, ...]:
     tuple[OutputReference]
         The output references as a tuple.
     """
-    from pydash import get
-
-    from jobflow.utils.find import find_key_value
-
-    if isinstance(arg, OutputReference):
-        # if the argument is a reference then stop there
-        return (arg,)
-
-    if isinstance(arg, (float, int, str, bool)):
-        # argument is a primitive, we won't find a reference here
-        return ()
-
-    arg = jsanitize(arg, strict=True, enum_values=True, allow_bson=True)
-
-    # recursively find any reference classes
-    locations = find_key_value(arg, "@class", "OutputReference")
-
-    # deserialize references and return
-    return tuple(OutputReference.from_dict(get(arg, loc)) for loc in locations)
+    return tuple(_find_references(_serialize_argument(arg)))
 
 
 def find_and_resolve_references(
@@ -439,10 +507,6 @@ def find_and_resolve_references(
         values. If a reference cannot be found, its replacement value will depend on the
         value of ``on_missing``.
     """
-    from pydash import get, set_
-
-    from jobflow.utils.find import find_key_value
-
     if isinstance(arg, dict) and arg.get("@class") == "OutputReference":
         # if arg is a serialized reference, deserialize it
         arg = OutputReference.from_dict(arg)
@@ -457,34 +521,23 @@ def find_and_resolve_references(
         # argument is a primitive, we won't find a reference here
         return arg
 
-    # serialize the argument to a dictionary
-    encoded_arg = jsanitize(arg, strict=True, enum_values=True, allow_bson=True)
+    # Serialize while preserving OutputReference keys. Monty's jsanitize normally
+    # coerces all dictionary keys to strings, which loses the reference identity.
+    encoded_arg = _serialize_argument(arg)
+    references = _find_references(encoded_arg)
 
-    # recursively find any reference classes
-    locations = find_key_value(encoded_arg, "@class", "OutputReference")
-
-    if len(locations) == 0:
+    if len(references) == 0:
         return arg
 
     # resolve the references
-    references = [
-        OutputReference.from_dict(get(encoded_arg, list(loc))) for loc in locations
-    ]
     resolved_references = resolve_references(
         references, store, cache=cache, on_missing=on_missing, deserialize=deserialize
     )
 
-    # replace the references in the arg dict
-    for location, reference in zip(locations, references):
-        # skip references that have not been resolved, e.g., on missing is PASS
-        if reference == resolved_references[reference]:
-            continue
-
-        resolved_reference = resolved_references[reference]
-        set_(encoded_arg, list(location), resolved_reference)
-
     # deserialize dict array
-    return MontyDecoder().process_decoded(encoded_arg)
+    return MontyDecoder().process_decoded(
+        _replace_references(encoded_arg, resolved_references)
+    )
 
 
 def validate_schema_access(
