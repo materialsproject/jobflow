@@ -469,3 +469,26 @@ def test_external_reference(memory_jobstore, clean_dir, simple_job):
     assert responses[uuid2][1].output == "12345_end_end"
     assert isinstance(responses[uuid2][1].job_dir, Path)
     assert os.path.isdir(responses[uuid2][1].job_dir)
+
+
+def test_resolve_references_both(memory_jobstore, clean_dir):
+    from jobflow import Flow, JobConfig, job, run_locally
+    from jobflow.core.reference import OutputReference, ResolvedReference
+
+    @job
+    def initial():
+        return 2
+
+    @job
+    def verify(arg):
+        assert isinstance(arg, ResolvedReference)
+        assert isinstance(arg.reference, OutputReference)
+        assert arg.value == 2
+        return arg.value * 2
+
+    job1 = initial()
+    job2 = verify(job1.output)
+    job2.config = JobConfig(resolve_references="both")
+
+    responses = run_locally(Flow([job1, job2]), store=memory_jobstore)
+    assert responses[job2.uuid][1].output == 4
