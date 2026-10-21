@@ -14,6 +14,7 @@ from typing_extensions import Self
 from jobflow.core.flow import _current_flow_context
 from jobflow.core.reference import OnMissing, OutputReference
 from jobflow.utils.find import replace_job_or_flow_with_output
+from jobflow.utils.log import _filter_internal_log_records
 from jobflow.utils.uid import suid
 
 if typing.TYPE_CHECKING:
@@ -27,6 +28,7 @@ if typing.TYPE_CHECKING:
     import jobflow
 
 logger = logging.getLogger(__name__)
+logger.addFilter(_filter_internal_log_records)
 
 
 @dataclass
