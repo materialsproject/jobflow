@@ -294,6 +294,435 @@ def test_distinct(memory_jobstore):
     assert memory_jobstore.distinct("i") == [None]
 
 
+def _payload_publication_jobstore(additional_store=None, docs_store=None):
+    from maggma.stores import MemoryStore
+
+    from jobflow import JobStore
+
+    if docs_store is None:
+        docs_store = MemoryStore()
+    if additional_store is None:
+        additional_store = MemoryStore()
+    store = JobStore(docs_store, additional_stores={"data": additional_store})
+    store.connect()
+    return store, additional_store, docs_store
+
+
+def _payload_publication_output(marker, values):
+    return {"marker": marker, "values": values}
+
+
+def _seed_payload_publication_index(store, uuid):
+    payload = _payload_publication_output("index-one", [3, 5, 8])
+    store.update(
+        {
+            "uuid": uuid,
+            "index": 1,
+            "sentinel": "preserve-index-one",
+            "output": payload,
+        },
+        save={"data": "output"},
+    )
+    raw = store.query_one({"uuid": uuid, "index": 1}, load=False, properties=None)
+    assert raw["sentinel"] == "preserve-index-one"
+    placeholder = raw["output"]
+    assert placeholder["store"] == "data"
+    assert placeholder["blob_uuid"]
+    records = list(
+        store.additional_stores["data"].query(
+            {"blob_uuid": placeholder["blob_uuid"]}, properties=None
+        )
+    )
+    assert len(records) == 1
+    assert records[0]["data"] == payload
+    assert records[0]["job_uuid"] == uuid
+    assert records[0]["job_index"] == 1
+    assert store.get_output(uuid, which=1, load=True) == payload
+    return payload
+
+
+def _make_controlled_payload_store():
+    from threading import Event
+
+    from maggma.stores import MemoryStore
+
+    class ControlledMemoryStore(MemoryStore):
+        def __init__(self):
+            super().__init__()
+            self.entered = Event()
+            self.release = Event()
+            self.armed = False
+            self.failure = None
+
+        def update(self, docs, key=None, **kwargs):
+            if self.armed:
+                self.entered.set()
+                if self.failure is not None:
+                    raise self.failure
+                if not self.release.wait(30):
+                    raise RuntimeError("payload update release timed out")
+            return super().update(docs, key=key, **kwargs)
+
+    return ControlledMemoryStore()
+
+
+def _start_paused_payload_write(store, payload_store, document, save):
+    from threading import Thread
+
+    failures = []
+
+    def write():
+        try:
+            store.update(document, save=save)
+        except BaseException as error:
+            failures.append(error)
+
+    worker = Thread(target=write)
+    worker.start()
+    if not payload_store.entered.wait(10):
+        payload_store.release.set()
+        worker.join(10)
+        raise AssertionError(
+            "payload update was not reached; "
+            f"worker alive: {worker.is_alive()}; worker failures: {failures!r}"
+        )
+    return worker, failures
+
+
+def _release_paused_payload_write(payload_store, worker, failures):
+    payload_store.release.set()
+    worker.join(10)
+    assert not worker.is_alive(), f"worker failures: {failures!r}"
+    assert failures == []
+
+
+@pytest.fixture
+def payload_publication_source_identity(request, capsys):
+    import hashlib
+    import inspect
+    import json
+    from pathlib import Path
+
+    from jobflow import JobStore
+
+    installed_path = Path(inspect.getsourcefile(JobStore)).resolve()
+    checkout_path = Path(__file__).resolve().parents[2] / "src/jobflow/core/store.py"
+    installed_digest = hashlib.sha256(installed_path.read_bytes()).hexdigest()
+    checkout_digest = hashlib.sha256(checkout_path.read_bytes()).hexdigest()
+    assert installed_digest == checkout_digest
+    metadata = {
+        "nodeid": request.node.nodeid,
+        "installed_jobstore_source_path": str(installed_path),
+        "installed_jobstore_source_sha256": installed_digest,
+        "checkout_source_path": str(checkout_path.resolve()),
+        "checkout_source_sha256": checkout_digest,
+    }
+    record = json.dumps(metadata, sort_keys=True)
+    with capsys.disabled():
+        print(f"JOBFLOW_PAYLOAD_PUBLICATION_RUNTIME {record}")
+
+
+def test_payload_publication_hides_new_document_until_payload_update_returns(
+    payload_publication_source_identity,
+):
+    uuid = "payload-publication-job"
+    payload_store = _make_controlled_payload_store()
+    store, _, _ = _payload_publication_jobstore(payload_store)
+    _seed_payload_publication_index(store, uuid)
+    payload_store.armed = True
+    payload = _payload_publication_output("index-two", [13, 21, 34])
+    document = {
+        "uuid": uuid,
+        "index": 2,
+        "sentinel": "preserve-index-two",
+        "output": payload,
+    }
+    worker, failures = _start_paused_payload_write(
+        store, payload_store, document, {"data": "output"}
+    )
+    try:
+        raw = store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None)
+        assert raw is None
+    finally:
+        _release_paused_payload_write(payload_store, worker, failures)
+
+    raw = store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None)
+    assert raw["sentinel"] == "preserve-index-two"
+    assert store.get_output(uuid, which="last", load=True) == payload
+
+
+def test_latest_output_remains_index_one_while_payload_update_is_paused(
+    payload_publication_source_identity,
+):
+    uuid = "payload-publication-job"
+    payload_store = _make_controlled_payload_store()
+    store, _, _ = _payload_publication_jobstore(payload_store)
+    first_payload = _seed_payload_publication_index(store, uuid)
+    payload_store.armed = True
+    document = {
+        "uuid": uuid,
+        "index": 2,
+        "sentinel": "preserve-index-two",
+        "output": _payload_publication_output("index-two", [13, 21, 34]),
+    }
+    worker, failures = _start_paused_payload_write(
+        store, payload_store, document, {"data": "output"}
+    )
+    try:
+        assert store.get_output(uuid, which="last", load=True) == first_payload
+    finally:
+        _release_paused_payload_write(payload_store, worker, failures)
+
+
+def test_payload_failure_propagates_before_document_publication(
+    payload_publication_source_identity,
+):
+    import pytest
+
+    uuid = "payload-publication-job"
+    payload_store = _make_controlled_payload_store()
+    store, _, _ = _payload_publication_jobstore(payload_store)
+    _seed_payload_publication_index(store, uuid)
+    failure = RuntimeError("payload update failed before persistence")
+    payload_store.failure = failure
+    payload_store.armed = True
+    document = {
+        "uuid": uuid,
+        "index": 2,
+        "sentinel": "preserve-index-two",
+        "output": _payload_publication_output("index-two", [13, 21, 34]),
+    }
+    with pytest.raises(
+        RuntimeError, match="payload update failed before persistence"
+    ) as exc:
+        store.update(document, save={"data": "output"})
+    assert exc.value is failure
+    assert (
+        store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None) is None
+    )
+    assert (
+        list(payload_store.query({"job_uuid": uuid, "job_index": 2}, properties=None))
+        == []
+    )
+
+
+def test_latest_output_remains_index_one_after_payload_failure(
+    payload_publication_source_identity,
+):
+    import pytest
+
+    uuid = "payload-publication-job"
+    payload_store = _make_controlled_payload_store()
+    store, _, _ = _payload_publication_jobstore(payload_store)
+    first_payload = _seed_payload_publication_index(store, uuid)
+    failure = RuntimeError("payload update failed before persistence")
+    payload_store.failure = failure
+    payload_store.armed = True
+    document = {
+        "uuid": uuid,
+        "index": 2,
+        "sentinel": "preserve-index-two",
+        "output": _payload_publication_output("index-two", [13, 21, 34]),
+    }
+    with pytest.raises(RuntimeError) as exc:
+        store.update(document, save={"data": "output"})
+    assert exc.value is failure
+    assert store.get_output(uuid, which="last", load=True) == first_payload
+
+
+def test_payload_publication_succeeds_after_payload_is_saved(
+    payload_publication_source_identity,
+):
+    uuid = "payload-publication-job"
+    store, payload_store, _ = _payload_publication_jobstore()
+    _seed_payload_publication_index(store, uuid)
+    payload = _payload_publication_output("index-two", [13, 21, 34])
+    store.update(
+        {
+            "uuid": uuid,
+            "index": 2,
+            "sentinel": "preserve-index-two",
+            "output": payload,
+        },
+        save={"data": "output"},
+    )
+    raw = store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None)
+    placeholder = raw["output"]
+    assert raw["sentinel"] == "preserve-index-two"
+    assert placeholder["store"] == "data"
+    assert placeholder["blob_uuid"]
+    records = list(
+        payload_store.query({"blob_uuid": placeholder["blob_uuid"]}, properties=None)
+    )
+    assert len(records) == 1
+    assert records[0]["data"] == payload
+    assert records[0]["job_uuid"] == uuid
+    assert records[0]["job_index"] == 2
+    assert store.get_output(uuid, which="last", load=True) == payload
+
+
+def test_save_false_keeps_output_in_document_store(
+    payload_publication_source_identity,
+):
+    uuid = "payload-publication-job"
+    store, payload_store, _ = _payload_publication_jobstore()
+    _seed_payload_publication_index(store, uuid)
+    payload = _payload_publication_output("index-two", [13, 21, 34])
+    store.update(
+        {
+            "uuid": uuid,
+            "index": 2,
+            "sentinel": "preserve-index-two",
+            "output": payload,
+        },
+        save=False,
+    )
+    raw = store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None)
+    assert raw["sentinel"] == "preserve-index-two"
+    assert raw["output"] == payload
+    assert (
+        list(payload_store.query({"job_uuid": uuid, "job_index": 2}, properties=None))
+        == []
+    )
+    assert store.get_output(uuid, which="last", load=True) == payload
+
+
+def test_unmatched_save_selector_keeps_output_in_document_store(
+    payload_publication_source_identity,
+):
+    uuid = "payload-publication-job"
+    store, payload_store, _ = _payload_publication_jobstore()
+    _seed_payload_publication_index(store, uuid)
+    payload = _payload_publication_output("index-two", [13, 21, 34])
+    store.update(
+        {
+            "uuid": uuid,
+            "index": 2,
+            "sentinel": "preserve-index-two",
+            "output": payload,
+        },
+        save={"data": "missing"},
+    )
+    raw = store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None)
+    assert raw["sentinel"] == "preserve-index-two"
+    assert raw["output"] == payload
+    assert (
+        list(payload_store.query({"job_uuid": uuid, "job_index": 2}, properties=None))
+        == []
+    )
+    assert store.get_output(uuid, which="last", load=True) == payload
+
+
+def test_default_created_additional_store_is_connected(
+    payload_publication_source_identity,
+):
+    from collections import defaultdict
+
+    from maggma.stores import MemoryStore
+
+    from jobflow import JobStore
+
+    uuid = "payload-publication-job"
+    docs_store = MemoryStore()
+    docs_store.connect()
+
+    def connected_store():
+        result = MemoryStore()
+        result.connect()
+        return result
+
+    additional_stores = defaultdict(connected_store)
+    store = JobStore(docs_store, additional_stores=additional_stores)
+    store.update(
+        {
+            "uuid": uuid,
+            "index": 1,
+            "sentinel": "preserve-index-one",
+            "output": _payload_publication_output("index-one", [3, 5, 8]),
+        },
+        save=False,
+    )
+    payload = _payload_publication_output("index-two", [13, 21, 34])
+    store.update(
+        {
+            "uuid": uuid,
+            "index": 2,
+            "sentinel": "preserve-index-two",
+            "output": payload,
+        },
+        save={"data": "output"},
+    )
+    payload_store = additional_stores["data"]
+    raw = store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None)
+    placeholder = raw["output"]
+    assert placeholder["store"] == "data"
+    assert placeholder["blob_uuid"]
+    records = list(
+        payload_store.query({"blob_uuid": placeholder["blob_uuid"]}, properties=None)
+    )
+    assert len(records) == 1
+    assert records[0]["data"] == payload
+    assert records[0]["job_uuid"] == uuid
+    assert records[0]["job_index"] == 2
+    assert store.get_output(uuid, which="last", load=True) == payload
+
+
+def test_document_failure_preserves_exception_and_reports_orphan_payloads(
+    payload_publication_source_identity, capsys
+):
+    from maggma.stores import MemoryStore
+
+    class FailingDocumentMemoryStore(MemoryStore):
+        def __init__(self):
+            super().__init__()
+            self.armed = False
+            self.failure = None
+
+        def update(self, docs, key=None, **kwargs):
+            if self.armed and any(doc.get("index") == 2 for doc in docs):
+                raise self.failure
+            return super().update(docs, key=key, **kwargs)
+
+    uuid = "payload-publication-job"
+    docs_store = FailingDocumentMemoryStore()
+    store, payload_store, _ = _payload_publication_jobstore(docs_store=docs_store)
+    first_payload = _seed_payload_publication_index(store, uuid)
+    failure = RuntimeError("document update failed")
+    docs_store.failure = failure
+    docs_store.armed = True
+    payload = _payload_publication_output("index-two", [13, 21, 34])
+    with pytest.raises(RuntimeError, match="document update failed") as exc:
+        store.update(
+            {
+                "uuid": uuid,
+                "index": 2,
+                "sentinel": "preserve-index-two",
+                "output": payload,
+            },
+            save={"data": "output"},
+        )
+    assert exc.value is failure
+    raw = store.query_one({"uuid": uuid}, load=False, properties=None)
+    assert raw["index"] == 1
+    assert raw["sentinel"] == "preserve-index-one"
+    assert (
+        store.query_one({"uuid": uuid, "index": 2}, load=False, properties=None) is None
+    )
+    assert store.get_output(uuid, which="last", load=True) == first_payload
+    orphan_records = list(
+        payload_store.query({"job_uuid": uuid, "job_index": 2}, properties=None)
+    )
+    for record in orphan_records:
+        assert record["job_uuid"] == uuid
+        assert record["job_index"] == 2
+        assert record["data"] == payload
+    orphan_count = len(
+        list(payload_store.query({"job_uuid": uuid, "job_index": 2}, properties=None))
+    )
+    with capsys.disabled():
+        print(f"JOBFLOW_PAYLOAD_PUBLICATION_ORPHAN_COUNT {orphan_count}")
+
+
 def test_groupby(memory_jobstore):
     memory_jobstore.update(
         [
