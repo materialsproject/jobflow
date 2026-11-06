@@ -604,6 +604,10 @@ class Job(MSONable):
         need to be resolved before the job can run. See the docstring for
         :obj:`.OutputReference.resolve()` for more details.
 
+        Resolved inputs are passed to the function as temporary values. The job keeps
+        its declared inputs after execution. :obj:`.CURRENT_JOB.job` exposes the
+        declared inputs while the function runs.
+
         Parameters
         ----------
         store
@@ -638,8 +642,10 @@ class Job(MSONable):
         if self.config.expose_store:
             CURRENT_JOB.store = store
 
+        function_args = self.function_args
+        function_kwargs = self.function_kwargs
         if self.config.resolve_references:
-            self.resolve_args(
+            function_args, function_kwargs = self._resolve_inputs(
                 store=store,
                 wrap_resolved=self.config.resolve_references == "both",
             )
@@ -653,7 +659,7 @@ class Job(MSONable):
         if bound is not None and not isinstance(bound, types.ModuleType):
             function = types.MethodType(function, bound)
 
-        response = function(*self.function_args, **self.function_kwargs)
+        response = function(*function_args, **function_kwargs)
         response = Response.from_job_returns(
             response, self.output_schema, job_dir=job_dir
         )
@@ -725,6 +731,30 @@ class Job(MSONable):
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
 
+    def _resolve_inputs(
+        self,
+        store: jobflow.JobStore,
+        wrap_resolved: bool = False,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        from jobflow.core.reference import find_and_resolve_references
+
+        cache: dict[str, Any] = {}
+        resolved_args = find_and_resolve_references(
+            self.function_args,
+            store,
+            cache=cache,
+            on_missing=self.config.on_missing_references,
+            wrap_resolved=wrap_resolved,
+        )
+        resolved_kwargs = find_and_resolve_references(
+            self.function_kwargs,
+            store,
+            cache=cache,
+            on_missing=self.config.on_missing_references,
+            wrap_resolved=wrap_resolved,
+        )
+        return tuple(resolved_args), resolved_kwargs
+
     def resolve_args(
         self,
         store: jobflow.JobStore,
@@ -753,24 +783,9 @@ class Job(MSONable):
         """
         from copy import deepcopy
 
-        from jobflow.core.reference import find_and_resolve_references
-
-        cache: dict[str, Any] = {}
-        resolved_args = find_and_resolve_references(
-            self.function_args,
-            store,
-            cache=cache,
-            on_missing=self.config.on_missing_references,
-            wrap_resolved=wrap_resolved,
+        resolved_args, resolved_kwargs = self._resolve_inputs(
+            store=store, wrap_resolved=wrap_resolved
         )
-        resolved_kwargs = find_and_resolve_references(
-            self.function_kwargs,
-            store,
-            cache=cache,
-            on_missing=self.config.on_missing_references,
-            wrap_resolved=wrap_resolved,
-        )
-        resolved_args = tuple(resolved_args)
 
         if inplace:
             self.function_args = resolved_args
