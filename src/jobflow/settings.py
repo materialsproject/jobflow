@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from maggma.stores import MemoryStore
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from jobflow import JobStore
@@ -167,12 +167,18 @@ class JobflowSettings(BaseSettings):
                     ) from None
 
         store = new_values.get("JOB_STORE")
-        if isinstance(store, str):
-            new_values["JOB_STORE"] = JobStore.from_file(store)
-        elif isinstance(store, dict) and store.get("@class") == "JobStore":
+        if isinstance(store, dict) and store.get("@class") == "JobStore":
             new_values["JOB_STORE"] = JobStore.from_dict(store)
         elif isinstance(store, dict):
             new_values["JOB_STORE"] = JobStore.from_dict_spec(store)
 
         new_values.update(values)
         return new_values
+
+    @field_validator("JOB_STORE", mode="before")
+    @classmethod
+    def load_job_store_from_file(cls, value):
+        """Load filename values through the JobStore file interface."""
+        if isinstance(value, str):
+            return JobStore.from_file(value)
+        return value
