@@ -414,6 +414,250 @@ def test_job_config(memory_jobstore):
     assert response.detour[0].config.manager_config == manager_config2
 
 
+@pytest.mark.parametrize("direct", [False, True])
+@pytest.mark.parametrize("fail_inner", [False, True])
+def test_nested_job_restores_current_job(memory_jobstore, direct, fail_inner):
+    from maggma.stores import MemoryStore
+
+    from jobflow import CURRENT_JOB, JobConfig, JobStore, job, run_locally
+
+    outer_store = memory_jobstore
+    inner_store = JobStore(MemoryStore())
+    inner_store.connect()
+    inner_jobs = []
+    caught_results = []
+    seen = []
+
+    @job(config=JobConfig(expose_store=True))
+    def inner():
+        seen.append(("inner", CURRENT_JOB.job, CURRENT_JOB.store))
+        if fail_inner:
+            raise ValueError("inner failure")
+        return 7
+
+    @job(config=JobConfig(expose_store=True))
+    def outer():
+        seen.append(("before", CURRENT_JOB.job, CURRENT_JOB.store))
+        inner_job = inner()
+        inner_jobs.append(inner_job)
+        caught = False
+        try:
+            if direct:
+                inner_job.run(inner_store)
+            else:
+                run_locally(
+                    inner_job,
+                    store=inner_store,
+                    log=False,
+                    raise_immediately=True,
+                )
+        except ValueError:
+            if not fail_inner:
+                raise
+            caught = True
+        caught_results.append(caught)
+        seen.append(("after", CURRENT_JOB.job, CURRENT_JOB.store))
+        return 11
+
+    outer_job = outer()
+    try:
+        responses = run_locally(
+            outer_job, store=outer_store, log=False, raise_immediately=True
+        )
+        assert responses[outer_job.uuid][1].output == 11
+        assert seen[0][0] == "before"
+        assert seen[0][1] is outer_job
+        assert seen[0][2] is outer_store
+        assert seen[1][0] == "inner"
+        assert seen[1][1] is inner_jobs[0]
+        assert seen[1][2] is inner_store
+        assert seen[2][0] == "after"
+        assert seen[2][1] is outer_job
+        assert seen[2][2] is outer_store
+        assert caught_results == [fail_inner]
+        assert outer_store.query_one({"uuid": outer_job.uuid})["output"] == 11
+        if fail_inner:
+            assert inner_store.query_one({"uuid": inner_jobs[0].uuid}) is None
+        else:
+            assert inner_store.query_one({"uuid": inner_jobs[0].uuid})["output"] == 7
+        assert CURRENT_JOB.job is None
+        assert CURRENT_JOB.store is None
+    finally:
+        CURRENT_JOB.reset()
+
+
+@pytest.mark.parametrize(
+    ("outer_exposes", "inner_exposes"), [(True, False), (False, True)]
+)
+def test_nested_job_restores_hidden_outer_store(
+    memory_jobstore, outer_exposes, inner_exposes
+):
+    from maggma.stores import MemoryStore
+
+    from jobflow import CURRENT_JOB, JobConfig, JobStore, job, run_locally
+
+    outer_store = memory_jobstore
+    inner_store = JobStore(MemoryStore())
+    inner_store.connect()
+    inner_jobs = []
+    seen = []
+
+    @job(config=JobConfig(expose_store=inner_exposes))
+    def inner():
+        seen.append(("inner", CURRENT_JOB.job, CURRENT_JOB.store))
+        return 7
+
+    @job(config=JobConfig(expose_store=outer_exposes))
+    def outer():
+        expected_outer_store = outer_store if outer_exposes else None
+        seen.append(("before", CURRENT_JOB.job, CURRENT_JOB.store))
+        inner_job = inner()
+        inner_jobs.append(inner_job)
+        run_locally(inner_job, store=inner_store, log=False, raise_immediately=True)
+        seen.append(("after", CURRENT_JOB.job, CURRENT_JOB.store))
+        assert CURRENT_JOB.job is outer_job
+        assert CURRENT_JOB.store is expected_outer_store
+        return 11
+
+    outer_job = outer()
+    try:
+        run_locally(outer_job, store=outer_store, log=False, raise_immediately=True)
+        assert seen[0][0] == "before"
+        assert seen[0][1] is outer_job
+        assert seen[0][2] is (outer_store if outer_exposes else None)
+        assert seen[1][0] == "inner"
+        assert seen[1][1] is inner_jobs[0]
+        assert seen[1][2] is (inner_store if inner_exposes else None)
+        assert seen[2][0] == "after"
+        assert seen[2][1] is outer_job
+        assert seen[2][2] is (outer_store if outer_exposes else None)
+        assert CURRENT_JOB.job is None
+        assert CURRENT_JOB.store is None
+    finally:
+        CURRENT_JOB.reset()
+
+
+def test_job_failure_clears_current_job(memory_jobstore):
+    from jobflow import CURRENT_JOB, Job, JobConfig
+
+    def fail():
+        raise ValueError("job failure")
+
+    failed_job = Job(fail, config=JobConfig(expose_store=True))
+    try:
+        with pytest.raises(ValueError, match="job failure"):
+            failed_job.run(memory_jobstore)
+        assert CURRENT_JOB.job is None
+        assert CURRENT_JOB.store is None
+    finally:
+        CURRENT_JOB.reset()
+
+
+def test_job_reference_failure_clears_current_job(memory_jobstore):
+    from jobflow import CURRENT_JOB, Job, OutputReference
+
+    failed_job = Job(lambda value: value, function_args=(OutputReference("missing"),))
+    try:
+        with pytest.raises(ValueError, match="Could not resolve reference - missing"):
+            failed_job.run(memory_jobstore)
+        assert CURRENT_JOB.job is None
+        assert CURRENT_JOB.store is None
+    finally:
+        CURRENT_JOB.reset()
+
+
+def test_nested_store_write_failure_restores_outer_job(memory_jobstore, monkeypatch):
+    from maggma.stores import MemoryStore
+
+    from jobflow import CURRENT_JOB, JobConfig, JobStore, job
+
+    inner_store = JobStore(MemoryStore())
+    inner_store.connect()
+    inner_jobs = []
+    update_observations = []
+
+    def fail_update(*args, **kwargs):
+        update_observations.append((CURRENT_JOB.job, CURRENT_JOB.store))
+        assert CURRENT_JOB.job is inner_jobs[0]
+        assert CURRENT_JOB.store is inner_store
+        raise ValueError("store update failure")
+
+    monkeypatch.setattr(inner_store, "update", fail_update)
+
+    @job(config=JobConfig(expose_store=True))
+    def inner():
+        return 7
+
+    @job(config=JobConfig(expose_store=True))
+    def outer():
+        inner_job = inner()
+        inner_jobs.append(inner_job)
+        with pytest.raises(ValueError, match="store update failure"):
+            inner_job.run(inner_store)
+        assert CURRENT_JOB.job is outer_job
+        assert CURRENT_JOB.store is memory_jobstore
+        return 11
+
+    outer_job = outer()
+    try:
+        response = outer_job.run(memory_jobstore)
+        assert response.output == 11
+        assert len(update_observations) == 1
+        assert update_observations[0][0] is inner_jobs[0]
+        assert update_observations[0][1] is inner_store
+        assert CURRENT_JOB.job is None
+        assert CURRENT_JOB.store is None
+    finally:
+        CURRENT_JOB.reset()
+
+
+def test_nested_local_manager_caught_failure_restores_outer_job(memory_jobstore):
+    from maggma.stores import MemoryStore
+
+    from jobflow import CURRENT_JOB, JobConfig, JobStore, job, run_locally
+
+    inner_store = JobStore(MemoryStore())
+    inner_store.connect()
+    inner_jobs = []
+    failure = {"ran": False, "raised": False}
+    inner_state = []
+
+    @job(config=JobConfig(expose_store=True))
+    def inner():
+        inner_state.append((CURRENT_JOB.job, CURRENT_JOB.store))
+        failure["ran"] = True
+        try:
+            raise ValueError("inner manager failure")
+        except ValueError:
+            failure["raised"] = True
+            raise
+
+    @job(config=JobConfig(expose_store=True))
+    def outer():
+        inner_job = inner()
+        inner_jobs.append(inner_job)
+        responses = run_locally(inner_job, store=inner_store, log=False)
+        assert len(responses) == 0
+        assert failure == {"ran": True, "raised": True}
+        assert CURRENT_JOB.job is outer_job
+        assert CURRENT_JOB.store is memory_jobstore
+        return 11
+
+    outer_job = outer()
+    try:
+        responses = run_locally(
+            outer_job, store=memory_jobstore, log=False, raise_immediately=True
+        )
+        assert responses[outer_job.uuid][1].output == 11
+        assert inner_state[0][0] is inner_jobs[0]
+        assert inner_state[0][1] is inner_store
+        assert inner_store.query_one({"uuid": inner_jobs[0].uuid}) is None
+        assert CURRENT_JOB.job is None
+        assert CURRENT_JOB.store is None
+    finally:
+        CURRENT_JOB.reset()
+
+
 def test_job_input_references():
     from jobflow.core.job import Job
     from jobflow.core.reference import OutputReference

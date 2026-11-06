@@ -633,95 +633,100 @@ class Job(MSONable):
 
         index_str = f", {self.index}" if self.index != 1 else ""
         logger.info(f"Starting job - {self.name} ({self.uuid}{index_str})")
+        previous_job = CURRENT_JOB.job
+        previous_store = CURRENT_JOB.store
         CURRENT_JOB.job = self
-
-        if self.config.expose_store:
-            CURRENT_JOB.store = store
-
-        if self.config.resolve_references:
-            self.resolve_args(
-                store=store,
-                wrap_resolved=self.config.resolve_references == "both",
-            )
-
-        # if Job was created using the job decorator, then access the original function
-        function = getattr(self.function, "original", self.function)
-
-        # if function is bound method we need to do some magic to bind the unwrapped
-        # function to the class/instance
-        bound = getattr(self.function, "__self__", None)
-        if bound is not None and not isinstance(bound, types.ModuleType):
-            function = types.MethodType(function, bound)
-
-        response = function(*self.function_args, **self.function_kwargs)
-        response = Response.from_job_returns(
-            response, self.output_schema, job_dir=job_dir
-        )
-
-        if response.replace is not None:
-            response.replace = prepare_replace(response.replace, self)
-
-        if response.addition is not None:
-            # wrap the detour in a Flow to avoid problems if it needs to get
-            # wrapped at a later stage
-            response.addition = get_flow(response.addition)
-
-        if response.detour is not None:
-            # wrap the detour in a Flow to avoid problems if it needs to get
-            # wrapped at a later stage
-            response.detour = get_flow(response.detour)
-
-        # common actions that should be applied to all newly generated Jobs/Flows
-        for new_jobs in (response.replace, response.addition, response.detour):
-            if new_jobs is not None:
-                new_jobs.add_hosts_uuids(self.hosts)
-                for metadata_update in self.metadata_updates:
-                    new_jobs.update_metadata(**metadata_update, dynamic=True)
-                for config_update in self.config_updates:
-                    new_jobs.update_config(**config_update, dynamic=True)
-                for name_update in self.name_updates:
-                    new_jobs.append_name(**name_update, dynamic=True)
-
-        if self.config.response_manager_config:
-            passed_config = self.config.response_manager_config
-        elif self.config.pass_manager_config:
-            passed_config = self.config.manager_config
-        else:
-            passed_config = None
-
-        if passed_config:
-            if response.addition is not None:
-                pass_manager_config(response.addition, passed_config)
-
-            if response.detour is not None:
-                pass_manager_config(response.detour, passed_config)
-
-            if response.replace is not None:
-                pass_manager_config(response.replace, passed_config)
+        CURRENT_JOB.store = store if self.config.expose_store else None
 
         try:
-            output = jsanitize(
-                response.output, strict=True, enum_values=True, allow_bson=True
+            if self.config.resolve_references:
+                self.resolve_args(
+                    store=store,
+                    wrap_resolved=self.config.resolve_references == "both",
+                )
+
+            # if Job was created using the job decorator, then access the original
+            # function
+            function = getattr(self.function, "original", self.function)
+
+            # if function is bound method we need to do some magic to bind the unwrapped
+            # function to the class/instance
+            bound = getattr(self.function, "__self__", None)
+            if bound is not None and not isinstance(bound, types.ModuleType):
+                function = types.MethodType(function, bound)
+
+            response = function(*self.function_args, **self.function_kwargs)
+            response = Response.from_job_returns(
+                response, self.output_schema, job_dir=job_dir
             )
-        except AttributeError as err:
-            raise RuntimeError(
-                "Job output contained an object that is not MSONable and therefore "
-                "could not be serialized."
-            ) from err
 
-        save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
-        data: JobStoreDocument = JobStoreDocument(
-            uuid=self.uuid,
-            index=self.index,
-            output=output,
-            completed_at=datetime.now().isoformat(),
-            metadata=self.metadata,
-            hosts=self.hosts,
-            name=self.name,
-        )
-        store.update(data, key=["uuid", "index"], save=save)
+            if response.replace is not None:
+                response.replace = prepare_replace(response.replace, self)
 
-        CURRENT_JOB.reset()
+            if response.addition is not None:
+                # wrap the detour in a Flow to avoid problems if it needs to get
+                # wrapped at a later stage
+                response.addition = get_flow(response.addition)
+
+            if response.detour is not None:
+                # wrap the detour in a Flow to avoid problems if it needs to get
+                # wrapped at a later stage
+                response.detour = get_flow(response.detour)
+
+            # common actions that should be applied to all newly generated Jobs/Flows
+            for new_jobs in (response.replace, response.addition, response.detour):
+                if new_jobs is not None:
+                    new_jobs.add_hosts_uuids(self.hosts)
+                    for metadata_update in self.metadata_updates:
+                        new_jobs.update_metadata(**metadata_update, dynamic=True)
+                    for config_update in self.config_updates:
+                        new_jobs.update_config(**config_update, dynamic=True)
+                    for name_update in self.name_updates:
+                        new_jobs.append_name(**name_update, dynamic=True)
+
+            if self.config.response_manager_config:
+                passed_config = self.config.response_manager_config
+            elif self.config.pass_manager_config:
+                passed_config = self.config.manager_config
+            else:
+                passed_config = None
+
+            if passed_config:
+                if response.addition is not None:
+                    pass_manager_config(response.addition, passed_config)
+
+                if response.detour is not None:
+                    pass_manager_config(response.detour, passed_config)
+
+                if response.replace is not None:
+                    pass_manager_config(response.replace, passed_config)
+
+            try:
+                output = jsanitize(
+                    response.output, strict=True, enum_values=True, allow_bson=True
+                )
+            except AttributeError as err:
+                raise RuntimeError(
+                    "Job output contained an object that is not MSONable and therefore "
+                    "could not be serialized."
+                ) from err
+
+            save = {k: "output" if v is True else v for k, v in self._kwargs.items()}
+            data: JobStoreDocument = JobStoreDocument(
+                uuid=self.uuid,
+                index=self.index,
+                output=output,
+                completed_at=datetime.now().isoformat(),
+                metadata=self.metadata,
+                hosts=self.hosts,
+                name=self.name,
+            )
+            store.update(data, key=["uuid", "index"], save=save)
+
+        finally:
+            CURRENT_JOB.job = previous_job
+            CURRENT_JOB.store = previous_store
+
         logger.info(f"Finished job - {self.name} ({self.uuid}{index_str})")
         return response
 
