@@ -46,14 +46,15 @@ def run_locally(
             ``create_folders`` is True. If None then the current working
             directory will be used.
     ensure_success : bool
-        Raise an error if the flow was not executed successfully.
+        Raise an error if the flow did not execute successfully. Raise the first
+        caught job exception when one exists. Otherwise, raise a RuntimeError.
     allow_external_references : bool
         If False all the references to other outputs should be from other Jobs
         of the same Flow.
     raise_immediately : bool
-        If True, raise an exception immediately if a job fails. If False, continue
-        running the flow and only raise an exception at the end if the flow did not
-        finish running successfully.
+        If True, propagate a job exception immediately. If False, continue running
+        permitted jobs. When ensure_success is True, raise the first caught job
+        exception after execution if the flow did not finish successfully.
 
     Returns
     -------
@@ -88,9 +89,10 @@ def run_locally(
     errored: set[str] = set()
     responses: dict[str, dict[int, jobflow.Response]] = defaultdict(dict)
     stop_jobflow = False
+    first_error: Exception | None = None
 
     def _run_job(job: jobflow.Job, parents):
-        nonlocal stop_jobflow
+        nonlocal first_error, stop_jobflow
 
         if stop_jobflow:
             return None, True
@@ -115,12 +117,14 @@ def run_locally(
         else:
             try:
                 response = job.run(store=store)
-            except Exception:
+            except Exception as error:
                 import traceback
 
                 logger.info(
                     f"{job.name} failed with exception:\n{traceback.format_exc()}"
                 )
+                if ensure_success and first_error is None:
+                    first_error = error
                 errored.add(job.uuid)
                 return None, False
 
@@ -181,6 +185,12 @@ def run_locally(
     logger.info("Finished executing jobs locally")
 
     if ensure_success and not finished_successfully:
+        if first_error is not None:
+            original_context = first_error.__context__
+            try:
+                raise first_error
+            finally:
+                first_error.__context__ = original_context
         raise RuntimeError("Flow did not finish running successfully")
 
     return dict(responses)
