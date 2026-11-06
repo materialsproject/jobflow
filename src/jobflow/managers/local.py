@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def run_locally(
     flow: jobflow.Flow | jobflow.Job | list[jobflow.Job],
-    log: bool | str = True,
+    log: bool | str | list[logging.Handler] = True,
     store: jobflow.JobStore | None = None,
     create_folders: bool = False,
     root_dir: str | Path | None = None,
@@ -30,11 +30,15 @@ def run_locally(
     ----------
     flow : Flow | Job | list[Job]
         A job or flow.
-    log : bool | str
+    log : bool | str | list[logging.Handler]
         Controls logging. Defaults to True. Can be:
         - False: disable logging
         - True: use default logging format (read from ~/.jobflow.yaml)
-        - str: custom logging format string (e.g. "%(message)s" for more concise output)
+        - str: custom format for the generated stdout handler
+        - list[logging.Handler]: replace package handlers with the supplied handlers
+        Supplied handlers retain their levels and formatters and remain installed after
+        this function returns. Logging configuration is process-wide. An empty list
+        removes package handlers, but does not disable propagation to root handlers.
     store : JobStore
         A job store. If a job store is not specified then
         :obj:`JobflowSettings.JOB_STORE` will be used. By default this is a maggma
@@ -79,7 +83,9 @@ def run_locally(
 
     store.connect()
 
-    if log:
+    if isinstance(log, list):
+        initialize_logger(handlers=log)
+    elif log:
         initialize_logger(fmt=log if isinstance(log, str) else "")
 
     flow = get_flow(flow, allow_external_references=allow_external_references)
