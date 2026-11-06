@@ -62,6 +62,247 @@ def test_additional(memory_store):
             ]
 
 
+def _store_config_state(store):
+    return (
+        store.key,
+        list(store.searchable_fields) if hasattr(store, "searchable_fields") else None,
+        tuple(store.paths) if hasattr(store, "paths") else None,
+        getattr(store, "read_only", None),
+    )
+
+
+def _file_state(path):
+    import os
+
+    return (
+        path.is_symlink(),
+        os.readlink(path) if path.is_symlink() else None,
+        path.read_bytes() if path.is_file() else None,
+    )
+
+
+def test_jobstore_rejects_same_store_before_mutating_any_entries():
+    from maggma.stores import GridFSStore
+
+    from jobflow import JobStore
+
+    docs_store = GridFSStore(
+        database="jobflow_test",
+        collection_name="docs",
+        key="docs_key",
+        searchable_fields=["docs_field"],
+    )
+    innocent_store = GridFSStore(
+        database="jobflow_test",
+        collection_name="innocent",
+        key="innocent_key",
+        searchable_fields=["innocent_field"],
+    )
+    stores = [docs_store, innocent_store]
+    state_before = [_store_config_state(store) for store in stores]
+
+    with pytest.raises(ValueError, match="bad"):
+        JobStore(docs_store, {"innocent": innocent_store, "bad": docs_store})
+
+    assert [_store_config_state(store) for store in stores] == state_before
+
+
+@pytest.mark.parametrize(
+    "alias_kind", ["same", "relative_absolute", "symlink", "hardlink"]
+)
+def test_jobstore_rejects_shared_writable_json_paths_without_mutation(
+    tmp_path, monkeypatch, alias_kind
+):
+    import os
+    from pathlib import Path
+
+    from maggma.stores import JSONStore
+
+    from jobflow import JobStore
+
+    shared_path = tmp_path / "shared.json"
+    shared_path.write_text("[]", encoding="utf-8")
+    innocent_path = tmp_path / "innocent.json"
+
+    if alias_kind == "same":
+        docs_path = shared_path
+        additional_path = shared_path
+    elif alias_kind == "relative_absolute":
+        monkeypatch.chdir(tmp_path)
+        docs_path = Path("shared.json")
+        additional_path = shared_path
+    elif alias_kind == "symlink":
+        additional_path = tmp_path / "symlink.json"
+        additional_path.symlink_to(shared_path)
+        docs_path = shared_path
+    else:
+        additional_path = tmp_path / "hardlink.json"
+        try:
+            os.link(shared_path, additional_path)
+        except OSError as exc:
+            pytest.skip(f"hard links are unavailable: {exc}")
+        docs_path = shared_path
+
+    docs_store = JSONStore(str(docs_path), read_only=False, key="docs_key")
+    innocent_store = JSONStore(str(innocent_path), read_only=True, key="innocent_key")
+    bad_store = JSONStore(str(additional_path), read_only=False, key="bad_key")
+    stores = [docs_store, innocent_store, bad_store]
+    state_before = [_store_config_state(store) for store in stores]
+    paths = [shared_path, innocent_path]
+    if additional_path != shared_path:
+        paths.append(additional_path)
+    files_before = {path: _file_state(path) for path in paths}
+
+    with pytest.raises(ValueError, match="bad"):
+        JobStore(docs_store, {"innocent": innocent_store, "bad": bad_store})
+
+    assert [_store_config_state(store) for store in stores] == state_before
+    assert {path: _file_state(path) for path in paths} == files_before
+
+
+@pytest.mark.parametrize(
+    ("docs_read_only", "additional_read_only", "conflicts"),
+    [
+        (False, False, True),
+        (False, True, True),
+        (True, False, True),
+        (True, True, False),
+    ],
+)
+def test_jobstore_checks_json_path_conflicts_only_when_a_store_writes(
+    tmp_path, docs_read_only, additional_read_only, conflicts
+):
+    from maggma.stores import JSONStore
+
+    from jobflow import JobStore
+
+    path = tmp_path / "shared.json"
+    path.write_text("[]", encoding="utf-8")
+    docs_store = JSONStore(str(path), read_only=docs_read_only, key="docs_key")
+    additional_store = JSONStore(
+        str(path), read_only=additional_read_only, key="additional_key"
+    )
+    state_before = [
+        _store_config_state(store) for store in [docs_store, additional_store]
+    ]
+    file_before = _file_state(path)
+
+    if conflicts:
+        with pytest.raises(ValueError, match="data"):
+            JobStore(docs_store, {"data": additional_store})
+        assert [
+            _store_config_state(store) for store in [docs_store, additional_store]
+        ] == state_before
+    else:
+        JobStore(docs_store, {"data": additional_store})
+
+    assert _file_state(path) == file_before
+
+
+def test_jobstore_roundtrips_with_distinct_json_paths(tmp_path):
+    from maggma.stores import JSONStore
+
+    from jobflow import JobStore
+
+    docs_path = tmp_path / "docs.json"
+    blobs_path = tmp_path / "blobs.json"
+    with JobStore(
+        JSONStore(str(docs_path), read_only=False),
+        {"data": JSONStore(str(blobs_path), read_only=False)},
+        save={"data": "payload"},
+    ) as store:
+        store.update({"uuid": "job-1", "index": 0, "payload": {"value": "ok"}})
+
+    with JobStore(
+        JSONStore(str(docs_path), read_only=False),
+        {"data": JSONStore(str(blobs_path), read_only=False)},
+        save={"data": "payload"},
+    ) as store:
+        result = store.query_one({"uuid": "job-1"}, load={"data": True})
+
+    assert result["payload"] == {"value": "ok"}
+
+
+def test_jobstore_accepts_independent_read_only_json_paths(tmp_path):
+    from maggma.stores import JSONStore
+
+    from jobflow import JobStore
+
+    docs_path = tmp_path / "docs.json"
+    blobs_path = tmp_path / "blobs.json"
+    docs_path.write_text("[]", encoding="utf-8")
+    blobs_path.write_text("[]", encoding="utf-8")
+
+    JobStore(
+        JSONStore(str(docs_path), read_only=True),
+        {"data": JSONStore(str(blobs_path), read_only=True)},
+    )
+
+    assert docs_path.read_text(encoding="utf-8") == "[]"
+    assert blobs_path.read_text(encoding="utf-8") == "[]"
+
+
+def test_jobstore_distinguishes_literal_tilde_path_from_home_path(
+    tmp_path, monkeypatch
+):
+    from pathlib import Path
+    from uuid import uuid4
+
+    from maggma.stores import JSONStore
+
+    from jobflow import JobStore
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "~").mkdir()
+    unique_name = f"jobflow-{uuid4()}.json"
+
+    JobStore(
+        JSONStore(f"~/{unique_name}", read_only=False),
+        {"data": JSONStore(str(Path.home() / unique_name), read_only=False)},
+    )
+
+
+def test_jobstore_roundtrips_with_literal_tilde_path(tmp_path, monkeypatch):
+    from maggma.stores import JSONStore
+
+    from jobflow import JobStore
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "~").mkdir()
+    docs_path = "~/docs.json"
+    blobs_path = "blobs.json"
+
+    with JobStore(
+        JSONStore(docs_path, read_only=False),
+        {"data": JSONStore(blobs_path, read_only=False)},
+        save={"data": "payload"},
+    ) as store:
+        store.update({"uuid": "job-1", "index": 0, "payload": {"value": "ok"}})
+
+    with JobStore(
+        JSONStore(docs_path, read_only=False),
+        {"data": JSONStore(blobs_path, read_only=False)},
+        save={"data": "payload"},
+    ) as store:
+        result = store.query_one({"uuid": "job-1"}, load={"data": True})
+
+    assert result["payload"] == {"value": "ok"}
+
+
+def test_jobstore_roundtrips_with_independent_default_memory_stores():
+    from maggma.stores import MemoryStore
+
+    from jobflow import JobStore
+
+    with JobStore(
+        MemoryStore(), {"data": MemoryStore()}, save={"data": "payload"}
+    ) as store:
+        store.update({"uuid": "job-1", "index": 0, "payload": {"value": "ok"}})
+        result = store.query_one({"uuid": "job-1"}, load={"data": True})
+
+    assert result["payload"] == {"value": "ok"}
+
+
 def test_doc_update_query(memory_jobstore):
     # all standard mongo updates should work fine
     d = {"index": 1, "uuid": 1, "e": 6, "d": 4}
