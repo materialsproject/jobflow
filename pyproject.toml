@@ -54,7 +54,7 @@ vis = ["matplotlib", "pydot"]
 fireworks = ["FireWorks"]
 strict = [
     "FireWorks==2.1.4",
-    "PyYAML==6.0.3",
+    "PyYAML==6.0.4",
     "maggma==0.72.1",
     "matplotlib==3.10.9",
     "monty==2025.3.3",
