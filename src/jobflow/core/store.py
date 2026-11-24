@@ -343,8 +343,6 @@ class JobStore(Store):
                         )
                         blob_data[store_name].append(blob)
 
-        self.docs_store.update(dict_docs, key=key)
-
         for store_name, blobs in blob_data.items():
             # Here we use a try/except with a self.additional_stores[store_name]
             # instead of self.additional_store.get(store_name, None) to allow
@@ -358,6 +356,8 @@ class JobStore(Store):
                 raise ValueError(f"Unrecognised additional store name: {store_name}")
 
             store.update(blobs, key="blob_uuid")
+
+        self.docs_store.update(dict_docs, key=key)
 
     def ensure_index(self, key: str, unique: bool = False) -> bool:
         """
