@@ -414,6 +414,56 @@ def test_job_config(memory_jobstore):
     assert response.detour[0].config.manager_config == manager_config2
 
 
+def test_job_run_keeps_declared_inputs_and_current_job_updates(memory_jobstore):
+    from jobflow import CURRENT_JOB, Job, OutputReference
+
+    reference = OutputReference("stored-output")
+    memory_jobstore.update({"uuid": "stored-output", "index": 0, "output": 4})
+    observed = {}
+    job_instance = None
+
+    def inspect_inputs(value, **kwargs):
+        current = CURRENT_JOB.job
+        observed.update(
+            current_is_original=current is job_instance,
+            declared_args=current.function_args,
+            declared_kwargs=current.function_kwargs.copy(),
+            received_value=value,
+            received_context=kwargs["context"],
+        )
+        current.update_kwargs({"updated_during_run": "kept"})
+        current.function_kwargs["direct_mutation"] = "kept"
+        return value + kwargs["context"]
+
+    job_instance = Job(
+        inspect_inputs,
+        function_args=(reference,),
+        function_kwargs={"context": reference},
+    )
+    response = job_instance.run(memory_jobstore)
+
+    assert response.output == 8
+    assert observed["current_is_original"]
+    assert observed["declared_args"] == (reference,)
+    assert observed["declared_kwargs"] == {"context": reference}
+    assert observed["received_value"] == 4
+    assert observed["received_context"] == 4
+    assert job_instance.function_args == (reference,)
+    assert job_instance.function_kwargs == {
+        "context": reference,
+        "updated_during_run": "kept",
+        "direct_mutation": "kept",
+    }
+
+    def fail(_):
+        raise RuntimeError("expected failure")
+
+    failed_job = Job(fail, function_args=(reference,))
+    with pytest.raises(RuntimeError, match="expected failure"):
+        failed_job.run(memory_jobstore)
+    assert failed_job.function_args == (reference,)
+
+
 def test_job_input_references():
     from jobflow.core.job import Job
     from jobflow.core.reference import OutputReference

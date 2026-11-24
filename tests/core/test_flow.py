@@ -355,6 +355,130 @@ def test_graph():
     assert len(graph.nodes) == 2
 
 
+def test_run_locally_preserves_reference_graph_and_reruns_in_dependency_order(
+    memory_jobstore,
+):
+    from jobflow import Flow, job, run_locally
+
+    @job
+    def produce(value):
+        return value
+
+    @job
+    def add(value, increment):
+        return value + increment
+
+    upstream = produce(7)
+    downstream = add(upstream.output, 5)
+    flow = Flow([downstream, upstream])
+
+    def snapshot():
+        graph = flow.graph
+        nodes = sorted((node, graph.nodes[node].get("label")) for node in graph.nodes)
+        edges = sorted(
+            (source, target, graph.edges[source, target].get("properties"))
+            for source, target in graph.edges
+        )
+        return nodes, edges
+
+    before = snapshot()
+    assert before[1] == [(upstream.uuid, downstream.uuid, "output")]
+
+    first = run_locally(flow, store=memory_jobstore, log=False, ensure_success=True)
+    assert first[upstream.uuid][1].output == 7
+    assert first[downstream.uuid][1].output == 12
+    after_first = snapshot()
+
+    upstream.function_args = (41,)
+    second = run_locally(flow, store=memory_jobstore, log=False, ensure_success=True)
+    assert second[upstream.uuid][1].output == 41
+    assert second[downstream.uuid][1].output == 46
+    assert after_first == before
+    assert snapshot() == before
+
+    replacement = produce(13)
+    downstream.function_args = (replacement.output, 5)
+    updated_nodes, updated_edges = snapshot()
+    assert upstream.uuid in [node for node, _ in updated_nodes]
+    assert (replacement.uuid, "external") in updated_nodes
+    assert updated_edges == [(replacement.uuid, downstream.uuid, "output")]
+
+
+def test_run_locally_preserves_nested_reference_graph(memory_jobstore):
+    from jobflow import Flow, job, run_locally
+
+    @job
+    def produce(value):
+        return value
+
+    @job
+    def from_config(config):
+        return config["outer"]["values"][0] * 3
+
+    upstream = produce(9)
+    downstream = from_config(config={"outer": {"values": [upstream.output]}})
+    flow = Flow([downstream, upstream])
+    before = flow.graph
+    expected_nodes = sorted(
+        (node, before.nodes[node].get("label")) for node in before.nodes
+    )
+    expected_edge = [(upstream.uuid, downstream.uuid, "output")]
+    assert [
+        (source, target, attrs.get("properties"))
+        for source, target, attrs in before.edges(data=True)
+    ] == expected_edge
+
+    responses = run_locally(flow, store=memory_jobstore, log=False, ensure_success=True)
+    after = flow.graph
+    assert responses[downstream.uuid][1].output == 27
+    assert sorted((node, after.nodes[node].get("label")) for node in after.nodes) == (
+        expected_nodes
+    )
+    assert [
+        (source, target, attrs.get("properties"))
+        for source, target, attrs in after.edges(data=True)
+    ] == expected_edge
+
+
+def test_run_locally_preserves_nested_flow_reference_graph(memory_jobstore):
+    from jobflow import Flow, job, run_locally
+
+    @job
+    def produce(value):
+        return value
+
+    @job
+    def multiply(value):
+        return value * 4
+
+    upstream = produce(6)
+    downstream = multiply(upstream.output)
+    inner = Flow([downstream], output=downstream.output)
+    outer = Flow([inner, upstream], output=inner.output)
+    before = outer.graph
+    expected_nodes = sorted(
+        (node, before.nodes[node].get("label")) for node in before.nodes
+    )
+    expected_edge = [(upstream.uuid, downstream.uuid, "output")]
+    assert [
+        (source, target, attrs.get("properties"))
+        for source, target, attrs in before.edges(data=True)
+    ] == expected_edge
+
+    responses = run_locally(
+        outer, store=memory_jobstore, log=False, ensure_success=True
+    )
+    after = outer.graph
+    assert responses[downstream.uuid][1].output == 24
+    assert sorted((node, after.nodes[node].get("label")) for node in after.nodes) == (
+        expected_nodes
+    )
+    assert [
+        (source, target, attrs.get("properties"))
+        for source, target, attrs in after.edges(data=True)
+    ] == expected_edge
+
+
 def test_draw_graph():
     pytest.importorskip("matplotlib")
 
