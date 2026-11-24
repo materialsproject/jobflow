@@ -219,13 +219,18 @@ class JobStore(Store):
                             f"Unrecognised additional store name: {store_name}"
                         )
 
-                    object_info = {b["blob_uuid"]: loc for b, loc in zip(blobs, locs)}
+                    blob_uuids = list(
+                        dict.fromkeys(blob["blob_uuid"] for blob in blobs)
+                    )
                     objects = store.query(
-                        criteria={"blob_uuid": {"$in": list(object_info.keys())}},
+                        criteria={"blob_uuid": {"$in": blob_uuids}},
                         properties=["blob_uuid", "data"],
                     )
                     object_map = {o["blob_uuid"]: o["data"] for o in objects}
-                    inserts = {tuple(v): object_map[k] for k, v in object_info.items()}
+                    inserts = {
+                        tuple(location): object_map[blob["blob_uuid"]]
+                        for blob, location in zip(blobs, locs)
+                    }
                     to_insert.update(inserts)
 
                 update_in_dictionary(doc, to_insert)
@@ -779,8 +784,10 @@ def _filter_blobs(
 
     new_blobs = []
     new_locations = []
-    for store_load in load.values():
+    for store_name, store_load in load.items():
         for blob, location in zip(blob_infos, locations):
+            if blob.get("store") != store_name:
+                continue
             if store_load is True:
                 new_blobs.append(blob)
                 new_locations.append(location)
