@@ -1,4 +1,6 @@
+import logging
 import os
+import threading
 from pathlib import Path
 
 import pytest
@@ -492,3 +494,240 @@ def test_resolve_references_both(memory_jobstore, clean_dir):
 
     responses = run_locally(Flow([job1, job2]), store=memory_jobstore)
     assert responses[job2.uuid][1].output == 4
+
+
+def _make_log_job(label, store, inner_log=None, fail_after_inner=False):
+    from jobflow import job, run_locally
+
+    @job
+    def task():
+        if inner_log is not None:
+            inner = _make_log_job(f"inner-{label}", store)
+            run_locally(inner, log=inner_log, store=store)
+        logging.getLogger("host.application").warning("HOST:%s", label)
+        print(f"PRINT:{label}")
+        if fail_after_inner:
+            raise ValueError("expected outer failure")
+        return label
+
+    result = task()
+    result.name = label
+    return result
+
+
+def _root_handler_state(root):
+    return (
+        root.level,
+        tuple(
+            (
+                id(handler),
+                handler.level,
+                repr(handler.formatter),
+                tuple(map(id, handler.filters)),
+            )
+            for handler in root.handlers
+        ),
+    )
+
+
+def test_log_false_first_preserves_root_handler(
+    memory_jobstore, caplog, capsys, monkeypatch
+):
+    from jobflow import run_locally
+
+    package_logger = logging.getLogger("jobflow")
+    root_logger = logging.getLogger()
+    old_handlers = package_logger.handlers
+    old_level = package_logger.level
+    monkeypatch.setattr(package_logger, "handlers", [])
+    monkeypatch.setattr(package_logger, "level", logging.NOTSET)
+    caplog.set_level(logging.INFO)
+    root_before = _root_handler_state(root_logger)
+
+    responses = run_locally(
+        _make_log_job("false-first", memory_jobstore),
+        log=False,
+        store=memory_jobstore,
+    )
+
+    assert len(responses) == 1
+    assert next(iter(responses.values()))[1].output == "false-first"
+    assert not any(record.name.startswith("jobflow.") for record in caplog.records)
+    assert any(record.name == "host.application" for record in caplog.records)
+    assert "PRINT:false-first" in capsys.readouterr().out
+    assert package_logger.handlers == []
+    assert package_logger.level == logging.NOTSET
+    assert _root_handler_state(root_logger) == root_before
+    monkeypatch.setattr(package_logger, "handlers", old_handlers)
+    monkeypatch.setattr(package_logger, "level", old_level)
+
+
+def test_log_false_after_true_suppresses_internal_logs(memory_jobstore, caplog, capsys):
+    from jobflow import run_locally
+
+    caplog.set_level(logging.INFO)
+    first = _make_log_job("first", memory_jobstore)
+    run_locally(first, log=True, store=memory_jobstore)
+    capsys.readouterr()
+    caplog.clear()
+
+    package_logger = logging.getLogger("jobflow")
+    root_logger = logging.getLogger()
+    logger_before = (
+        tuple(map(id, package_logger.handlers)),
+        package_logger.level,
+        package_logger.propagate,
+        _root_handler_state(root_logger),
+    )
+    responses = run_locally(
+        _make_log_job("disabled", memory_jobstore), log=False, store=memory_jobstore
+    )
+    logger_after = (
+        tuple(map(id, package_logger.handlers)),
+        package_logger.level,
+        package_logger.propagate,
+        _root_handler_state(root_logger),
+    )
+
+    assert len(responses) == 1
+    assert next(iter(responses.values()))[1].output == "disabled"
+    assert not any(record.name.startswith("jobflow.") for record in caplog.records)
+    assert [(record.name, record.getMessage()) for record in caplog.records] == [
+        ("host.application", "HOST:disabled")
+    ]
+    captured = capsys.readouterr()
+    assert captured.out == "PRINT:disabled\n"
+    assert captured.err == ""
+    assert logger_after == logger_before
+
+    caplog.clear()
+    custom_format = "CUSTOM:%(message)s"
+    custom = _make_log_job("custom", memory_jobstore)
+    run_locally(custom, log=custom_format, store=memory_jobstore)
+    captured = capsys.readouterr()
+    assert "CUSTOM:Started executing jobs locally" in captured.out
+    assert "CUSTOM:Starting job - custom" in captured.out
+    assert "CUSTOM:Finished executing jobs locally" in captured.out
+    assert any(record.name == "jobflow.core.job" for record in caplog.records)
+
+    caplog.clear()
+    empty_format = _make_log_job("empty-format", memory_jobstore)
+    run_locally(empty_format, log="", store=memory_jobstore)
+    captured = capsys.readouterr()
+    assert "CUSTOM:Started executing jobs locally" in captured.out
+    assert any(record.name == "jobflow.core.job" for record in caplog.records)
+
+    caplog.clear()
+    default = _make_log_job("default-again", memory_jobstore)
+    run_locally(default, log=True, store=memory_jobstore)
+    captured = capsys.readouterr()
+    assert "INFO Started executing jobs locally" in captured.out
+    assert "INFO Finished executing jobs locally" in captured.out
+    assert any(record.name == "jobflow.core.job" for record in caplog.records)
+
+
+def test_nested_run_log_arguments_restore_outer_context(
+    memory_jobstore, caplog, capsys
+):
+    from jobflow import run_locally
+
+    caplog.set_level(logging.INFO)
+    outer_true = _make_log_job("outer-true", memory_jobstore, inner_log=False)
+    run_locally(outer_true, log=True, store=memory_jobstore)
+    true_records = [
+        record for record in caplog.records if record.name.startswith("jobflow.")
+    ]
+    assert (
+        sum(
+            record.getMessage() == "Started executing jobs locally"
+            for record in true_records
+        )
+        == 1
+    )
+    assert (
+        sum(record.getMessage().startswith("Starting job -") for record in true_records)
+        == 1
+    )
+    assert any(
+        record.getMessage() == "Finished executing jobs locally"
+        for record in true_records
+    )
+    assert any(record.getMessage() == "HOST:outer-true" for record in caplog.records)
+    assert "PRINT:inner-outer-true" in capsys.readouterr().out
+
+    caplog.clear()
+    outer_false = _make_log_job("outer-false", memory_jobstore, inner_log=True)
+    run_locally(outer_false, log=False, store=memory_jobstore)
+    false_records = [
+        record for record in caplog.records if record.name.startswith("jobflow.")
+    ]
+    assert [
+        record.getMessage()
+        for record in false_records
+        if record.name == "jobflow.managers.local"
+    ] == [
+        "Started executing jobs locally",
+        "Finished executing jobs locally",
+    ]
+    inner_start_records = [
+        record.getMessage()
+        for record in false_records
+        if record.name == "jobflow.core.job"
+        and record.getMessage().startswith("Starting job -")
+    ]
+    assert len(inner_start_records) == 1
+    assert inner_start_records[0].startswith("Starting job - inner-outer-false (")
+    assert any(record.getMessage() == "HOST:outer-false" for record in caplog.records)
+    capsys.readouterr()
+
+    caplog.clear()
+    failing = _make_log_job(
+        "outer-failure", memory_jobstore, inner_log=True, fail_after_inner=True
+    )
+    with pytest.raises(ValueError, match="expected outer failure"):
+        run_locally(failing, log=False, store=memory_jobstore, raise_immediately=True)
+    capsys.readouterr()
+    caplog.clear()
+
+    direct = _make_log_job("direct-after-failure", memory_jobstore)
+    direct.run(store=memory_jobstore)
+    direct_records = [
+        record for record in caplog.records if record.name == "jobflow.core.job"
+    ]
+    assert any(
+        record.getMessage().startswith("Starting job -") for record in direct_records
+    )
+    assert any(
+        record.getMessage().startswith("Finished job -") for record in direct_records
+    )
+    assert "PRINT:direct-after-failure" in capsys.readouterr().out
+
+
+def test_log_false_does_not_suppress_thread_record(memory_jobstore, caplog):
+    from jobflow import job, run_locally
+
+    caplog.set_level(logging.INFO)
+    started = threading.Event()
+    release = threading.Event()
+
+    @job
+    def wait_for_log():
+        started.set()
+        if not release.wait(5):
+            raise TimeoutError("thread logger did not release the job")
+        return "finished"
+
+    def emit_from_thread():
+        if started.wait(5):
+            logging.getLogger("jobflow.core.job").warning("THREAD:ordinary")
+        release.set()
+
+    worker = threading.Thread(target=emit_from_thread)
+    worker.start()
+    responses = run_locally(wait_for_log(), log=False, store=memory_jobstore)
+    worker.join(5)
+
+    assert not worker.is_alive()
+    assert len(responses) == 1
+    records = [(record.name, record.getMessage()) for record in caplog.records]
+    assert records == [("jobflow.core.job", "THREAD:ordinary")]

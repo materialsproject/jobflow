@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import contextvars
 import logging
+
+_jobflow_logs_enabled = contextvars.ContextVar("jobflow_logs_enabled", default=True)
+
+
+def _filter_internal_log_records(record: logging.LogRecord) -> bool:
+    return _jobflow_logs_enabled.get()
 
 
 def initialize_logger(level: int = logging.INFO, fmt: str = "") -> logging.Logger:
