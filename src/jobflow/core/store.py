@@ -150,7 +150,7 @@ class JobStore(Store):
     def query(
         self,
         criteria: dict = None,
-        properties: dict | list = None,
+        properties: dict | list | tuple = None,
         sort: dict[str, Sort | int] = None,
         skip: int = 0,
         limit: int = 0,
@@ -164,7 +164,11 @@ class JobStore(Store):
         criteria
             PyMongo filter for documents to search in.
         properties
-            Properties to return in grouped documents.
+            Fields to return, as a list, tuple, or MongoDB projection dictionary.
+            The input is not modified. ``uuid`` and ``index`` are always returned
+            when present, even if excluded. ``None`` and an empty dictionary return
+            all fields. An empty list or tuple returns only the identifiers and
+            the backend's default ``_id`` field.
         sort
             Dictionary of sort order for fields. Keys are field names and values are 1
             for ascending or -1 for descending.
@@ -190,13 +194,12 @@ class JobStore(Store):
 
         load_keys = _prepare_load(load)
 
-        if isinstance(properties, (list, tuple)):
-            properties += ["uuid", "index"]
-        elif isinstance(properties, dict):
-            properties.update({"uuid": 1, "index": 1})
-
         docs = self.docs_store.query(
-            criteria=criteria, properties=properties, sort=sort, skip=skip, limit=limit
+            criteria=criteria,
+            properties=_prepare_query_properties(properties),
+            sort=sort,
+            skip=skip,
+            limit=limit,
         )
 
         for doc in docs:
@@ -235,7 +238,7 @@ class JobStore(Store):
     def query_one(
         self,
         criteria: dict = None,
-        properties: dict | list = None,
+        properties: dict | list | tuple = None,
         sort: dict[str, Sort | int] = None,
         load: load_type = None,
     ) -> dict | None:
@@ -247,7 +250,11 @@ class JobStore(Store):
         criteria
             PyMongo filter for documents to search.
         properties
-            Properties to return in the document.
+            Fields to return, as a list, tuple, or MongoDB projection dictionary.
+            The input is not modified. ``uuid`` and ``index`` are always returned
+            when present, even if excluded. ``None`` and an empty dictionary return
+            all fields. An empty list or tuple returns only the identifiers and
+            the backend's default ``_id`` field.
         sort
             Dictionary of sort order for fields. Keys are field names and values are 1
             for ascending or -1 for descending.
@@ -688,6 +695,68 @@ class JobStore(Store):
             for store_name, info in spec["additional_stores"].items():
                 additional_stores[store_name] = _construct_store(info, all_stores)
         return cls(docs_store, additional_stores, **kwargs)
+
+
+def _prepare_query_properties(
+    properties: dict | list | tuple | None,
+) -> dict | list | None:
+    """Retain required identifiers without changing the projection's mode."""
+    from copy import deepcopy
+
+    if isinstance(properties, (list, tuple)):
+        return [*properties, "uuid", "index"]
+    if properties is None:
+        return None
+
+    projection = deepcopy(properties)
+    if not projection:
+        return projection
+
+    identifiers = {"uuid", "index"}
+    excluded_identifiers = {k for k in identifiers if projection.get(k, 1) == 0}
+    id_value = projection.get("_id", 0)
+    id_is_flag = isinstance(id_value, (bool, int, float))
+    modes = _projection_modes(
+        {
+            k: v
+            for k, v in projection.items()
+            if k not in excluded_identifiers and (k != "_id" or not id_is_flag)
+        }
+    )
+    field_modes = modes.intersection({"include", "exclude"})
+    if not field_modes and "$elemMatch" in modes and "$slice" not in modes:
+        modes.add("include")
+    elif not field_modes and excluded_identifiers:
+        modes.add("exclude")
+
+    inclusion = "include" in modes or (
+        "exclude" not in modes and id_is_flag and id_value != 0
+    )
+    if inclusion:
+        projection.update({"uuid": 1, "index": 1})
+    else:
+        for key in identifiers:
+            projection.pop(key, None)
+        if not field_modes and id_is_flag and id_value:
+            projection.pop("_id")
+    return projection
+
+
+def _projection_modes(properties: dict) -> set[str]:
+    """Collect projection flags separately from mode-dependent find operators."""
+    modes = set()
+    for value in properties.values():
+        if isinstance(value, dict):
+            operators = {key for key in value if key.startswith("$")}
+            if operators:
+                modes.update(operators.intersection({"$slice", "$elemMatch", "$meta"}))
+                if operators.difference({"$slice", "$elemMatch", "$meta"}):
+                    modes.add("include")
+            else:
+                modes.update(_projection_modes(value))
+        else:
+            modes.add("exclude" if value == 0 else "include")
+    return modes
 
 
 def _construct_store(spec_dict, valid_stores):
