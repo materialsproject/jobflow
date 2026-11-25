@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import typing
+from pathlib import Path
 
 from maggma.core import Store
+from maggma.stores import JSONStore
 from monty.json import MSONable
 
 from jobflow.core.reference import OnMissing
@@ -13,7 +15,6 @@ from jobflow.utils.find import get_root_locations
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
     from enum import Enum
-    from pathlib import Path
     from typing import Any, Optional, Union
 
     from maggma.core import Sort
@@ -35,6 +36,36 @@ if typing.TYPE_CHECKING:
 
 
 T = typing.TypeVar("T", bound="JobStore")
+
+
+def _same_json_path(left: str | Path, right: str | Path) -> bool:
+    left_path = Path(left).resolve(strict=False)
+    right_path = Path(right).resolve(strict=False)
+    if left_path == right_path:
+        return True
+    try:
+        return left_path.samefile(right_path)
+    except FileNotFoundError:
+        return False
+
+
+def _stores_share_destination(docs_store: Store, additional_store: Store) -> bool:
+    if docs_store is additional_store:
+        return True
+
+    if not isinstance(docs_store, JSONStore) or not isinstance(
+        additional_store, JSONStore
+    ):
+        return False
+
+    if docs_store.read_only and additional_store.read_only:
+        return False
+
+    return any(
+        _same_json_path(docs_path, additional_path)
+        for docs_path in docs_store.paths
+        for additional_path in additional_store.paths
+    )
 
 
 class JobStore(Store):
@@ -60,6 +91,12 @@ class JobStore(Store):
         which case all saved items are loaded, a dictionary key (string or enum),
         an :obj:`.MSONable` class, or a list of keys/classes. Alternatively,
         ``load=True`` will automatically load all items from every additional store.
+
+    Raises
+    ------
+    ValueError
+        If an additional store is the same object as ``docs_store``, or if two
+        ``JSONStore`` objects share a resolved local path and at least one is writable.
     """
 
     def __init__(
@@ -74,6 +111,13 @@ class JobStore(Store):
             self.additional_stores = {}
         else:
             self.additional_stores = additional_stores
+
+        for store_name, additional_store in self.additional_stores.items():
+            if _stores_share_destination(docs_store, additional_store):
+                raise ValueError(
+                    f"docs_store and additional store {store_name!r} "
+                    "share a destination"
+                )
 
         # enforce uuid key
         self.docs_store.key = "uuid"
