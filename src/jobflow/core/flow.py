@@ -454,6 +454,7 @@ class Flow(MSONable):
         name_filter: str = None,
         function_filter: Callable = None,
         dict_mod: bool = False,
+        dynamic: bool = False,
     ):
         """
         Update the kwargs of all Jobs in the Flow.
@@ -473,6 +474,9 @@ class Flow(MSONable):
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
+        dynamic
+            Apply the updates to Jobs and Flows generated at runtime. The default is
+            False.
 
         Examples
         --------
@@ -502,6 +506,7 @@ class Flow(MSONable):
                 name_filter=name_filter,
                 function_filter=function_filter,
                 dict_mod=dict_mod,
+                dynamic=dynamic,
             )
 
     def update_maker_kwargs(
@@ -511,6 +516,7 @@ class Flow(MSONable):
         class_filter: type[jobflow.Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
+        dynamic: bool = False,
     ):
         """
         Update the keyword arguments of any :obj:`.Maker` objects in the jobs.
@@ -534,6 +540,11 @@ class Flow(MSONable):
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
+        dynamic
+            Apply the updates to Jobs and Flows generated at runtime. The default is
+            False. The update can overwrite Maker changes made while creating a job.
+            Nested Maker updates can repeat when dict mods are used. A class filter
+            must be importable for dynamic updates.
 
         Examples
         --------
@@ -602,6 +613,7 @@ class Flow(MSONable):
                 class_filter=class_filter,
                 nested=nested,
                 dict_mod=dict_mod,
+                dynamic=dynamic,
             )
 
     def append_name(self, append_str: str, prepend: bool = False, dynamic: bool = True):

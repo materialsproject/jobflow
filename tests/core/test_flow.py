@@ -1,4 +1,11 @@
+from dataclasses import dataclass, field
+
 import pytest
+from maggma.stores import MemoryStore
+
+from jobflow import Flow, Job, JobStore, Maker, Response
+from jobflow import job as job_decorator
+from jobflow.managers.local import run_locally
 
 
 def add(a, b):
@@ -7,6 +14,124 @@ def add(a, b):
 
 def div(a, b=2):
     return a / b
+
+
+@job_decorator
+def decorated_add(a, b=3):
+    return a + b
+
+
+def create_dynamic_add_job():
+    return Response(
+        replace=Job(add, function_args=(2,), function_kwargs={"b": 3}, name="target")
+    )
+
+
+def create_dynamic_add_jobs():
+    return Response(
+        replace=Flow(
+            [
+                Job(
+                    add,
+                    function_args=(2,),
+                    function_kwargs={"b": 3},
+                    name="target",
+                ),
+                Job(
+                    add,
+                    function_args=(2,),
+                    function_kwargs={"b": 3},
+                    name="other",
+                ),
+            ]
+        )
+    )
+
+
+def create_dynamic_addition_job():
+    return Response(addition=Job(add, function_args=(2,), function_kwargs={"b": 3}))
+
+
+def create_dynamic_detour_job():
+    return Response(detour=Job(add, function_args=(2,), function_kwargs={"b": 3}))
+
+
+def create_dynamic_second_generation_job():
+    return Response(replace=Job(create_dynamic_add_job))
+
+
+def create_dynamic_nested_flow_job():
+    return Response(
+        replace=Flow([Job(add, function_args=(2,), function_kwargs={"b": 3})])
+    )
+
+
+@dataclass
+class DynamicAddMaker(Maker):
+    name: str = "dynamic add"
+    b: int = 3
+
+    @job_decorator
+    def make(self, a):
+        return a + self.b
+
+
+@dataclass
+class DynamicParentMaker(Maker):
+    name: str = "dynamic parent"
+    inner: DynamicAddMaker = field(default_factory=DynamicAddMaker)
+    modify_inner: bool = False
+
+    @job_decorator
+    def make(self, a):
+        if self.modify_inner:
+            self.inner.b = 10
+        return Response(replace=self.inner.make(a))
+
+
+@dataclass
+class OtherDynamicMaker(Maker):
+    name: str = "other dynamic"
+
+
+def create_dynamic_maker_job():
+    return Response(replace=DynamicAddMaker().make(2))
+
+
+def create_dynamic_maker_addition_job():
+    return Response(addition=DynamicAddMaker().make(2))
+
+
+def create_dynamic_maker_detour_job():
+    return Response(detour=DynamicAddMaker().make(2))
+
+
+def create_dynamic_maker_second_generation_job():
+    return Response(replace=Job(create_dynamic_maker_job))
+
+
+def create_dynamic_nested_maker_job():
+    return Response(replace=DynamicParentMaker().make(2))
+
+
+def create_dynamic_modified_maker_job():
+    return Response(replace=DynamicParentMaker(modify_inner=True).make(2))
+
+
+def create_decorated_dynamic_add_job():
+    return Response(replace=decorated_add(2))
+
+
+def run_flow_output(flow):
+    responses = run_flow_responses(flow)
+    root_job = flow[0]
+    return responses[root_job.uuid][max(responses[root_job.uuid].keys())].output
+
+
+def run_flow_responses(flow):
+    store = JobStore(MemoryStore())
+    store.connect()
+    return run_locally(flow, store=store, log=False, ensure_success=True)
 
 
 def get_test_job(*args):
@@ -531,6 +656,102 @@ def test_update_kwargs():
     assert flow[1].function_kwargs["b"] == 8
 
 
+def test_update_kwargs_dynamic_generated_job():
+    flow = Flow([Job(create_dynamic_add_job)])
+    flow.update_kwargs({"b": 5}, name_filter="target", dynamic=True)
+    assert run_flow_output(flow) == 7
+
+
+def test_job_update_kwargs_dynamic_generated_job():
+    task = Job(create_dynamic_add_job)
+    task.update_kwargs({"b": 5}, function_filter=add, dynamic=True)
+
+    assert run_flow_output(Flow([task])) == 7
+
+
+def test_update_kwargs_dynamic_preserves_independent_child_state():
+    flow = Flow([Job(create_dynamic_add_jobs)])
+    flow.update_kwargs({"b": 5}, name_filter="target", dynamic=True)
+
+    outputs = [
+        response.output
+        for job_responses in run_flow_responses(flow).values()
+        for response in job_responses.values()
+    ]
+
+    assert outputs.count(7) == 1
+    assert outputs.count(5) == 1
+
+
+def test_update_kwargs_dynamic_decorated_function_filter():
+    flow = Flow([Job(create_decorated_dynamic_add_job)])
+    flow.update_kwargs({"b": 5}, function_filter=decorated_add, dynamic=True)
+    assert run_flow_output(flow) == 7
+
+
+@pytest.mark.parametrize("dynamic", [None, False])
+def test_update_kwargs_dynamic_false_is_not_recorded(dynamic):
+    flow = Flow([Job(create_dynamic_add_job)])
+    if dynamic is None:
+        flow.update_kwargs({"b": 5}, function_filter=add)
+    else:
+        flow.update_kwargs({"b": 5}, function_filter=add, dynamic=dynamic)
+    assert flow[0].kwargs_updates == []
+    assert run_flow_output(flow) == 5
+
+
+@pytest.mark.parametrize(
+    "function",
+    [create_dynamic_add_job, create_dynamic_addition_job, create_dynamic_detour_job],
+)
+def test_update_kwargs_dynamic_response_branches(function):
+    flow = Flow([Job(function)])
+    flow.update_kwargs({"b": 5}, function_filter=add, dynamic=True)
+    outputs = [
+        response.output
+        for job_responses in run_flow_responses(flow).values()
+        for response in job_responses.values()
+    ]
+    assert 7 in outputs
+
+
+def test_update_kwargs_dynamic_multiple_generations_and_order():
+    flow = Flow([Job(create_dynamic_second_generation_job)])
+    flow.update_kwargs({"b": 4}, function_filter=add, dynamic=True)
+    flow.update_kwargs(
+        {"_inc": {"b": 1}}, function_filter=add, dict_mod=True, dynamic=True
+    )
+    assert run_flow_output(flow) == 7
+
+
+def test_kwargs_dynamic_instruction_monty_roundtrip(memory_jobstore):
+    import json
+
+    from monty.json import MontyDecoder, MontyEncoder
+
+    task = Job(create_dynamic_add_job)
+    task.update_kwargs({"b": 5}, function_filter=add, dynamic=True)
+
+    decoded = json.loads(json.dumps(task, cls=MontyEncoder), cls=MontyDecoder)
+    response = decoded.run(memory_jobstore)
+    child = response.replace[0]
+    child_again = json.loads(json.dumps(child, cls=MontyEncoder), cls=MontyDecoder)
+
+    assert child_again.function_kwargs["b"] == 5
+    assert child_again.run(memory_jobstore).output == 7
+
+
+def test_update_kwargs_dynamic_nested_flow():
+    flow = Flow([Job(create_dynamic_nested_flow_job)])
+    flow.update_kwargs({"b": 5}, function_filter=add, dynamic=True)
+    outputs = [
+        response.output
+        for job_responses in run_flow_responses(flow).values()
+        for response in job_responses.values()
+    ]
+    assert 7 in outputs
+
+
 def test_update_maker_kwargs():
     # test no filter
     flow = get_maker_flow()
@@ -567,6 +788,148 @@ def test_update_maker_kwargs():
     flow.update_maker_kwargs({"_inc": {"b": 10}}, name_filter="div", dict_mod=True)
     assert flow[0].maker.b == 3
     assert flow[1].maker.b == 14
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        create_dynamic_maker_job,
+        create_dynamic_maker_addition_job,
+        create_dynamic_maker_detour_job,
+    ],
+)
+def test_update_maker_kwargs_dynamic_response_branches(function):
+    flow = Flow([Job(function)])
+    flow.update_maker_kwargs({"b": 5}, class_filter=DynamicAddMaker, dynamic=True)
+    outputs = [
+        response.output
+        for job_responses in run_flow_responses(flow).values()
+        for response in job_responses.values()
+    ]
+    assert 7 in outputs
+
+
+def test_update_maker_kwargs_dynamic_maker_instance_filter():
+    flow = Flow([Job(create_dynamic_maker_job)])
+    flow.update_maker_kwargs({"b": 5}, class_filter=DynamicAddMaker(), dynamic=True)
+    assert run_flow_output(flow) == 7
+
+
+@pytest.mark.parametrize("dynamic", [None, False])
+def test_update_maker_kwargs_dynamic_false_is_not_recorded(dynamic):
+    task = Job(create_dynamic_maker_job)
+    if dynamic is None:
+        task.update_maker_kwargs({"b": 5}, class_filter=DynamicAddMaker)
+    else:
+        task.update_maker_kwargs(
+            {"b": 5}, class_filter=DynamicAddMaker, dynamic=dynamic
+        )
+
+    assert task.maker_kwargs_updates == []
+    assert run_flow_output(Flow([task])) == 5
+
+
+def test_update_maker_kwargs_dynamic_no_class_filter():
+    flow = Flow([Job(create_dynamic_maker_job)])
+    flow.update_maker_kwargs({"b": 5}, dynamic=True)
+    assert run_flow_output(flow) == 7
+
+
+def test_update_maker_kwargs_dynamic_nonmatching_class_filter():
+    flow = Flow([Job(create_dynamic_maker_job)])
+    flow.update_maker_kwargs({"b": 5}, class_filter=OtherDynamicMaker, dynamic=True)
+    assert run_flow_output(flow) == 5
+
+
+def test_update_maker_kwargs_dynamic_second_generation():
+    flow = Flow([Job(create_dynamic_maker_second_generation_job)])
+    flow.update_maker_kwargs({"b": 5}, class_filter=DynamicAddMaker, dynamic=True)
+    assert run_flow_output(flow) == 7
+
+
+def test_maker_dynamic_instruction_monty_roundtrip(memory_jobstore):
+    import json
+
+    from monty.json import MontyDecoder, MontyEncoder
+
+    task = Job(create_dynamic_maker_job)
+    task.update_maker_kwargs({"b": 5}, class_filter=DynamicAddMaker, dynamic=True)
+
+    decoded = json.loads(json.dumps(task, cls=MontyEncoder), cls=MontyDecoder)
+    reencoded = json.dumps(decoded, cls=MontyEncoder)
+    decoded_again = json.loads(reencoded, cls=MontyDecoder)
+    response = decoded_again.run(memory_jobstore)
+    child = response.replace[0]
+    child_again = json.loads(json.dumps(child, cls=MontyEncoder), cls=MontyDecoder)
+
+    assert child_again.maker_kwargs_updates == child.maker_kwargs_updates
+    assert child_again.run(memory_jobstore).output == 7
+
+
+@pytest.mark.parametrize(
+    ("class_filter", "exception"),
+    [
+        (
+            {"@module": "jobflow.missing_module", "@callable": "Maker", "@bound": None},
+            ModuleNotFoundError,
+        ),
+        (
+            {"@module": "builtins", "@callable": "missing_callable", "@bound": None},
+            TypeError,
+        ),
+    ],
+)
+def test_maker_dynamic_invalid_filter_fails_closed(
+    memory_jobstore, class_filter, exception
+):
+    task = Job(
+        create_dynamic_maker_job,
+        maker_kwargs_updates=[
+            {
+                "update": {"b": 5},
+                "name_filter": None,
+                "class_filter": class_filter,
+                "nested": True,
+                "dict_mod": False,
+            }
+        ],
+    )
+
+    with pytest.raises(exception):
+        task.run(memory_jobstore)
+
+
+def test_maker_dynamic_instruction_keeps_path_and_tuple_payloads():
+    from pathlib import Path
+
+    update = {"path": Path("/tmp/example"), "pair": (1, 2)}
+    task = Job(create_dynamic_maker_job)
+    task.update_maker_kwargs(update, dynamic=True)
+
+    assert task.maker_kwargs_updates[0]["update"] == update
+
+
+def test_update_maker_kwargs_dynamic_nested_increment_repeats():
+    flow = Flow([Job(create_dynamic_nested_maker_job)])
+    flow.update_maker_kwargs(
+        {"_inc": {"b": 1}}, class_filter=DynamicAddMaker, dict_mod=True, dynamic=True
+    )
+    assert run_flow_output(flow) == 7
+
+
+def test_update_maker_kwargs_dynamic_nested_false():
+    flow = Flow([DynamicParentMaker().make(2)])
+    flow.update_maker_kwargs(
+        {"b": 5}, class_filter=DynamicAddMaker, nested=False, dynamic=True
+    )
+    assert flow[0].maker.inner.b == 3
+    assert run_flow_output(flow) == 7
+
+
+def test_update_maker_kwargs_dynamic_overwrites_runtime_maker_change():
+    flow = Flow([Job(create_dynamic_modified_maker_job)])
+    flow.update_maker_kwargs({"b": 5}, class_filter=DynamicAddMaker, dynamic=True)
+    assert run_flow_output(flow) == 7
 
 
 def test_append_name():
