@@ -312,8 +312,8 @@ class JobStore(Store):
             dict_docs.append(doc)
 
             if save_keys:
-                locations = []
                 for store_name, store_save in save_keys.items():
+                    locations = []
                     for save_key in store_save:
                         if isinstance(save_key, (list, tuple)):
                             locations.append(list(save_key))

@@ -257,6 +257,301 @@ def test_nested_msonable(memory_data_jobstore):
     }
 
 
+def _multi_store_save_jobstore(names):
+    from maggma.stores import MemoryStore
+
+    from jobflow import JobStore
+
+    docs = MemoryStore()
+    additional = {name: MemoryStore() for name in names}
+    store = JobStore(docs, additional_stores=additional)
+    store.connect()
+    return store
+
+
+@pytest.fixture
+def multi_store_save_source_identity(request, capsys):
+    import hashlib
+    import inspect
+    import json
+    from pathlib import Path
+
+    from jobflow import JobStore
+
+    installed_path = Path(inspect.getsourcefile(JobStore)).resolve()
+    checkout_path = Path(__file__).resolve().parents[2] / "src/jobflow/core/store.py"
+    installed_digest = hashlib.sha256(installed_path.read_bytes()).hexdigest()
+    checkout_digest = hashlib.sha256(checkout_path.read_bytes()).hexdigest()
+    assert installed_digest == checkout_digest
+    metadata = {
+        "nodeid": request.node.nodeid,
+        "installed_jobstore_source_path": str(installed_path),
+        "installed_jobstore_source_sha256": installed_digest,
+        "checkout_source_path": str(checkout_path.resolve()),
+        "checkout_source_sha256": checkout_digest,
+    }
+    with capsys.disabled():
+        print(
+            f"JOBFLOW_MULTI_STORE_SAVE_RUNTIME {json.dumps(metadata, sort_keys=True)}"
+        )
+
+
+def _save_multi_store_case(save):
+    from copy import deepcopy
+
+    store = _multi_store_save_jobstore(["A", "B"])
+    uuid, index = "multi-store-save-job", 81
+    sentinel = "unmodified-document-sentinel"
+    left_input = {"marker": "left-payload", "values": [17, 19]}
+    right_input = {"marker": "right-payload", "values": [23, 29]}
+    left_expected = deepcopy(left_input)
+    right_expected = deepcopy(right_input)
+    document = {
+        "uuid": uuid,
+        "index": index,
+        "sentinel": sentinel,
+        "output": {"left": left_input, "right": right_input},
+    }
+    store.update(document, save=save)
+    return store, uuid, index, sentinel, left_expected, right_expected
+
+
+def _records_for_owner(store, name, uuid, index):
+    return list(
+        store.additional_stores[name].query(
+            {"job_uuid": uuid, "job_index": index}, properties=None
+        )
+    )
+
+
+def _assert_record_owner(record, uuid, index):
+    assert record["blob_uuid"]
+    assert record["job_uuid"] == uuid
+    assert record["job_index"] == index
+
+
+def _assert_record_for_payload(records, payload):
+    matches = [record for record in records if record["data"] == payload]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _preflight_two_store_result(
+    store, uuid, index, sentinel, left_expected, right_expected
+):
+    raw = store.query_one({"uuid": uuid}, load=False, properties=None)
+    assert raw["uuid"] == uuid
+    assert raw["index"] == index
+    assert raw["sentinel"] == sentinel
+
+    records_a = _records_for_owner(store, "A", uuid, index)
+    records_b = _records_for_owner(store, "B", uuid, index)
+    for record in records_a + records_b:
+        _assert_record_owner(record, uuid, index)
+
+    _assert_record_for_payload(records_a, left_expected)
+    _assert_record_for_payload(records_b, right_expected)
+
+    assert raw["output"]["left"]["blob_uuid"] != raw["output"]["right"]["blob_uuid"]
+    for placeholder in (raw["output"]["left"], raw["output"]["right"]):
+        assert isinstance(placeholder, dict)
+        assert placeholder["@class"] == ""
+        assert placeholder["@module"] == ""
+        assert placeholder["blob_uuid"]
+        assert placeholder["store"] in store.additional_stores
+        matches = list(
+            store.additional_stores[placeholder["store"]].query(
+                {"blob_uuid": placeholder["blob_uuid"]}, properties=None
+            )
+        )
+        assert len(matches) == 1
+        _assert_record_owner(matches[0], uuid, index)
+
+    return raw, records_a, records_b
+
+
+def test_combined_store_save_keeps_raw_placeholders_in_named_stores(
+    multi_store_save_source_identity,
+):
+    save = {"A": [["output", "left"]], "B": [["output", "right"]]}
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(save)
+    raw, records_a, records_b = _preflight_two_store_result(
+        store, uuid, index, sentinel, left, right
+    )
+
+    assert raw["output"]["left"]["store"] == "A"
+    assert raw["output"]["right"]["store"] == "B"
+    assert raw["output"]["left"]["blob_uuid"] != raw["output"]["right"]["blob_uuid"]
+    assert len(records_a) == 1
+    assert len(records_b) == 1
+    assert records_a[0]["data"] == left
+    assert records_b[0]["data"] == right
+
+
+def test_combined_store_save_does_not_store_a_placeholder_in_b(
+    multi_store_save_source_identity,
+):
+    save = {"A": [["output", "left"]], "B": [["output", "right"]]}
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(save)
+    _, records_a, records_b = _preflight_two_store_result(
+        store, uuid, index, sentinel, left, right
+    )
+    a_record = _assert_record_for_payload(records_a, left)
+    assert not any(
+        isinstance(record["data"], dict)
+        and record["data"].get("blob_uuid") == a_record["blob_uuid"]
+        for record in records_b
+    )
+
+
+def test_combined_store_save_reverse_mapping_order_keeps_raw_locations(
+    multi_store_save_source_identity,
+):
+    save = {"B": [["output", "right"]], "A": [["output", "left"]]}
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(save)
+    raw, records_a, records_b = _preflight_two_store_result(
+        store, uuid, index, sentinel, left, right
+    )
+
+    assert raw["output"]["left"]["store"] == "A"
+    assert raw["output"]["right"]["store"] == "B"
+    assert len(records_a) == 1
+    assert len(records_b) == 1
+
+
+def test_combined_store_save_named_fields_keeps_raw_locations(
+    multi_store_save_source_identity,
+):
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(
+        {"A": "left", "B": "right"}
+    )
+    raw, records_a, records_b = _preflight_two_store_result(
+        store, uuid, index, sentinel, left, right
+    )
+
+    assert raw["output"]["left"]["store"] == "A"
+    assert raw["output"]["right"]["store"] == "B"
+    assert len(records_a) == 1
+    assert len(records_b) == 1
+
+
+def test_combined_store_save_second_no_match_keeps_first_store_location(
+    multi_store_save_source_identity,
+):
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(
+        {"A": "left", "B": "missing"}
+    )
+    raw = store.query_one({"uuid": uuid}, load=False, properties=None)
+    assert raw["uuid"] == uuid
+    assert raw["index"] == index
+    assert raw["sentinel"] == sentinel
+    records_a = _records_for_owner(store, "A", uuid, index)
+    records_b = _records_for_owner(store, "B", uuid, index)
+    for record in records_a + records_b:
+        _assert_record_owner(record, uuid, index)
+    a_record = _assert_record_for_payload(records_a, left)
+    assert raw["output"]["left"]["blob_uuid"]
+    assert raw["output"]["left"]["@class"] == ""
+    assert raw["output"]["left"]["@module"] == ""
+    assert raw["output"]["left"]["store"] in store.additional_stores
+    referenced = list(
+        store.additional_stores[raw["output"]["left"]["store"]].query(
+            {"blob_uuid": raw["output"]["left"]["blob_uuid"]}, properties=None
+        )
+    )
+    assert len(referenced) == 1
+    _assert_record_owner(referenced[0], uuid, index)
+
+    assert records_b == []
+    assert raw["output"]["left"]["store"] == "A"
+    assert raw["output"]["left"]["blob_uuid"] == a_record["blob_uuid"]
+    assert raw["output"]["right"] == right
+
+
+def test_combined_store_save_query_one_global_load_roundtrip(
+    multi_store_save_source_identity,
+):
+    save = {"A": [["output", "left"]], "B": [["output", "right"]]}
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(save)
+    _preflight_two_store_result(store, uuid, index, sentinel, left, right)
+
+    result = store.query_one({"uuid": uuid}, load=True, properties=None)
+
+    assert result["uuid"] == uuid
+    assert result["index"] == index
+    assert result["sentinel"] == sentinel
+    assert result["output"]["left"] == left
+    assert result["output"]["right"] == right
+
+
+def test_combined_store_save_query_global_load_roundtrip(
+    multi_store_save_source_identity,
+):
+    save = {"A": [["output", "left"]], "B": [["output", "right"]]}
+    store, uuid, index, sentinel, left, right = _save_multi_store_case(save)
+    _preflight_two_store_result(store, uuid, index, sentinel, left, right)
+
+    results = list(store.query({"uuid": uuid}, load=True, properties=None))
+
+    assert len(results) == 1
+    assert results[0]["uuid"] == uuid
+    assert results[0]["index"] == index
+    assert results[0]["sentinel"] == sentinel
+    assert results[0]["output"]["left"] == left
+    assert results[0]["output"]["right"] == right
+
+
+def test_single_store_save_multiple_locations_control(
+    multi_store_save_source_identity,
+):
+    from copy import deepcopy
+
+    store = _multi_store_save_jobstore(["A"])
+    uuid, index = "multi-store-save-job", 81
+    sentinel = "unmodified-document-sentinel"
+    left = {"marker": "left-payload", "values": [17, 19]}
+    right = {"marker": "right-payload", "values": [23, 29]}
+    expected_left, expected_right = deepcopy(left), deepcopy(right)
+    store.update(
+        {
+            "uuid": uuid,
+            "index": index,
+            "sentinel": sentinel,
+            "output": {"left": left, "right": right},
+        },
+        save={"A": [["output", "left"], ["output", "right"]]},
+    )
+    raw = store.query_one({"uuid": uuid}, load=False, properties=None)
+    records = _records_for_owner(store, "A", uuid, index)
+    for record in records:
+        _assert_record_owner(record, uuid, index)
+    assert raw["uuid"] == uuid
+    assert raw["index"] == index
+    assert raw["sentinel"] == sentinel
+    for name, expected in (("left", expected_left), ("right", expected_right)):
+        placeholder = raw["output"][name]
+        assert placeholder["store"] == "A"
+        assert placeholder["blob_uuid"]
+        assert placeholder["@class"] == ""
+        assert placeholder["@module"] == ""
+        assert (
+            len(
+                list(
+                    store.additional_stores["A"].query(
+                        {"blob_uuid": placeholder["blob_uuid"]}, properties=None
+                    )
+                )
+            )
+            == 1
+        )
+        _assert_record_for_payload(records, expected)
+    assert raw["output"]["left"]["blob_uuid"] != raw["output"]["right"]["blob_uuid"]
+
+    result = store.query_one({"uuid": uuid}, load=True, properties=None)
+    assert result["output"]["left"] == expected_left
+    assert result["output"]["right"] == expected_right
+
+
 def test_count(memory_jobstore):
     d = {"index": 1, "uuid": 1, "a": 1, "b": 2, "c": 3, "data": [1, 2, 3, 4]}
     memory_jobstore.update(d)
