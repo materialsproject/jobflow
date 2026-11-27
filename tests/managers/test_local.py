@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -492,3 +493,200 @@ def test_resolve_references_both(memory_jobstore, clean_dir):
 
     responses = run_locally(Flow([job1, job2]), store=memory_jobstore)
     assert responses[job2.uuid][1].output == 4
+
+
+class RecordingHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.messages = []
+        self.closed_by_manager = False
+
+    def emit(self, record):
+        self.messages.append(self.format(record))
+
+    def close(self):
+        self.closed_by_manager = True
+        super().close()
+
+
+@pytest.fixture
+def preserve_jobflow_logger():
+    logger = logging.getLogger("jobflow")
+    handlers = logger.handlers[:]
+    level = logger.level
+    propagate = logger.propagate
+    logger.handlers = []
+    logger.setLevel(logging.INFO)
+    logger.propagate = True
+    yield logger
+    logger.handlers = handlers
+    logger.setLevel(level)
+    logger.propagate = propagate
+
+
+def test_run_locally_routes_custom_handlers(
+    memory_jobstore, clean_dir, preserve_jobflow_logger, capsys
+):
+    from jobflow import job, run_locally
+
+    @job
+    def emit_records():
+        logging.getLogger("jobflow.tests").info("job info")
+        logging.getLogger("jobflow.tests").warning("job warning")
+        return "complete"
+
+    logger = preserve_jobflow_logger
+    previous = RecordingHandler()
+    logger.addHandler(previous)
+    info_handler = RecordingHandler()
+    warning_handler = RecordingHandler()
+    unformatted_handler = RecordingHandler()
+    info_handler.setLevel(logging.INFO)
+    warning_handler.setLevel(logging.WARNING)
+    levels = (info_handler.level, warning_handler.level, unformatted_handler.level)
+    info_formatter = logging.Formatter("INFO-HANDLER %(levelname)s %(message)s")
+    warning_formatter = logging.Formatter("WARNING-HANDLER %(levelname)s %(message)s")
+    info_handler.setFormatter(info_formatter)
+    warning_handler.setFormatter(warning_formatter)
+    supplied = [info_handler, warning_handler, unformatted_handler]
+    registered_handlers = tuple(supplied)
+
+    task = emit_records()
+    task.name = "custom-handler-job"
+    responses = run_locally(task, store=memory_jobstore, log=supplied)
+    supplied.clear()
+    logger.addHandler(info_handler)
+    logger.info("after successful run")
+
+    assert responses[next(iter(responses))][1].output == "complete"
+    assert logger.handlers == [info_handler, warning_handler, unformatted_handler]
+    assert info_handler.messages.count("INFO-HANDLER INFO job info") == 1
+    assert "WARNING-HANDLER INFO job info" not in warning_handler.messages
+    assert warning_handler.messages.count("WARNING-HANDLER WARNING job warning") == 1
+    assert "INFO-HANDLER WARNING job warning" in info_handler.messages
+    assert "INFO-HANDLER INFO Started executing jobs locally" in info_handler.messages
+    assert "INFO-HANDLER INFO Finished executing jobs locally" in info_handler.messages
+    assert any(
+        item.startswith(f"Starting job - {task.name} (")
+        for item in unformatted_handler.messages
+    )
+    assert any(
+        item.startswith(f"Finished job - {task.name} (")
+        for item in unformatted_handler.messages
+    )
+    assert "after successful run" in unformatted_handler.messages
+    assert info_handler.formatter is info_formatter
+    assert warning_handler.formatter is warning_formatter
+    assert unformatted_handler.formatter is None
+    assert (
+        info_handler.level,
+        warning_handler.level,
+        unformatted_handler.level,
+    ) == levels
+    assert all(not handler.closed_by_manager for handler in registered_handlers)
+    assert previous.messages == []
+    stdout, _ = capsys.readouterr()
+    assert stdout == ""
+
+
+def test_run_locally_empty_handlers_replaces_package_handlers(
+    memory_jobstore, clean_dir, preserve_jobflow_logger
+):
+    from jobflow import job, run_locally
+
+    @job
+    def emit_record():
+        logging.getLogger("jobflow.tests").info("empty-list sentinel")
+        return "complete"
+
+    logger = preserve_jobflow_logger
+    previous = RecordingHandler()
+    logger.addHandler(previous)
+    root = logging.getLogger()
+    root_handler = RecordingHandler()
+    original_root_handlers = root.handlers[:]
+    root_level = root.level
+    root.addHandler(root_handler)
+    try:
+        responses = run_locally(emit_record(), store=memory_jobstore, log=[])
+        assert responses[next(iter(responses))][1].output == "complete"
+        assert logger.handlers == []
+        assert previous.messages == []
+        assert any("empty-list sentinel" in item for item in root_handler.messages)
+        assert root.level == root_level
+        assert root.handlers == [*original_root_handlers, root_handler]
+    finally:
+        root.handlers = original_root_handlers
+        root.setLevel(root_level)
+
+
+def test_run_locally_log_empty_string_keeps_configuration(
+    memory_jobstore, clean_dir, preserve_jobflow_logger, simple_job
+):
+    from jobflow import run_locally
+
+    logger = preserve_jobflow_logger
+    sentinel = RecordingHandler()
+    logger.addHandler(sentinel)
+
+    job = simple_job("control")
+    run_locally(job, store=memory_jobstore, log="")
+
+    assert logger.handlers == [sentinel]
+
+
+def test_run_locally_keeps_custom_handlers_after_job_error(
+    memory_jobstore, clean_dir, preserve_jobflow_logger, error_job, simple_job
+):
+    from jobflow import run_locally
+
+    logger = preserve_jobflow_logger
+    handler = RecordingHandler()
+    handler.setFormatter(None)
+    handlers = [handler]
+
+    with pytest.raises(ValueError, match="errored"):
+        run_locally(
+            error_job(),
+            store=memory_jobstore,
+            log=handlers,
+            raise_immediately=True,
+        )
+
+    logger.info("after job error")
+    assert logger.handlers == [handler]
+    assert handler.formatter is None
+    assert "after job error" in handler.messages[-1]
+    assert handler.closed_by_manager is False
+
+    run_locally(simple_job("replacement"), store=memory_jobstore, log=True)
+
+    assert handler not in logger.handlers
+    assert handler.closed_by_manager is False
+
+
+def test_run_locally_nested_custom_handlers_remain_selected(
+    memory_jobstore, clean_dir, preserve_jobflow_logger
+):
+    from jobflow import job, run_locally
+
+    inner_handler = RecordingHandler()
+
+    @job
+    def inner_job():
+        logging.getLogger("jobflow.tests").info("inner job sentinel")
+        return "inner"
+
+    @job
+    def outer_job():
+        run_locally(inner_job(), store=memory_jobstore, log=[inner_handler])
+        logging.getLogger("jobflow.tests").info("outer after inner")
+        return "outer"
+
+    outer_handler = RecordingHandler()
+    responses = run_locally(outer_job(), store=memory_jobstore, log=[outer_handler])
+
+    assert responses[next(iter(responses))][1].output == "outer"
+    assert any("inner job sentinel" in item for item in inner_handler.messages)
+    assert any("outer after inner" in item for item in inner_handler.messages)
+    assert logging.getLogger("jobflow").handlers == [inner_handler]
