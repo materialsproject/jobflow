@@ -511,6 +511,7 @@ class Flow(MSONable):
         class_filter: type[jobflow.Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
+        callback_filter: Callable[[jobflow.Maker], bool] | None = None,
     ):
         """
         Update the keyword arguments of any :obj:`.Maker` objects in the jobs.
@@ -534,6 +535,10 @@ class Flow(MSONable):
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
+        callback_filter
+            A predicate that receives each candidate Maker after the name and class
+            filters. It must return a bool. The updates are applied only when it
+            returns True. Exceptions raised by the predicate propagate.
 
         Examples
         --------
@@ -602,6 +607,7 @@ class Flow(MSONable):
                 class_filter=class_filter,
                 nested=nested,
                 dict_mod=dict_mod,
+                callback_filter=callback_filter,
             )
 
     def append_name(self, append_str: str, prepend: bool = False, dynamic: bool = True):

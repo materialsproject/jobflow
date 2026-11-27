@@ -134,6 +134,7 @@ class Maker(MSONable):
         class_filter: type[Maker] = None,
         nested: bool = True,
         dict_mod: bool = False,
+        callback_filter: Callable[[Maker], bool] | None = None,
     ):
         """
         Update the keyword arguments of the :obj:`.Maker`.
@@ -159,6 +160,10 @@ class Maker(MSONable):
         dict_mod
             Use the dict mod language to apply updates. See :obj:`.DictMods` for more
             details.
+        callback_filter
+            A predicate that receives each candidate Maker after the name and class
+            filters. It must return a bool. The updates are applied only when it
+            returns True. Exceptions raised by the predicate propagate.
 
         Examples
         --------
@@ -226,6 +231,7 @@ class Maker(MSONable):
             name_filter=name_filter,
             class_filter=class_filter,
             nested=nested,
+            callback_filter=callback_filter,
         )
 
 
@@ -235,6 +241,7 @@ def recursive_call(
     name_filter: str = None,
     class_filter: type[Maker] = None,
     nested: bool = True,
+    callback_filter: Callable[[Maker], bool] | None = None,
 ):
     """Recursively call a function on all Maker objects in the object.
 
@@ -254,6 +261,9 @@ def recursive_call(
     nested
         Whether to apply the updates to Maker objects that are themselves kwargs
         of a Maker object. See examples for more details.
+    callback_filter
+        A predicate that receives each candidate Maker after the name and class
+        filters. It must return a bool. Exceptions raised by the predicate propagate.
     """
     from pydash import get, set_
 
@@ -269,7 +279,9 @@ def recursive_call(
             return False
         if name_filter is not None and name_filter not in nested_obj.name:
             return False
-        return class_filter is None or isinstance(nested_obj, class_filter)
+        if class_filter is not None and not isinstance(nested_obj, class_filter):
+            return False
+        return callback_filter is None or callback_filter(nested_obj) is not False
 
     d = obj.as_dict()
 
