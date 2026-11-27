@@ -348,7 +348,7 @@ def test_error_flow(memory_jobstore, clean_dir, error_flow, capsys):
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError, match="errored"):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
 
     with pytest.raises(ValueError, match="errored"):
@@ -370,7 +370,7 @@ def test_ensure_success_with_replace(memory_jobstore, error_replace_flow, capsys
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
 
-    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+    with pytest.raises(ValueError, match="errored"):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
 
 
@@ -387,7 +387,7 @@ def test_ensure_success_with_detour(error_detour_flow, memory_jobstore, capsys):
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
 
-    with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
+    with pytest.raises(ValueError, match="errored"):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
 
 
@@ -403,6 +403,209 @@ def test_ensure_success_with_addition(error_addition_flow, memory_jobstore, caps
 
     captured = capsys.readouterr()
     assert "error_func failed with exception" in captured.out
+
+    with pytest.raises(ValueError, match="errored"):
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+
+def test_ensure_success_retains_first_exception_and_continues(memory_jobstore):
+    import traceback
+
+    from jobflow import Flow, JobOrder, OnMissing, job, run_locally
+
+    caught = []
+    events = []
+    cause = LookupError("cause")
+
+    @job
+    def fail():
+        error = ValueError("first failure")
+        caught.append(error)
+        events.append("failed")
+        raise error from cause
+
+    @job
+    def continue_job():
+        events.append("continued")
+        return 17
+
+    @job
+    def blocked_job(value):
+        events.append("blocked")
+        return value
+
+    failed = fail()
+    continued = continue_job()
+    blocked = blocked_job(failed.output)
+    continued.config.on_missing_references = OnMissing.NONE
+    blocked.config.on_missing_references = OnMissing.ERROR
+    flow = Flow([failed, continued, blocked], order=JobOrder.LINEAR)
+
+    with pytest.raises(ValueError, match="first failure") as raised:
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+    assert raised.value is caught[0]
+    assert raised.value.__cause__ is cause
+    assert "fail" in {
+        frame.name for frame in traceback.extract_tb(raised.value.__traceback__)
+    }
+    assert events == ["failed", "continued"]
+    assert memory_jobstore.get_output(continued.uuid) == 17
+
+
+def test_ensure_success_false_continues_after_failure(memory_jobstore):
+    from jobflow import Flow, JobOrder, OnMissing, job, run_locally
+
+    events = []
+
+    @job
+    def fail():
+        events.append("failed")
+        raise ValueError("failure without deferred raise")
+
+    @job
+    def continue_job():
+        events.append("continued")
+        return 23
+
+    failed = fail()
+    continued = continue_job()
+    continued.config.on_missing_references = OnMissing.NONE
+    flow = Flow([failed, continued], order=JobOrder.LINEAR)
+
+    responses = run_locally(flow, store=memory_jobstore, ensure_success=False)
+
+    assert events == ["failed", "continued"]
+    assert responses[continued.uuid][1].output == 23
+    assert memory_jobstore.get_output(continued.uuid) == 23
+
+
+def test_deferred_raise_preserves_original_exception_context(memory_jobstore):
+    from jobflow import job, run_locally
+
+    inner_errors = []
+    job_errors = []
+    caller_error = RuntimeError("caller")
+
+    @job
+    def fail():
+        try:
+            raise KeyError("job context")
+        except KeyError as inner_error:
+            inner_errors.append(inner_error)
+            error = ValueError("job failure")
+            job_errors.append(error)
+            raise error from inner_error
+
+    try:
+        raise caller_error
+    except RuntimeError:
+        with pytest.raises(ValueError, match="job failure") as raised:
+            run_locally(fail(), store=memory_jobstore, ensure_success=True)
+
+    assert raised.value is job_errors[0]
+    assert raised.value.__context__ is inner_errors[0]
+    assert raised.value.__context__ is not caller_error
+
+
+def test_ensure_success_raises_first_failure_in_execution_order(memory_jobstore):
+    from jobflow import Flow, JobOrder, OnMissing, job, run_locally
+
+    caught = []
+    events = []
+
+    @job
+    def fail(label):
+        error = ValueError(label)
+        caught.append(error)
+        events.append(label)
+        raise error
+
+    first = fail("first")
+    second = fail("second")
+    second.config.on_missing_references = OnMissing.NONE
+    flow = Flow([first, second], order=JobOrder.LINEAR)
+
+    with pytest.raises(ValueError, match="first") as raised:
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+    assert events == ["first", "second"]
+    assert raised.value is caught[0]
+    assert raised.value is not caught[1]
+
+
+@pytest.mark.parametrize("action", ["replace", "detour", "addition"])
+def test_ensure_success_defers_dynamic_flow_failures(action, memory_jobstore):
+    from jobflow import Flow, JobOrder, OnMissing, Response, job, run_locally
+
+    events = []
+    caught = []
+
+    @job
+    def fail():
+        error = ValueError(f"{action} failure")
+        caught.append(error)
+        events.append("failed")
+        raise error
+
+    @job
+    def dynamic_job():
+        return Response(output="dynamic", **{action: fail()})
+
+    @job
+    def continue_job():
+        events.append("continued")
+
+    continued = continue_job()
+    continued.config.on_missing_references = OnMissing.NONE
+    flow = Flow([dynamic_job(), continued], order=JobOrder.LINEAR)
+
+    with pytest.raises(ValueError, match=f"{action} failure") as raised:
+        run_locally(flow, store=memory_jobstore, ensure_success=True)
+
+    assert raised.value is caught[0]
+    assert events == ["failed", "continued"]
+
+
+@pytest.mark.parametrize("ensure_success", [False, True])
+def test_raise_immediately_propagates_before_later_jobs(
+    ensure_success, memory_jobstore
+):
+    from jobflow import Flow, JobOrder, OnMissing, job, run_locally
+
+    events = []
+
+    @job
+    def fail():
+        events.append("failed")
+        raise ValueError("immediate failure")
+
+    @job
+    def later_job():
+        events.append("later")
+
+    later = later_job()
+    later.config.on_missing_references = OnMissing.NONE
+    flow = Flow([fail(), later], order=JobOrder.LINEAR)
+
+    with pytest.raises(ValueError, match="immediate failure"):
+        run_locally(
+            flow,
+            store=memory_jobstore,
+            ensure_success=ensure_success,
+            raise_immediately=True,
+        )
+
+    assert events == ["failed"]
+
+
+@pytest.mark.parametrize("flow_fixture", ["stop_jobflow_flow", "stop_children_flow"])
+def test_ensure_success_keeps_generic_error_for_stopped_flow(
+    flow_fixture, memory_jobstore, request
+):
+    from jobflow import run_locally
+
+    flow = request.getfixturevalue(flow_fixture)()
 
     with pytest.raises(RuntimeError, match="Flow did not finish running successfully"):
         run_locally(flow, store=memory_jobstore, ensure_success=True)
